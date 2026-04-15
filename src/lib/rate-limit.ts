@@ -61,4 +61,10 @@ export const limits = {
   createReply: (userId: string) =>
     checkRateLimit(`reply:min:${userId}`, 5, 60 * 1000) &&
     checkRateLimit(`reply:day:${userId}`, 30, 24 * 60 * 60 * 1000),
+  /** Candidacy filing: 3 per user per hour */
+  fileCandidacy: (userId: string) =>
+    checkRateLimit(`candidacy:${userId}`, 3, 60 * 60 * 1000),
+  /** Voting: 10 per user per minute */
+  castVote: (userId: string) =>
+    checkRateLimit(`vote:${userId}`, 10, 60 * 1000),
 };

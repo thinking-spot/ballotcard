@@ -89,3 +89,8 @@ export const CandidacySchema = z.object({
     .max(280),
   statementLong: z.string().max(5000).optional(),
 });
+
+export const CastVoteSchema = z.object({
+  electionId: uuidField("Invalid election ID"),
+  candidacyId: uuidField("Invalid candidacy ID"),
+});

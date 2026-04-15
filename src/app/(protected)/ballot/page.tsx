@@ -18,7 +18,7 @@ export const metadata = { title: "Your ballot" };
 // ─── Election alert banner ─────────────────────────────────────────────────
 
 function ElectionAlert({ alert }: { alert: BallotElectionAlert }) {
-  const closesDate = new Date(alert.votingClosesAt + "T12:00:00");
+  const closesDate = new Date(alert.votingClosesAt);
   const closesFormatted = closesDate.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
