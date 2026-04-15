@@ -483,6 +483,64 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
               </section>
             )}
 
+            {/* Cross-referenced posts (tagged with this district, from outside subtree) */}
+            {data.crossRefPosts.length > 0 && (
+              <section>
+                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
+                  Cross-references
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {data.crossRefPosts.map((post) => {
+                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+                      addSuffix: true,
+                    });
+                    return (
+                      <div
+                        key={post.id}
+                        className="px-4 py-3 rounded-lg border-l-4 border-l-sky-300 border border-bc-light-lavender bg-sky-50/30"
+                      >
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <span className="text-sky-700 font-medium">
+                            from{" "}
+                            <Link
+                              href={post.officeHref}
+                              className="hover:underline"
+                            >
+                              {post.officeTitle}
+                            </Link>
+                            {" →"}
+                          </span>
+                          <span>&middot;</span>
+                          <span>{timeAgo}</span>
+                        </div>
+                        {post.title && (
+                          <p className="text-sm font-medium text-bc-navy">
+                            {post.title}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {post.body}
+                        </p>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          <Link
+                            href={`/u/${post.authorUsername}`}
+                            className="hover:underline"
+                          >
+                            @{post.authorUsername}
+                          </Link>
+                          {post.isWitnessPost && (
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 text-bc-navy font-medium">
+                              Witness
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* Empty state */}
             {!hasOffices && !hasChildren && !hasActivity && (
               <div className="rounded-lg border border-bc-light-lavender bg-white p-8 text-center">
@@ -1132,6 +1190,67 @@ export default async function CatchallPage({
               officeHref={officeHref}
               showNewPostLink={!!session}
             />
+
+            {/* Cross-references (posts from other offices tagged with this official) */}
+            {data.crossRefPosts.length > 0 && (
+              <div className="rounded-lg border-l-4 border-l-sky-300 border border-bc-light-lavender bg-sky-50/30">
+                <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender/50">
+                  <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+                    Cross-references
+                  </h2>
+                </div>
+                <div className="px-4 divide-y divide-bc-light-lavender/50">
+                  {data.crossRefPosts.map((post) => {
+                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+                      addSuffix: true,
+                    });
+                    return (
+                      <div key={post.id} className="py-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <span className="text-sky-700 font-medium">
+                            from{" "}
+                            <Link
+                              href={post.sourceOfficeHref}
+                              className="hover:underline"
+                            >
+                              {post.sourceOfficeTitle}
+                            </Link>
+                            {" →"}
+                          </span>
+                          <span>&middot;</span>
+                          <span>{timeAgo}</span>
+                        </div>
+                        {post.title && (
+                          <p className="text-sm font-medium text-bc-navy">
+                            {post.title}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {post.body.length > 280
+                            ? post.body.slice(0, 280).trimEnd() + "…"
+                            : post.body}
+                        </p>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {post.authorUsername && (
+                            <Link
+                              href={`/u/${post.authorUsername}`}
+                              className="hover:underline"
+                            >
+                              @{post.authorUsername}
+                            </Link>
+                          )}
+                          {post.isWitnessPost && (
+                            <span className="ml-1.5 text-bc-navy font-medium">
+                              Witness
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Moderation log */}
             <ModLog actions={data.modActions} officeHref={officeHref} />

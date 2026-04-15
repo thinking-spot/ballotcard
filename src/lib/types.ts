@@ -112,7 +112,7 @@ export type FeaturedLink = {
 
 export type Tag = {
   id: string;
-  kind: "pol" | "district" | "issue";
+  kind: "official" | "district" | "issue";
   refId?: string;
   label: string;
   scopeDistrictId?: string;

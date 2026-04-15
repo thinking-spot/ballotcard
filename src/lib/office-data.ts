@@ -96,12 +96,25 @@ export type OfficePageData = {
   official: OfficialData | null;
   witness: WitnessData | null;
   posts: PostPreview[];
+  crossRefPosts: CrossRefPost[];
   watcherCount: number;
   isWatching: boolean;
   isWitnessForOffice: boolean;
   issueTags: { id: string; label: string }[];
   relatedOffices: { id: string; title: string; slug: string; geoSlug: string }[];
   modActions: ModActionEntry[];
+};
+
+export type CrossRefPost = {
+  id: string;
+  title?: string;
+  body: string;
+  isWitnessPost: boolean;
+  createdAt: string;
+  authorUsername?: string;
+  sourceOfficeTitle: string;
+  sourceOfficeHref: string;
+  tags: PostTag[];
 };
 
 // ─── Thread types ───────────────────────────────────────────────────────────
@@ -789,7 +802,109 @@ export async function getOfficePageData(
           .order("label")
       : { data: [] };
 
-  // 9. Related offices (other offices in same district — empty in Phase 2)
+  // 9. Cross-referenced posts (tagged with this office's official, from other offices)
+  let crossRefPosts: CrossRefPost[] = [];
+  if (officialRaw) {
+    // Find the official tag
+    const { data: officialTag } = await db
+      .from("Tags")
+      .select("id")
+      .eq("kind", "official")
+      .eq("ref_id", officialRaw.id)
+      .maybeSingle();
+
+    if (officialTag) {
+      // Find posts tagged with this official that are NOT on this office
+      const { data: crossRefPostTags } = await db
+        .from("PostTags")
+        .select("post_id")
+        .eq("tag_id", officialTag.id);
+
+      const crossRefPostIds = (crossRefPostTags ?? []).map((pt) => pt.post_id as string);
+
+      if (crossRefPostIds.length > 0) {
+        const { data: crossRefRaw } = await db
+          .from("Posts")
+          .select(
+            "id, title, body, is_witness_post, created_at, author_id, office_id"
+          )
+          .in("id", crossRefPostIds)
+          .neq("office_id", officeRaw.id)
+          .is("parent_id", null)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (crossRefRaw && crossRefRaw.length > 0) {
+          // Fetch source office info and authors
+          const crossRefOfficeIds = [...new Set(crossRefRaw.map((p) => p.office_id as string))];
+          const crossRefAuthorIds = [...new Set(crossRefRaw.map((p) => p.author_id as string).filter(Boolean))];
+
+          const [officeRows, crossRefAuthorRows, crossRefTagRows] = await Promise.all([
+            db.from("Offices")
+              .select("id, title, slug, district_id, Districts!inner(geo_slug)")
+              .in("id", crossRefOfficeIds),
+            crossRefAuthorIds.length > 0
+              ? db.from("Users").select("id, username").in("id", crossRefAuthorIds)
+              : Promise.resolve({ data: [] }),
+            db.from("PostTags")
+              .select("post_id, tag_id, Tags(id, kind, label, ref_id)")
+              .in("post_id", crossRefRaw.map((p) => p.id as string)),
+          ]);
+
+          const crossRefOfficeMap = new Map(
+            (officeRows.data ?? []).map((o) => {
+              const district = (o as Record<string, unknown>).Districts as { geo_slug: string } | null;
+              return [o.id as string, {
+                title: o.title as string,
+                href: `/${(district?.geo_slug ?? "")}/${o.slug}`,
+              }];
+            })
+          );
+
+          const crossRefAuthorMap = new Map(
+            (crossRefAuthorRows.data ?? []).map((u) => [u.id as string, u.username as string])
+          );
+
+          // Group tags by post
+          const crossRefTagsByPost = new Map<string, PostTag[]>();
+          for (const pt of crossRefTagRows.data ?? []) {
+            const pid = pt.post_id as string;
+            const tag = (pt as Record<string, unknown>).Tags as
+              | { id: string; kind: string; label: string; ref_id?: string }
+              | null;
+            if (!tag) continue;
+            if (!crossRefTagsByPost.has(pid)) crossRefTagsByPost.set(pid, []);
+            crossRefTagsByPost.get(pid)!.push({
+              id: tag.id,
+              kind: tag.kind,
+              label: tag.label,
+              refId: tag.ref_id ?? undefined,
+            });
+          }
+
+          crossRefPosts = crossRefRaw.map((p) => {
+            const source = crossRefOfficeMap.get(p.office_id as string);
+            return {
+              id: p.id as string,
+              title: (p.title as string) || undefined,
+              body: p.body as string,
+              isWitnessPost: p.is_witness_post as boolean,
+              createdAt: p.created_at as string,
+              authorUsername: p.author_id
+                ? crossRefAuthorMap.get(p.author_id as string)
+                : undefined,
+              sourceOfficeTitle: source?.title ?? "Unknown office",
+              sourceOfficeHref: source?.href ?? "#",
+              tags: crossRefTagsByPost.get(p.id as string) ?? [],
+            };
+          });
+        }
+      }
+    }
+  }
+
+  // 10. Related offices (other offices in same district — empty in Phase 2)
   const { data: relatedRaw } = await db
     .from("Offices")
     .select("id, title, slug, district_id")
@@ -914,6 +1029,7 @@ export async function getOfficePageData(
       : null,
     witness: witnessData,
     posts,
+    crossRefPosts,
     watcherCount: watcherCount ?? 0,
     isWatching: !!(watchCheck as { data: unknown }).data,
     isWitnessForOffice: !!(witnessForOfficeCheck as { data: unknown }).data,

@@ -48,6 +48,7 @@ export type DistrictPageData = {
   offices: DistrictOffice[];
   childDistricts: ChildDistrict[];
   recentActivity: DistrictActivityPost[];
+  crossRefPosts: DistrictActivityPost[];
   parentDistrict?: { name: string; geoSlug: string };
 };
 
@@ -322,6 +323,77 @@ export async function getDistrictPageData(
     }
   }
 
+  // 6. Cross-referenced posts (tagged with this district, from offices outside the subtree)
+  let crossRefPosts: DistrictActivityPost[] = [];
+  const { data: districtTag } = await db
+    .from("Tags")
+    .select("id")
+    .eq("kind", "district")
+    .eq("ref_id", districtRaw.id)
+    .maybeSingle();
+
+  if (districtTag) {
+    const { data: crossRefPostTags } = await db
+      .from("PostTags")
+      .select("post_id")
+      .eq("tag_id", districtTag.id);
+
+    const crossRefPostIds = (crossRefPostTags ?? []).map((pt) => pt.post_id as string);
+    // Exclude posts already shown in recent activity
+    const activityPostIds = new Set(recentActivity.map((p) => p.id));
+    const filteredCrossRefIds = crossRefPostIds.filter((id) => !activityPostIds.has(id));
+
+    if (filteredCrossRefIds.length > 0) {
+      const { data: crossRefRaw } = await db
+        .from("Posts")
+        .select(
+          "id, title, body, is_witness_post, created_at, office_id, Users!inner(username)"
+        )
+        .in("id", filteredCrossRefIds)
+        .is("deleted_at", null)
+        .is("parent_id", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (crossRefRaw && crossRefRaw.length > 0) {
+        // Fetch source office info
+        const crossRefOfficeIds = [...new Set(crossRefRaw.map((p) => p.office_id as string))];
+        const { data: crossRefOffices } = await db
+          .from("Offices")
+          .select("id, title, slug, district_id, Districts!inner(geo_slug)")
+          .in("id", crossRefOfficeIds);
+
+        const crossRefOfficeMap = new Map(
+          (crossRefOffices ?? []).map((o) => {
+            const d = (o as Row).Districts as { geo_slug: string };
+            return [o.id as string, {
+              title: o.title as string,
+              slug: o.slug as string,
+              districtGeoSlug: d.geo_slug as string,
+            }];
+          })
+        );
+
+        crossRefPosts = crossRefRaw.map((p) => {
+          const office = crossRefOfficeMap.get(p.office_id as string);
+          const author = (p as Row).Users as { username: string };
+          return {
+            id: p.id as string,
+            title: (p.title as string) || undefined,
+            body: p.body as string,
+            authorUsername: author.username,
+            isWitnessPost: p.is_witness_post as boolean,
+            createdAt: p.created_at as string,
+            officeTitle: office?.title ?? "Unknown office",
+            officeHref: office
+              ? `/${office.districtGeoSlug}/${office.slug}`
+              : "#",
+          };
+        });
+      }
+    }
+  }
+
   return {
     district: {
       id: districtRaw.id as string,
@@ -333,6 +405,7 @@ export async function getDistrictPageData(
     offices,
     childDistricts,
     recentActivity,
+    crossRefPosts,
     parentDistrict: parent
       ? { name: parent.name, geoSlug: parent.geo_slug }
       : undefined,

@@ -25,7 +25,7 @@ export function TagPicker({ selected, onChange, max = 10 }: TagPickerProps) {
       setIsOpen(false);
       return;
     }
-    const res = await searchTagsAction(q, "issue");
+    const res = await searchTagsAction(q);
     if ("success" in res) {
       setResults(res.data);
       setIsOpen(res.data.length > 0);
@@ -80,7 +80,10 @@ export function TagPicker({ selected, onChange, max = 10 }: TagPickerProps) {
       <div className="flex flex-wrap gap-1.5 p-2 rounded-md border border-bc-light-lavender bg-white min-h-[38px]">
         {selected.map((tag) => (
           <span key={tag.id} className="inline-flex items-center gap-1">
-            <TagPill label={tag.label} />
+            <TagPill
+              label={tag.kind !== "issue" ? `${tag.kind}: ${tag.label}` : tag.label}
+              className={tag.kind === "official" ? "bg-amber-100 text-amber-900" : tag.kind === "district" ? "bg-sky-100 text-sky-900" : undefined}
+            />
             <button
               type="button"
               onClick={() => removeTag(tag.id)}
@@ -132,6 +135,11 @@ export function TagPicker({ selected, onChange, max = 10 }: TagPickerProps) {
                   : "hover:bg-bc-light-lavender/30"
               }`}
             >
+              {tag.kind !== "issue" && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1.5">
+                  {tag.kind}
+                </span>
+              )}
               {tag.label}
             </li>
           ))}

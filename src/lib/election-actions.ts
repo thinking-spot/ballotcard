@@ -297,10 +297,13 @@ export async function resolveElectionAction(
   const quorum = election.quorum as number;
 
   if (totalVotes < quorum) {
+    await createNextElection(election);
+    revalidatePath("/[state]/[...slug]", "page");
+    revalidatePath("/ballot", "page");
     return {
       success: true,
       data: {
-        reason: `Quorum not met (${totalVotes}/${quorum} votes). No Witness seated.`,
+        reason: `Quorum not met (${totalVotes}/${quorum} votes). No Witness seated. Next election created.`,
       },
     };
   }
@@ -333,9 +336,12 @@ export async function resolveElectionAction(
   }
 
   if (!winnerId || !winnerUserId) {
+    await createNextElection(election);
+    revalidatePath("/[state]/[...slug]", "page");
+    revalidatePath("/ballot", "page");
     return {
       success: true,
-      data: { reason: "No active candidates received votes. No Witness seated." },
+      data: { reason: "No active candidates received votes. No Witness seated. Next election created." },
     };
   }
 
@@ -363,6 +369,9 @@ export async function resolveElectionAction(
     return { error: "Failed to seat Witness. Please try again." };
   }
 
+  // Create the next election for this office
+  await createNextElection(election);
+
   revalidatePath("/[state]/[...slug]", "page");
   revalidatePath("/ballot", "page");
 
@@ -376,6 +385,48 @@ export async function resolveElectionAction(
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Create the next election for an office after the current one resolves.
+// The next term starts where the current term ends, with the same duration.
+// Filing opens 30 days before term start, voting opens 14 days before,
+// voting closes at term start.
+async function createNextElection(election: {
+  office_id: unknown;
+  term_start: unknown;
+  term_end: unknown;
+  quorum: unknown;
+}): Promise<void> {
+  const termStart = new Date(election.term_start as string);
+  const termEnd = new Date(election.term_end as string);
+  const durationMs = termEnd.getTime() - termStart.getTime();
+
+  const nextTermStart = termEnd;
+  const nextTermEnd = new Date(nextTermStart.getTime() + durationMs);
+
+  const filingOpensAt = new Date(nextTermStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const votingOpensAt = new Date(nextTermStart.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const votingClosesAt = nextTermStart;
+
+  // Check if next election already exists (idempotent)
+  const { data: existing } = await db
+    .from("WitnessElections")
+    .select("id")
+    .eq("office_id", election.office_id)
+    .eq("term_start", nextTermStart.toISOString().split("T")[0])
+    .maybeSingle();
+
+  if (existing) return;
+
+  await db.from("WitnessElections").insert({
+    office_id: election.office_id,
+    term_start: nextTermStart.toISOString().split("T")[0],
+    term_end: nextTermEnd.toISOString().split("T")[0],
+    filing_opens_at: filingOpensAt.toISOString(),
+    voting_opens_at: votingOpensAt.toISOString(),
+    voting_closes_at: votingClosesAt.toISOString(),
+    quorum: election.quorum,
+  });
+}
 
 async function getOfficeDistrictId(officeId: string): Promise<string | null> {
   const { data } = await db

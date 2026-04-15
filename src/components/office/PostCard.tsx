@@ -20,8 +20,6 @@ export function PostCard({ post, officeHref }: PostCardProps) {
     addSuffix: true,
   });
 
-  const issueTags = post.tags.filter((t) => t.kind === "issue");
-
   return (
     <article className="py-4 border-b border-bc-light-lavender last:border-b-0">
       <div className="flex items-start gap-2 mb-1.5">
@@ -81,10 +79,14 @@ export function PostCard({ post, officeHref }: PostCardProps) {
         </p>
       )}
 
-      {issueTags.length > 0 && (
+      {post.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
-          {issueTags.map((tag) => (
-            <TagPill key={tag.id} label={tag.label} />
+          {post.tags.map((tag) => (
+            <TagPill
+              key={tag.id}
+              label={tag.kind !== "issue" ? `${tag.kind}: ${tag.label}` : tag.label}
+              className={tag.kind === "official" ? "bg-amber-100 text-amber-900" : tag.kind === "district" ? "bg-sky-100 text-sky-900" : undefined}
+            />
           ))}
         </div>
       )}
