@@ -73,6 +73,12 @@ export const CreateReplySchema = z.object({
   body: z.string().min(1, "Reply cannot be empty").max(20000),
 });
 
+export const EditPostSchema = z.object({
+  postId: uuidField("Invalid post ID"),
+  title: z.string().min(5, "Title must be at least 5 characters").max(300).optional(),
+  body: z.string().min(1, "Body cannot be empty").max(50000),
+});
+
 // ─── Elections ───────────────────────────────────────────────────────────────
 
 export const CandidacySchema = z.object({

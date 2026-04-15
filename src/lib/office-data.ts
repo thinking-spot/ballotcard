@@ -89,6 +89,375 @@ export type OfficePageData = {
   relatedOffices: { id: string; title: string; slug: string; geoSlug: string }[];
 };
 
+// ─── Thread types ───────────────────────────────────────────────────────────
+
+export type ThreadPost = {
+  id: string;
+  parentId: string | null;
+  title?: string;
+  body: string;
+  isWitnessPost: boolean;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  authorId?: string;
+  authorUsername?: string;
+  revisionCount: number;
+  featuredLink?: FeaturedLink;
+  tags: PostTag[];
+};
+
+export type ThreadReply = {
+  id: string;
+  parentId: string;
+  body: string;
+  isWitnessPost: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string;
+  authorId?: string;
+  authorUsername?: string;
+  revisionCount: number;
+  replies: ThreadReply[];
+};
+
+export type ThreadData = {
+  breadcrumbs: BreadcrumbItem[];
+  office: {
+    id: string;
+    title: string;
+    slug: string;
+  };
+  district: {
+    id: string;
+    name: string;
+    geoSlug: string;
+  };
+  post: ThreadPost;
+  replies: ThreadReply[];
+};
+
+// ─── Thread data fetcher ────────────────────────────────────────────────────
+
+export async function getThreadData(
+  postId: string
+): Promise<ThreadData | null> {
+  // 1. Fetch the root post
+  const { data: postRaw } = await db
+    .from("Posts")
+    .select(
+      `id, parent_id, title, body, is_witness_post, is_pinned,
+       created_at, updated_at, deleted_at, author_id, office_id,
+       featured_link_url, featured_link_title, featured_link_description,
+       featured_link_image_url, featured_link_domain, featured_link_fetch_status`
+    )
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (!postRaw) return null;
+
+  // If this is a reply, walk up to the root post
+  let rootPost = postRaw;
+  if (rootPost.parent_id) {
+    const { data: parentPost } = await db
+      .from("Posts")
+      .select(
+        `id, parent_id, title, body, is_witness_post, is_pinned,
+         created_at, updated_at, deleted_at, author_id, office_id,
+         featured_link_url, featured_link_title, featured_link_description,
+         featured_link_image_url, featured_link_domain, featured_link_fetch_status`
+      )
+      .eq("id", rootPost.parent_id)
+      .maybeSingle();
+
+    if (parentPost) rootPost = parentPost;
+    // If the parent also has a parent, walk up one more level (2-deep threading max)
+    if (rootPost.parent_id) {
+      const { data: grandparent } = await db
+        .from("Posts")
+        .select(
+          `id, parent_id, title, body, is_witness_post, is_pinned,
+           created_at, updated_at, deleted_at, author_id, office_id,
+           featured_link_url, featured_link_title, featured_link_description,
+           featured_link_image_url, featured_link_domain, featured_link_fetch_status`
+        )
+        .eq("id", rootPost.parent_id)
+        .maybeSingle();
+
+      if (grandparent) rootPost = grandparent;
+    }
+  }
+
+  const officeId = rootPost.office_id as string;
+  if (!officeId) return null;
+
+  // 2. Fetch office + district context for breadcrumbs
+  const { data: officeRaw } = await db
+    .from("Offices")
+    .select("id, title, slug, district_id")
+    .eq("id", officeId)
+    .maybeSingle();
+
+  if (!officeRaw) return null;
+
+  const { data: districtRaw } = await db
+    .from("Districts")
+    .select(
+      `id, name, geo_slug,
+       parent:parent_id(
+         id, name, geo_slug,
+         parent:parent_id(id, name, geo_slug)
+       )`
+    )
+    .eq("id", officeRaw.district_id)
+    .single();
+
+  if (!districtRaw) return null;
+
+  // 3. Fetch all replies in this thread (flat, then we'll nest them)
+  const { data: repliesRaw } = await db
+    .from("Posts")
+    .select(
+      `id, parent_id, body, is_witness_post,
+       created_at, updated_at, deleted_at, author_id`
+    )
+    .eq("office_id", officeId)
+    .not("parent_id", "is", null)
+    .order("created_at", { ascending: true });
+
+  // Filter to only replies that belong to this thread
+  // Build a set of IDs in the thread starting from rootPost.id
+  const allReplies = (repliesRaw ?? []) as Array<Record<string, unknown>>;
+  const threadIds = new Set<string>([rootPost.id as string]);
+  // Multiple passes to capture nested replies
+  let added = true;
+  while (added) {
+    added = false;
+    for (const r of allReplies) {
+      const rid = r.id as string;
+      const pid = r.parent_id as string;
+      if (!threadIds.has(rid) && threadIds.has(pid)) {
+        threadIds.add(rid);
+        added = true;
+      }
+    }
+  }
+  const threadReplies = allReplies.filter((r) => threadIds.has(r.id as string) && r.id !== rootPost.id);
+
+  // 4. Collect all author IDs and fetch usernames
+  const allAuthorIds = new Set<string>();
+  if (rootPost.author_id) allAuthorIds.add(rootPost.author_id as string);
+  for (const r of threadReplies) {
+    if (r.author_id) allAuthorIds.add(r.author_id as string);
+  }
+
+  const authorIds = [...allAuthorIds];
+
+  // 5. Fetch usernames + revision counts + post tags in parallel
+  const allPostIds = [rootPost.id as string, ...threadReplies.map((r) => r.id as string)];
+
+  const [authorRows, revisionRows, postTagRows] = await Promise.all([
+    authorIds.length > 0
+      ? db.from("Users").select("id, username").in("id", authorIds)
+      : Promise.resolve({ data: [] }),
+    db
+      .from("PostRevisions")
+      .select("post_id")
+      .in("post_id", allPostIds)
+      .then((r) => (r.error ? { data: [] } : r)),
+    db
+      .from("PostTags")
+      .select("post_id, tag_id, Tags(id, kind, label, ref_id)")
+      .in("post_id", [rootPost.id as string]),
+  ]);
+
+  const authorMap = new Map(
+    (authorRows.data ?? []).map((u) => [u.id as string, u.username as string])
+  );
+
+  // Count revisions per post
+  const revisionCountMap = new Map<string, number>();
+  for (const rev of revisionRows.data ?? []) {
+    const pid = rev.post_id as string;
+    revisionCountMap.set(pid, (revisionCountMap.get(pid) ?? 0) + 1);
+  }
+
+  // Group tags for root post
+  const rootTags: PostTag[] = [];
+  for (const pt of postTagRows.data ?? []) {
+    const tag = (pt as Record<string, unknown>).Tags as
+      | { id: string; kind: string; label: string; ref_id?: string }
+      | null;
+    if (!tag) continue;
+    rootTags.push({
+      id: tag.id,
+      kind: tag.kind,
+      label: tag.label,
+      refId: tag.ref_id ?? undefined,
+    });
+  }
+
+  // 6. Build root post
+  const post: ThreadPost = {
+    id: rootPost.id as string,
+    parentId: null,
+    title: (rootPost.title as string) || undefined,
+    body: rootPost.body as string,
+    isWitnessPost: rootPost.is_witness_post as boolean,
+    isPinned: rootPost.is_pinned as boolean,
+    createdAt: rootPost.created_at as string,
+    updatedAt: (rootPost.updated_at as string) || undefined,
+    deletedAt: (rootPost.deleted_at as string) || undefined,
+    authorId: (rootPost.author_id as string) || undefined,
+    authorUsername: rootPost.author_id
+      ? authorMap.get(rootPost.author_id as string)
+      : undefined,
+    revisionCount: revisionCountMap.get(rootPost.id as string) ?? 0,
+    featuredLink: rootPost.featured_link_url
+      ? {
+          url: rootPost.featured_link_url as string,
+          title: (rootPost.featured_link_title as string) || undefined,
+          description: (rootPost.featured_link_description as string) || undefined,
+          imageUrl: (rootPost.featured_link_image_url as string) || undefined,
+          domain: (rootPost.featured_link_domain as string) || undefined,
+          fetchStatus: (rootPost.featured_link_fetch_status as string) ?? "failed",
+        }
+      : undefined,
+    tags: rootTags,
+  };
+
+  // 7. Build reply tree
+  const replyMap = new Map<string, ThreadReply>();
+  for (const r of threadReplies) {
+    replyMap.set(r.id as string, {
+      id: r.id as string,
+      parentId: r.parent_id as string,
+      body: r.body as string,
+      isWitnessPost: r.is_witness_post as boolean,
+      createdAt: r.created_at as string,
+      updatedAt: (r.updated_at as string) || undefined,
+      deletedAt: (r.deleted_at as string) || undefined,
+      authorId: (r.author_id as string) || undefined,
+      authorUsername: r.author_id
+        ? authorMap.get(r.author_id as string)
+        : undefined,
+      revisionCount: revisionCountMap.get(r.id as string) ?? 0,
+      replies: [],
+    });
+  }
+
+  // Nest replies under their parents
+  const topLevelReplies: ThreadReply[] = [];
+  for (const reply of replyMap.values()) {
+    if (reply.parentId === post.id) {
+      topLevelReplies.push(reply);
+    } else {
+      const parent = replyMap.get(reply.parentId);
+      if (parent) {
+        parent.replies.push(reply);
+      }
+    }
+  }
+
+  // 8. Build breadcrumbs
+  type ParentRow = { name: string; geo_slug: string };
+  const ancestors: ParentRow[] = [];
+  const parent = (districtRaw as Record<string, unknown>).parent as
+    | (ParentRow & { parent?: ParentRow })
+    | null;
+  if (parent) {
+    if (parent.parent) ancestors.push(parent.parent);
+    ancestors.push({ name: parent.name, geo_slug: parent.geo_slug });
+  }
+
+  const officeHref = `/${districtRaw.geo_slug}/${officeRaw.slug}`;
+  const breadcrumbs: BreadcrumbItem[] = [];
+  for (const anc of ancestors) {
+    breadcrumbs.push({ label: anc.name, href: `/${anc.geo_slug}` });
+  }
+  breadcrumbs.push({
+    label: districtRaw.name as string,
+    href: `/${districtRaw.geo_slug}`,
+  });
+  breadcrumbs.push({
+    label: officeRaw.title as string,
+    href: officeHref,
+  });
+  breadcrumbs.push({
+    label: post.title ?? "Thread",
+    href: "",
+  });
+
+  return {
+    breadcrumbs,
+    office: {
+      id: officeRaw.id as string,
+      title: officeRaw.title as string,
+      slug: officeRaw.slug as string,
+    },
+    district: {
+      id: districtRaw.id as string,
+      name: districtRaw.name as string,
+      geoSlug: districtRaw.geo_slug as string,
+    },
+    post,
+    replies: topLevelReplies,
+  };
+}
+
+// ─── Post permalink resolver ────────────────────────────────────────────────
+
+/**
+ * Given a post ID, return the canonical URL path for the thread view.
+ * Used by the /p/[postId] short permalink route.
+ */
+export async function getPostCanonicalPath(
+  postId: string
+): Promise<string | null> {
+  // Find the post and its office
+  const { data: postRow } = await db
+    .from("Posts")
+    .select("id, parent_id, office_id")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (!postRow || !postRow.office_id) return null;
+
+  // Walk to root post if this is a reply
+  let rootId = postRow.id as string;
+  let parentId = postRow.parent_id as string | null;
+  while (parentId) {
+    const { data: parentRow } = await db
+      .from("Posts")
+      .select("id, parent_id")
+      .eq("id", parentId)
+      .maybeSingle();
+    if (!parentRow) break;
+    rootId = parentRow.id as string;
+    parentId = parentRow.parent_id as string | null;
+  }
+
+  // Get office + district geo_slug
+  const { data: officeRow } = await db
+    .from("Offices")
+    .select("slug, district_id")
+    .eq("id", postRow.office_id)
+    .maybeSingle();
+
+  if (!officeRow) return null;
+
+  const { data: districtRow } = await db
+    .from("Districts")
+    .select("geo_slug")
+    .eq("id", officeRow.district_id)
+    .maybeSingle();
+
+  if (!districtRow) return null;
+
+  return `/${districtRow.geo_slug}/${officeRow.slug}/post/${rootId}`;
+}
+
 // ─── Breadcrumb builder ───────────────────────────────────────────────────────
 
 function buildBreadcrumbs(

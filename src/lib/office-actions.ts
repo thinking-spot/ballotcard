@@ -36,6 +36,7 @@ export async function watchOfficeAction(officeId: string) {
     .eq("office_id", officeId);
 
   revalidatePath("/[state]/[...slug]", "page");
+  revalidatePath("/ballot", "page");
 
   return { success: true, data: { watcherCount: count ?? 0 } };
 }
@@ -61,6 +62,7 @@ export async function unwatchOfficeAction(officeId: string) {
     .eq("office_id", officeId);
 
   revalidatePath("/[state]/[...slug]", "page");
+  revalidatePath("/ballot", "page");
 
   return { success: true, data: { watcherCount: count ?? 0 } };
 }

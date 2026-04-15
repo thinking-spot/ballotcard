@@ -2,6 +2,26 @@ import { db } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type BallotPostPreview = {
+  id: string;
+  title?: string;
+  body: string;
+  authorUsername?: string;
+  isWitnessPost: boolean;
+  replyCount: number;
+  createdAt: string;
+};
+
+export type BallotElectionAlert = {
+  officeId: string;
+  officeTitle: string;
+  officeHref: string;
+  electionId: string;
+  votingClosesAt: string;
+  candidateCount: number;
+  userHasVoted: boolean;
+};
+
 export type BallotOffice = {
   id: string;
   title: string;
@@ -12,9 +32,12 @@ export type BallotOffice = {
   officialName?: string;
   officialParty?: string;
   witnessUsername?: string;
-  witnessIsActive: boolean; // has posted in last 30 days
+  witnessIsActive: boolean;
   watcherCount: number;
+  newPostCount: number;
   hasOpenElection: boolean;
+  isWatched: boolean;
+  recentPosts: BallotPostPreview[];
 };
 
 export type BallotLayer = {
@@ -26,8 +49,13 @@ export type BallotLayer = {
 export type BallotData = {
   layers: BallotLayer[];
   homeDistrictName: string;
+  homeDistrictState?: string;
+  homeDistrictCounty?: string;
   totalOffices: number;
+  watchedCount: number;
+  newPostsThisWeek: number;
   activeWitnesses: number;
+  electionAlerts: BallotElectionAlert[];
 };
 
 // ─── Layer classification ────────────────────────────────────────────────────
@@ -60,14 +88,19 @@ const LAYER_ORDER = ["Federal", "State", "County", "Municipal", "Other"];
 // ─── Main data fetcher ───────────────────────────────────────────────────────
 
 export async function getBallotData(
-  homeDistrictId: string
+  homeDistrictId: string,
+  userId?: string
 ): Promise<BallotData | null> {
   // 1. Get the home district and walk up the parent chain
   const districts = await getDistrictAncestry(homeDistrictId);
   if (districts.length === 0) return null;
 
-  const homeDistrict = districts[0]; // the user's actual home district
+  const homeDistrict = districts[0];
   const districtIds = districts.map((d) => d.id);
+
+  // Derive location context from ancestry
+  const stateDistrict = districts.find((d) => d.kind === "state");
+  const countyDistrict = districts.find((d) => d.kind === "county");
 
   // 2. Get all offices across the user's ballot districts
   const { data: officesRaw } = await db
@@ -84,8 +117,13 @@ export async function getBallotData(
     return {
       layers: [],
       homeDistrictName: homeDistrict.name,
+      homeDistrictState: stateDistrict?.name,
+      homeDistrictCounty: countyDistrict?.name,
       totalOffices: 0,
+      watchedCount: 0,
+      newPostsThisWeek: 0,
       activeWitnesses: 0,
+      electionAlerts: [],
     };
   }
 
@@ -95,46 +133,86 @@ export async function getBallotData(
   const thirtyDaysAgo = new Date(
     Date.now() - 30 * 24 * 60 * 60 * 1000
   ).toISOString();
+  const oneWeekAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
+  const now = new Date().toISOString();
 
-  const [officialsResult, witnessesResult, watchCountsResult, electionsResult, recentPostsResult] =
-    await Promise.all([
-      // Current officials for these offices
-      db
-        .from("Officials")
-        .select("office_id, name, party")
-        .in("office_id", officeIds)
-        .eq("is_current", true),
-      // Current witnesses
-      db
-        .from("Witnesses")
-        .select("office_id, user_id, Users!inner(username)")
-        .in("office_id", officeIds)
-        .eq("is_current", true),
-      // Watcher counts per office
-      db
-        .from("OfficeWatches")
-        .select("office_id")
-        .in("office_id", officeIds),
-      // Open elections (voting currently open)
-      db
-        .from("WitnessElections")
-        .select("office_id")
-        .in("office_id", officeIds)
-        .lte("voting_opens_at", new Date().toISOString())
-        .gte("voting_closes_at", new Date().toISOString()),
-      // Recent witness posts (for activity detection)
-      db
-        .from("Posts")
-        .select("office_id, author_id")
-        .in("office_id", officeIds)
-        .eq("is_witness_post", true)
-        .is("deleted_at", null)
-        .gte("created_at", thirtyDaysAgo),
-    ]);
+  // 3. Batch-fetch related data in parallel
+  const [
+    officialsResult,
+    witnessesResult,
+    watchCountsResult,
+    electionsResult,
+    recentWitnessPostsResult,
+    newPostsResult,
+    recentPostsResult,
+    userWatchesResult,
+  ] = await Promise.all([
+    // 0: Current officials
+    db
+      .from("Officials")
+      .select("office_id, name, party")
+      .in("office_id", officeIds)
+      .eq("is_current", true),
+    // 1: Current witnesses
+    db
+      .from("Witnesses")
+      .select("office_id, user_id, Users!inner(username)")
+      .in("office_id", officeIds)
+      .eq("is_current", true),
+    // 2: Watcher counts per office
+    db
+      .from("OfficeWatches")
+      .select("office_id")
+      .in("office_id", officeIds),
+    // 3: Open elections with candidate counts
+    db
+      .from("WitnessElections")
+      .select("id, office_id, voting_closes_at")
+      .in("office_id", officeIds)
+      .lte("voting_opens_at", now)
+      .gte("voting_closes_at", now),
+    // 4: Recent witness posts (activity detection)
+    db
+      .from("Posts")
+      .select("office_id, author_id")
+      .in("office_id", officeIds)
+      .eq("is_witness_post", true)
+      .is("deleted_at", null)
+      .gte("created_at", thirtyDaysAgo),
+    // 5: New posts this week (counts)
+    db
+      .from("Posts")
+      .select("office_id")
+      .in("office_id", officeIds)
+      .is("deleted_at", null)
+      .is("parent_id", null)
+      .gte("created_at", oneWeekAgo),
+    // 6: Recent posts for inline display (top-level, last 50)
+    db
+      .from("Posts")
+      .select("id, office_id, title, body, author_id, is_witness_post, created_at, Users!inner(username)")
+      .in("office_id", officeIds)
+      .is("deleted_at", null)
+      .is("parent_id", null)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    // 7: User's watch state (empty result if no userId)
+    userId
+      ? db
+          .from("OfficeWatches")
+          .select("office_id")
+          .eq("user_id", userId)
+          .in("office_id", officeIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+  ]);
 
-  // Build lookup maps
+  // Build lookup maps — cast rows to Record<string, unknown> for safe access
+  type Row = Record<string, unknown>;
+
   const officialsByOffice = new Map<string, { name: string; party?: string }>();
-  for (const o of officialsResult.data ?? []) {
+  for (const o of (officialsResult.data ?? []) as Row[]) {
     officialsByOffice.set(o.office_id as string, {
       name: o.name as string,
       party: (o.party as string) || undefined,
@@ -142,8 +220,8 @@ export async function getBallotData(
   }
 
   const witnessByOffice = new Map<string, { username: string; userId: string }>();
-  for (const w of witnessesResult.data ?? []) {
-    const user = (w as Record<string, unknown>).Users as { username: string } | null;
+  for (const w of (witnessesResult.data ?? []) as Row[]) {
+    const user = w.Users as { username: string } | null;
     witnessByOffice.set(w.office_id as string, {
       username: user?.username ?? "unknown",
       userId: w.user_id as string,
@@ -151,26 +229,101 @@ export async function getBallotData(
   }
 
   const watchCounts = new Map<string, number>();
-  for (const w of watchCountsResult.data ?? []) {
+  for (const w of (watchCountsResult.data ?? []) as Row[]) {
     const oid = w.office_id as string;
     watchCounts.set(oid, (watchCounts.get(oid) ?? 0) + 1);
   }
 
-  const openElections = new Set<string>();
-  for (const e of electionsResult.data ?? []) {
-    openElections.add(e.office_id as string);
+  // New post counts per office (this week)
+  const newPostCounts = new Map<string, number>();
+  let totalNewPosts = 0;
+  for (const p of (newPostsResult.data ?? []) as Row[]) {
+    const oid = p.office_id as string;
+    newPostCounts.set(oid, (newPostCounts.get(oid) ?? 0) + 1);
+    totalNewPosts++;
   }
 
-  // Active witness = has posted in last 30 days
+  // Open elections
+  type ElectionRow = { id: string; office_id: string; voting_closes_at: string };
+  const openElections = new Map<string, ElectionRow>();
+  for (const e of (electionsResult.data ?? []) as Row[]) {
+    openElections.set(e.office_id as string, e as unknown as ElectionRow);
+  }
+
+  // Active witness detection
   const activeWitnessOffices = new Set<string>();
-  for (const p of recentPostsResult.data ?? []) {
+  for (const p of (recentWitnessPostsResult.data ?? []) as Row[]) {
     const witness = witnessByOffice.get(p.office_id as string);
     if (witness && witness.userId === (p.author_id as string)) {
       activeWitnessOffices.add(p.office_id as string);
     }
   }
 
-  // 4. Build ballot offices
+  // User watch state
+  const userWatchedOffices = new Set<string>();
+  for (const w of (userWatchesResult.data ?? []) as Row[]) {
+    userWatchedOffices.add(w.office_id as string);
+  }
+
+  // Recent posts grouped by office (max 3 per office)
+  const recentPostsByOffice = new Map<string, BallotPostPreview[]>();
+  for (const p of (recentPostsResult.data ?? []) as Row[]) {
+    const oid = p.office_id as string;
+    const existing = recentPostsByOffice.get(oid) ?? [];
+    if (existing.length >= 3) continue;
+    const author = p.Users as { username: string } | null;
+    existing.push({
+      id: p.id as string,
+      title: (p.title as string) || undefined,
+      body: p.body as string,
+      authorUsername: author?.username,
+      isWitnessPost: p.is_witness_post as boolean,
+      replyCount: 0,
+      createdAt: p.created_at as string,
+    });
+    recentPostsByOffice.set(oid, existing);
+  }
+
+  // 4. Build election alerts
+  const electionAlerts: BallotElectionAlert[] = [];
+  for (const [officeId, election] of openElections) {
+    const officeRaw = officesRaw.find((o) => (o.id as string) === officeId);
+    if (!officeRaw) continue;
+    const district = (officeRaw as Record<string, unknown>).Districts as {
+      geo_slug: string;
+    };
+
+    // Get candidate count for this election
+    const { count: candidateCount } = await db
+      .from("WitnessCandidacies")
+      .select("*", { count: "exact", head: true })
+      .eq("election_id", election.id)
+      .is("withdrawn_at", null);
+
+    // Check if user has voted
+    let userHasVoted = false;
+    if (userId) {
+      const { data: vote } = await db
+        .from("WitnessVotes")
+        .select("id")
+        .eq("election_id", election.id)
+        .eq("voter_id", userId)
+        .maybeSingle();
+      userHasVoted = !!vote;
+    }
+
+    electionAlerts.push({
+      officeId,
+      officeTitle: officeRaw.title as string,
+      officeHref: `/${district.geo_slug}/${officeRaw.slug as string}`,
+      electionId: election.id,
+      votingClosesAt: election.voting_closes_at,
+      candidateCount: candidateCount ?? 0,
+      userHasVoted,
+    });
+  }
+
+  // 5. Build ballot offices
   const ballotOffices: BallotOffice[] = officesRaw.map((o) => {
     const district = (o as Record<string, unknown>).Districts as {
       kind: string;
@@ -192,17 +345,19 @@ export async function getBallotData(
       witnessUsername: witness?.username,
       witnessIsActive: activeWitnessOffices.has(oid),
       watcherCount: watchCounts.get(oid) ?? 0,
+      newPostCount: newPostCounts.get(oid) ?? 0,
       hasOpenElection: openElections.has(oid),
+      isWatched: userWatchedOffices.has(oid),
+      recentPosts: recentPostsByOffice.get(oid) ?? [],
     };
   });
 
-  // 5. Group into layers
+  // 6. Group into layers
   const layerMap = new Map<string, { districtName: string; offices: BallotOffice[] }>();
 
   for (const office of ballotOffices) {
     const layer = classifyLayer(office.kind);
     if (!layerMap.has(layer)) {
-      // Find the district name for this layer
       const district = districts.find((d) => classifyLayer(d.kind) === layer);
       layerMap.set(layer, {
         districtName: district?.name ?? layer,
@@ -212,7 +367,27 @@ export async function getBallotData(
     layerMap.get(layer)!.offices.push(office);
   }
 
-  const layers: BallotLayer[] = LAYER_ORDER
+  // Combine County & Municipal into a single layer to match mockup
+  const countyData = layerMap.get("County");
+  const municipalData = layerMap.get("Municipal");
+  if (countyData && municipalData) {
+    countyData.offices.push(...municipalData.offices);
+    layerMap.delete("Municipal");
+    layerMap.set("County & Municipal", {
+      districtName: countyData.districtName,
+      offices: countyData.offices,
+    });
+    layerMap.delete("County");
+  } else if (municipalData && !countyData) {
+    layerMap.set("County & Municipal", municipalData);
+    layerMap.delete("Municipal");
+  } else if (countyData && !municipalData) {
+    layerMap.set("County & Municipal", countyData);
+    layerMap.delete("County");
+  }
+
+  const displayOrder = ["Federal", "State", "County & Municipal", "Other"];
+  const layers: BallotLayer[] = displayOrder
     .filter((l) => layerMap.has(l))
     .map((l) => ({
       label: l,
@@ -223,8 +398,13 @@ export async function getBallotData(
   return {
     layers,
     homeDistrictName: homeDistrict.name,
+    homeDistrictState: stateDistrict?.name,
+    homeDistrictCounty: countyDistrict?.name,
     totalOffices: ballotOffices.length,
+    watchedCount: userWatchedOffices.size,
+    newPostsThisWeek: totalNewPosts,
     activeWitnesses: ballotOffices.filter((o) => o.witnessUsername && o.witnessIsActive).length,
+    electionAlerts,
   };
 }
 
