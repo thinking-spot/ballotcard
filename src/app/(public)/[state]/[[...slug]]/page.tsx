@@ -5,6 +5,8 @@ import { auth } from "@/auth";
 import { resolveSlug } from "@/lib/slug-resolver";
 import { getOfficePageData, getThreadData } from "@/lib/office-data";
 import { getElectionPageData } from "@/lib/election-data";
+import { getDistrictPageData } from "@/lib/district-data";
+import type { DistrictPageData, DistrictOffice } from "@/lib/district-data";
 import type { ThreadReply, ModDeletion } from "@/lib/office-data";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { WitnessBadge } from "@/components/ui/WitnessBadge";
@@ -26,7 +28,7 @@ import { VoteButton } from "@/components/election/VoteButton";
 import { WithdrawButton } from "@/components/election/WithdrawButton";
 import { ResolveButton } from "@/components/election/ResolveButton";
 
-type Params = { state: string; slug: string[] };
+type Params = { state: string; slug?: string[] };
 
 /**
  * Detect /post/new suffix on the slug array.
@@ -229,6 +231,13 @@ export async function generateMetadata({
 }) {
   const { state, slug } = await params;
 
+  // State-level district (no slug)
+  if (!slug || slug.length === 0) {
+    const districtData = await getDistrictPageData(state);
+    if (!districtData) return {};
+    return { title: `${districtData.district.name} — BallotCard` };
+  }
+
   // Handle /post/new metadata
   const baseSlug = extractNewPostSlug(slug);
   if (baseSlug) {
@@ -269,7 +278,13 @@ export async function generateMetadata({
   }
 
   const resolved = await resolveSlug(state, slug);
-  if (!resolved || resolved.kind !== "office") return {};
+  if (!resolved) return {};
+
+  if (resolved.kind === "district") {
+    const districtData = await getDistrictPageData(resolved.geoSlug);
+    if (!districtData) return {};
+    return { title: `${districtData.district.name} — BallotCard` };
+  }
 
   const data = await getOfficePageData(
     resolved.districtGeoSlug,
@@ -283,12 +298,294 @@ export async function generateMetadata({
   };
 }
 
+// ─── District page view ─────────────────────────────────────────────────────
+
+function kindLabel(kind: string): string {
+  switch (kind) {
+    case "country": return "Country";
+    case "state": return "State";
+    case "us_house": return "Congressional district";
+    case "us_senate_state": return "Senate seat";
+    case "governor_state": return "Governor";
+    case "state_house": return "State house district";
+    case "state_senate": return "State senate district";
+    case "county": return "County";
+    case "municipality": return "Municipality";
+    case "school_board": return "School board";
+    case "judicial": return "Judicial district";
+    default: return "District";
+  }
+}
+
+function DistrictOfficeRow({ office }: { office: DistrictOffice }) {
+  const href = `/${office.districtGeoSlug}/${office.slug}`;
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-bc-light-lavender bg-white hover:border-bc-lavender transition-colors"
+    >
+      <div className="min-w-0">
+        <span className="text-sm font-medium text-bc-navy">{office.title}</span>
+        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+          {office.officialName && (
+            <span>
+              {office.officialName}
+              {office.officialParty && (
+                <span className="ml-1 text-muted-foreground/70">({office.officialParty})</span>
+              )}
+            </span>
+          )}
+          {office.witnessUsername && (
+            <span>Witness: @{office.witnessUsername}</span>
+          )}
+          {!office.witnessUsername && (
+            <span className="text-amber-600">No Witness</span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
+        {office.postCount > 0 && (
+          <span>{office.postCount} {office.postCount === 1 ? "post" : "posts"}</span>
+        )}
+        {office.watcherCount > 0 && (
+          <span>{office.watcherCount} watching</span>
+        )}
+        {office.hasOpenElection && (
+          <span className="text-blue-600 font-medium">Election open</span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function DistrictPageView({ data }: { data: DistrictPageData }) {
+  const hasOffices = data.offices.length > 0;
+  const hasChildren = data.childDistricts.length > 0;
+  const hasActivity = data.recentActivity.length > 0;
+
+  return (
+    <div className="min-h-screen bg-bc-light-lavender/30">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        {/* Breadcrumb */}
+        <Breadcrumb items={data.breadcrumbs} />
+
+        {/* District header */}
+        <div className="mt-4 mb-6">
+          <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
+            {data.district.name}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {kindLabel(data.district.kind)}
+          </p>
+        </div>
+
+        {/* Two-column layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main column */}
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            {/* Offices in this district */}
+            {hasOffices && (
+              <section>
+                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
+                  Offices
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {data.offices.map((office) => (
+                    <DistrictOfficeRow key={office.id} office={office} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Child districts */}
+            {hasChildren && (
+              <section>
+                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
+                  {data.district.kind === "state"
+                    ? "Districts & counties"
+                    : data.district.kind === "county"
+                      ? "Municipalities"
+                      : "Sub-districts"}
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {data.childDistricts.map((child) => (
+                    <Link
+                      key={child.id}
+                      href={`/${child.geoSlug}`}
+                      className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-bc-light-lavender bg-white hover:border-bc-lavender transition-colors"
+                    >
+                      <div>
+                        <span className="text-sm font-medium text-bc-navy">{child.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{kindLabel(child.kind)}</span>
+                      </div>
+                      {child.officeCount > 0 && (
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {child.officeCount} {child.officeCount === 1 ? "office" : "offices"}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Recent activity across subtree */}
+            {hasActivity && (
+              <section>
+                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
+                  Recent activity
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {data.recentActivity.map((post) => {
+                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
+                      addSuffix: true,
+                    });
+                    return (
+                      <div
+                        key={post.id}
+                        className="px-4 py-3 rounded-lg border border-bc-light-lavender bg-white"
+                      >
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <Link
+                            href={post.officeHref}
+                            className="text-bc-navy hover:underline font-medium"
+                          >
+                            {post.officeTitle}
+                          </Link>
+                          <span>&middot;</span>
+                          <span>{timeAgo}</span>
+                        </div>
+                        {post.title && (
+                          <p className="text-sm font-medium text-bc-navy">
+                            {post.title}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {post.body}
+                        </p>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          <Link
+                            href={`/u/${post.authorUsername}`}
+                            className="hover:underline"
+                          >
+                            @{post.authorUsername}
+                          </Link>
+                          {post.isWitnessPost && (
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 text-bc-navy font-medium">
+                              Witness
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Empty state */}
+            {!hasOffices && !hasChildren && !hasActivity && (
+              <div className="rounded-lg border border-bc-light-lavender bg-white p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No offices or activity in this district yet.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:w-64 xl:w-72 flex-shrink-0">
+            <div className="flex flex-col gap-4">
+              {/* Zoom navigation */}
+              <div className="rounded-lg border border-bc-light-lavender bg-white p-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Navigate
+                </h3>
+                <div className="flex flex-col gap-1.5">
+                  {data.parentDistrict && (
+                    <Link
+                      href={`/${data.parentDistrict.geoSlug}`}
+                      className="text-sm text-bc-navy hover:underline flex items-center gap-1.5"
+                    >
+                      <span className="text-muted-foreground">&larr;</span>
+                      {data.parentDistrict.name}
+                    </Link>
+                  )}
+                  <span className="text-sm font-medium text-bc-navy pl-4">
+                    {data.district.name}
+                  </span>
+                  {data.childDistricts.slice(0, 8).map((child) => (
+                    <Link
+                      key={child.id}
+                      href={`/${child.geoSlug}`}
+                      className="text-sm text-bc-navy hover:underline pl-8 flex items-center gap-1.5"
+                    >
+                      <span className="text-muted-foreground">&rarr;</span>
+                      {child.name}
+                    </Link>
+                  ))}
+                  {data.childDistricts.length > 8 && (
+                    <span className="text-xs text-muted-foreground pl-8">
+                      +{data.childDistricts.length - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary stats */}
+              <div className="rounded-lg border border-bc-light-lavender bg-white p-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Overview
+                </h3>
+                <div className="flex flex-col gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Offices</span>
+                    <span className="text-bc-navy font-medium">{data.offices.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Sub-districts</span>
+                    <span className="text-bc-navy font-medium">{data.childDistricts.length}</span>
+                  </div>
+                  {data.offices.filter((o) => o.witnessUsername).length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Active Witnesses</span>
+                      <span className="text-bc-navy font-medium">
+                        {data.offices.filter((o) => o.witnessUsername).length}
+                      </span>
+                    </div>
+                  )}
+                  {data.offices.filter((o) => !o.witnessUsername).length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-amber-600">Vacant seats</span>
+                      <span className="text-amber-600 font-medium">
+                        {data.offices.filter((o) => !o.witnessUsername).length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function CatchallPage({
   params,
 }: {
   params: Promise<Params>;
 }) {
   const { state, slug } = await params;
+
+  // ─── State-level district route (e.g. /nc with no slug) ─────────────
+  if (!slug || slug.length === 0) {
+    const districtData = await getDistrictPageData(state);
+    if (!districtData) notFound();
+
+    return <DistrictPageView data={districtData} />;
+  }
 
   // ─── New post page ───────────────────────────────────────────────────
   const baseSlug = extractNewPostSlug(slug);
@@ -765,13 +1062,10 @@ export default async function CatchallPage({
   if (!resolved) notFound();
 
   if (resolved.kind === "district") {
-    return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-        <p className="text-sm text-muted-foreground">
-          District page coming in Phase 7.
-        </p>
-      </div>
-    );
+    const districtData = await getDistrictPageData(resolved.geoSlug);
+    if (!districtData) notFound();
+
+    return <DistrictPageView data={districtData} />;
   }
 
   // Office page

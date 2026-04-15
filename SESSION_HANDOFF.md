@@ -2,116 +2,111 @@
 
 **Date:** 2026-04-15  
 **Branch:** main  
-**Base commit:** 811b291 (feat: phase 7 — user profile pages)  
-**Latest commit:** 811b291 (no new commits — Phase 8 changes are uncommitted)  
+**Base commit:** c1378d4 (feat: phase 8 — witness moderation tools)  
+**Latest commit:** c1378d4 (no new commits — Phase 9 changes are uncommitted)  
 
 ---
 
 ## What was accomplished
 
-### Phase 8 — Moderation tools
+### Phase 9 — District landing pages & zoom navigation
 
-Witnesses now have real moderation powers: pin/unpin posts, remove posts with a public reason, and restore removed posts. Every action is recorded in a public audit log.
+District pages are now real pages instead of a placeholder. Every district in the tree — state, congressional district, county, municipality — renders a proper landing page with offices, child districts, recent activity, and zoom navigation.
 
-- **`src/lib/mod-actions.ts`** — Four server actions, all following the established pattern (auth → validate → rate-limit → verify Witness authority → execute → record mod action → revalidate):
-  - `pinPostAction(postId)` — Pins a top-level post (only Witness for that office). Guards: not deleted, not a reply, not already pinned.
-  - `unpinPostAction(postId)` — Unpins. Guards: must be pinned.
-  - `modDeletePostAction({ postId, reason })` — Soft-deletes with a required reason (min 5 chars). Guards: not already deleted. Records in ModActions audit log with the reason.
-  - `restorePostAction(postId)` — Restores a soft-deleted post. Guards: must be deleted. Records restore in audit log.
-  - Helper: `verifyWitnessForOffice(userId, officeId)` — shared check across all four actions.
-  - Helper: `recordModAction(params)` — inserts into `ModActions` table.
+- **`src/lib/district-data.ts`** (new, 340 lines) — Data fetcher `getDistrictPageData(geoSlug)` that returns everything a district page needs:
+  - District info with parent chain for breadcrumbs (3 levels deep)
+  - All offices in the district with current official, Witness, watcher count, post count, open election status
+  - Child districts with office counts
+  - Recent activity across the subtree (last 20 posts from all offices in this district + children)
+  - Parent district for zoom-out navigation
+  - Types: `DistrictPageData`, `DistrictOffice`, `ChildDistrict`, `DistrictActivityPost`
 
-- **`src/lib/validation.ts`** — Added `ModDeletePostSchema`, `ModPinPostSchema`, `ModRestorePostSchema`.
+- **Route renamed: `[...slug]` → `[[...slug]]`** — The catchall is now optional, so state-level URLs like `/nc` work (previously only `/nc/07` and deeper paths matched).
 
-- **`src/lib/rate-limit.ts`** — Added `limits.modAction`: 10 per user per minute.
+- **`src/app/(public)/[state]/[[...slug]]/page.tsx`** (modified, 1153 lines, was 859) — Added:
+  - `DistrictPageView` component — full district page with two-column layout matching the office page pattern
+  - `DistrictOfficeRow` component — compact office row with official name, Witness, stats, election badge
+  - `kindLabel()` helper — human-readable district kind labels
+  - State-level route handling in both `generateMetadata` and `CatchallPage` (early return when `slug` is undefined)
+  - District metadata in `generateMetadata` for both state-level and deeper district routes
+  - `Params` type updated: `slug` is now `string[] | undefined`
 
-- **`src/lib/office-data.ts`** — Extended both data fetchers:
-  - `OfficePageData` now includes `isWitnessForOffice: boolean` and `modActions: ModActionEntry[]`.
-  - `ThreadData` now includes `isWitnessForOffice: boolean`.
-  - New types: `ModActionEntry` (for audit log), `ModDeletion` (for mod-deleted post attribution).
-  - `ThreadPost` and `ThreadReply` now have optional `modDeletion?: ModDeletion` — populated when a post was deleted via mod action (looked up from ModActions table).
-  - `getOfficePageData` fetches mod actions (most recent 20) with actor usernames, post titles, and post author usernames.
-  - `getThreadData` fetches mod deletion records for deleted posts in the thread, and checks if the current user is the Witness.
+### District page anatomy
 
-- **`src/components/office/PostActions.tsx`** — Extended with Witness moderation buttons:
-  - **Pin/Unpin** button (top-level posts only, Witness only) — toggles based on current pin state.
-  - **Remove** button (Witness only, not on own posts — use regular Delete for that) — opens an amber-tinted panel with a required reason textarea. Clearly states the action is recorded in the public moderation log.
-  - **Restore** button (Witness only, on deleted posts) — opens an emerald-tinted confirmation panel.
-  - New props: `isWitness`, `isPinned`, `isDeleted`.
-
-- **`src/components/office/ModLog.tsx`** — New component. Collapsible `<details>` element showing the moderation audit log. Each entry shows: actor username (linked to profile), action verb, target post info (title linked to thread, author linked to profile), reason (for removals), and relative timestamp. Only renders when there are mod actions.
-
-- **`src/app/(public)/[state]/[...slug]/page.tsx`** — Updated thread view and office page:
-  - Thread view passes `isWitness`, `isPinned`, `isDeleted` to `PostActions` for both root post and replies.
-  - Mod-deleted posts show differently: amber-tinted box with "[Removed by Witness @username]" and the reason, instead of generic "[deleted]".
-  - Witnesses see a "Restore" button on deleted posts in threads.
-  - `ReplyNode` accepts and passes `isWitness` through the tree.
-  - Office page includes `<ModLog>` after the activity feed.
+Each district page renders:
+- **Breadcrumb** — full ancestry (e.g., United States > North Carolina > NC-07)
+- **Offices section** — each office as a clickable row linking to the office page, showing officeholder, Witness, post count, watcher count, open election badge
+- **Child districts section** — contextual heading ("Districts & counties" for states, "Municipalities" for counties, "Sub-districts" for others), each linking to child district page with office count
+- **Recent activity** — posts from across the subtree with office attribution, author, Witness badge, relative timestamps
+- **Sidebar: Navigate** — zoom-out link to parent, current district highlighted, zoom-in links to children (capped at 8 with "+N more" overflow)
+- **Sidebar: Overview** — office count, sub-district count, active Witnesses, vacant seat count (amber)
 
 ## Key decisions made
 
-- **Witness can't mod-delete their own posts.** They already have the regular "Delete" button as the post author. The "Remove" button (with reason + audit log) is for moderating *other* users' posts. This avoids confusing two different deletion flows.
-- **Pin is top-level only.** Pinning replies doesn't make sense in a threaded forum — pins are about surfacing important *threads* to the top of the office page.
-- **Mod-deleted posts show the reason publicly.** This is core to "the platform shows its seams" — users can see why content was removed and by whom. Self-deletions still show the generic "[deleted]" message.
-- **Restore is Witness-only.** If a Witness removes something and changes their mind (or a new Witness is elected), any current Witness can restore it. The restore action is also logged.
-- **Mod log is collapsible.** It's important that it exists and is public, but it shouldn't dominate the office page when most visitors are there for posts. The `<details>` element with count badge is the right weight.
-- **Rate limit is shared across all mod actions.** 10 per minute per user. This is generous for legitimate use and prevents abuse if someone scripts against the actions.
+- **Optional catchall (`[[...slug]]`) over separate state page.** One route handler instead of two. Keeps all geographic rendering in a single file. The `slug` type becomes `string[] | undefined` with an early-return guard.
+- **District rendering is inline in page.tsx, not a separate component file.** Follows the existing pattern where office pages, thread views, and election pages are all in the same catchall file. Keeps routing logic and rendering co-located.
+- **Subtree activity includes immediate children only, not full recursive descendants.** The query fetches offices in `[this district] + [direct child districts]` — one level deep. Deep recursion would be expensive and the data is sparse right now. Can be extended later when districts have more depth.
+- **No separate ZoomNav component.** The sidebar navigation is simple enough to inline. If it grows (layer toggle, federal representation callout), it should be extracted.
 
 ## Current state
 
 - **Build:** Clean (`npx tsc --noEmit` and `npm run build` both pass)
-- **Browser verified:** Pin/unpin works, mod log renders with entries, all actions record correctly
-- **Tests:** Not yet written (no test files for Phase 8)
+- **Browser verified:** `/nc`, `/nc/07`, `/nc/new-hanover`, `/nc/new-hanover/wilmington` all render correctly. Office page at `/nc/07/us-house` still works. Navigation between levels via breadcrumbs and zoom links works.
+- **Tests:** Not yet written (no test files for Phase 9)
 - **Working tree:** Has uncommitted changes:
-  - Modified: `SESSION_HANDOFF.md`, `src/lib/office-data.ts`, `src/lib/validation.ts`, `src/lib/rate-limit.ts`, `src/components/office/PostActions.tsx`, `src/app/(public)/[state]/[...slug]/page.tsx`
-  - New: `src/lib/mod-actions.ts`, `src/components/office/ModLog.tsx`
+  - Deleted: `src/app/(public)/[state]/[...slug]/page.tsx` (renamed to `[[...slug]]`)
+  - New: `src/app/(public)/[state]/[[...slug]]/page.tsx`, `src/lib/district-data.ts`
 
 ### File structure (what's new this session)
 
 ```
-src/lib/mod-actions.ts                    # Mod server actions (pin, unpin, mod-delete, restore)
-src/components/office/ModLog.tsx           # Moderation audit log component
+src/lib/district-data.ts                              # District page data fetcher
+src/app/(public)/[state]/[[...slug]]/page.tsx          # Renamed from [...slug], added district rendering
 ```
-
-Modified:
-- `src/lib/office-data.ts` — isWitnessForOffice, modActions, modDeletion types and fetching
-- `src/lib/validation.ts` — ModDeletePostSchema, ModPinPostSchema, ModRestorePostSchema
-- `src/lib/rate-limit.ts` — limits.modAction
-- `src/components/office/PostActions.tsx` — Witness mod buttons (pin, unpin, remove, restore)
-- `src/app/(public)/[state]/[...slug]/page.tsx` — mod-deleted UI, isWitness prop threading, ModLog placement
 
 ## What's next
 
-**Phase 9 — Zoom mechanic** (from `CLAUDE.md` / `IMPLEMENTATION_ORDER.md`):
+**Immediate candidates (the codebase is ready for all of these):**
 
-1. **District navigation** — the zoom between local/county/state/national layers. The `Districts` table has `parent_id` for the tree. The user's home district determines their default view.
-2. **District pages** — currently return a placeholder ("District page coming in Phase 7" — stale text). These should show all offices in the district's subtree.
+1. **Commit Phase 9** — uncommitted changes need staging and committing.
+2. **Profile page improvements** — pagination for post history, reply activity. `src/lib/profile-data.ts` has the fetcher; the page at `src/app/(public)/u/[username]/page.tsx` could use pagination.
+3. **Automatic election creation** — when an election resolves, create the next one. Currently elections must be seeded manually via migration.
+4. **Cross-reference tagging** — posts tagged with a district or official should surface on those entity pages. The `Tags` and `PostTags` tables exist but cross-reference display isn't built.
+5. **Test coverage** — mod actions, district data, profile data, and ballot data all have business logic worth testing with Vitest.
+6. **Mod-delete browser testing** — needs a second seeded user to test the "[Removed by Witness]" UI (coastalwatcher can't mod-delete own posts).
 
-**Also ready:**
+**From IMPLEMENTATION_ORDER.md (not yet done):**
 
-- **Automatic election creation** — function to create the next election when the current one resolves. Currently elections must be seeded manually.
-- **Profile page improvements** — pagination for post history, reply activity, edit counts
-- **Test coverage** — mod actions and profile data fetcher have business logic worth testing
-- **Mod-delete testing** — the UI for mod-delete (with reason textarea) and restore hasn't been browser-tested with a second user account (coastalwatcher can't mod-delete their own posts). Would need a second seeded user with posts to fully test.
+- **Phase 8 (in the plan):** Ingestion of seeded tier — real data for federal offices, governors, top-300 mayors. This would make district pages dramatically more useful.
+- **Phase 9 (in the plan):** Activation flow — `activateOfficeAction` for sub-threshold offices.
+- **Phase 11:** Polish, accessibility, mobile, error states, loading skeletons.
 
 ## Gotchas for the next session
 
-- **Uncommitted changes.** The Phase 8 work has not been committed. All modified and new files need to be staged and committed before starting new work.
-- **Mod-delete needs a second user to test.** All seeded posts are by `coastalwatcher`, who is the Witness. The "Remove" button correctly hides on own posts. To test mod-delete + restore + the amber "[Removed by Witness]" UI, seed a post by a different user.
+- **Uncommitted changes.** Phase 9 work has not been committed. Git sees a deleted file + two untracked files because the directory rename (`[...slug]` → `[[...slug]]`) isn't tracked as a rename.
 - **The `<form>` avoidance pattern** remains critical. All client components on `(public)` pages must use `<div>` + `onClick`, not `<form>` + `onSubmit`. The nav `<form action={logout}>` in the public layout causes action ID collisions.
 - **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This is the Witness for NC-07.
 - **The seeded election** (migration 0006) is in the voting phase with a 14-day window from 2026-04-15. It will naturally expire around 2026-04-29.
 - **Office URL path is `/nc/07/us-house`**, not `/nc/new-hanover/us-house`.
 - **No direct psql access** — all migrations run via the Supabase dashboard SQL editor.
-- **District page placeholder text** says "coming in Phase 7" — this is stale and should be updated when district pages are built.
-- **Two mod actions exist in the database** from browser testing (an unpin and a re-pin of the Weekly roundup post by coastalwatcher). These are real ModActions rows.
+- **Subtree activity is one level deep.** The district page shows posts from this district's offices + child district offices, but not grandchild offices. This is a conscious choice for now, not a bug.
+- **Two mod actions exist in the database** from browser testing (an unpin and a re-pin of the Weekly roundup post by coastalwatcher).
+- **Implementation order diverged from plan.** The IMPLEMENTATION_ORDER.md phases 7-10 don't match the actual build order. Moderation (plan Phase 10) was built as session Phase 8. District pages (plan Phase 7) were built as session Phase 9. The plan's Phase 8 (ingestion) and Phase 9 (activation) haven't been built yet.
+
+## Why we love this project
+
+The district page is the first thing in BallotCard that makes "district-rooted" feel real instead of theoretical. Before this session, clicking a breadcrumb from the office page led to a placeholder. Now you can start at `/nc`, see the whole state's district tree, drill into NC-07, see the one office with its Witness and activity, and click through to the full office page — then zoom back out. That navigation loop is the core interaction loop of the platform. It's not fancy, but it's the right shape.
+
+What feels right: the data fetcher is a single function with parallel queries, the rendering follows the exact same two-column pattern as office pages (so the whole app feels like one surface), and the zoom sidebar actually works as navigation. The `kindLabel` function will scale gracefully as more district kinds are added. The activity feed showing posts attributed to their office ("US House, NC-07 · 3 days ago") makes the district page feel alive even with only one office seeded.
+
+What would make the next session satisfying: **real data.** Right now every district page eventually terminates at NC-07 or empty scaffolding. Running the ingestion pipeline (Phase 8 from the plan) would populate hundreds of offices, and suddenly the district pages would show actual content density — multiple offices per state, offices with and without Witnesses, active elections scattered across the map. That's when the zoom mechanic stops being a demo and starts being navigation.
 
 ## The big picture
 
-BallotCard is infrastructure for making democratic accountability legible at the district level. One mechanism — voters elect Witnesses who watch officials who face voters — applied recursively. No ads, no algorithm, no engagement optimization. The platform is a public archive shaped like a forum.
+BallotCard is trying to make it easy for any resident to see who represents them, who's watching those representatives, and what's being said — all organized by the one thing that actually structures democratic accountability: geography. Not party, not topic, not algorithm. Your ballot card is your entry point.
 
-The codebase is now roughly 50% of the way to a usable public beta. What exists: auth with pseudonymous credentials, district-rooted geographic navigation, office pages with officeholder + Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic (candidacy, voting, resolution), user profile pages, and now **moderation tools that make the Witness role tangible**.
+The codebase is now roughly 55-60% of the way to a usable public beta. What exists: pseudonymous auth, the full district tree with navigable pages at every level, office pages with officeholder and Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic, user profile pages, moderation tools with a public audit log, and now **district landing pages with zoom navigation**.
 
-The Witness is no longer just a title — coastalwatcher can pin important threads to the top of NC-07, remove bad-faith content with a required public reason, and restore removed posts. Every action is recorded in a public audit log visible on the office page. This closes the gap between "elected to watch" and "equipped to watch."
+The Witness role is tangible — they can post, pin, moderate with a public reason, and stand for election. The geographic hierarchy is navigable — you can zoom from state to district to office and back. The civic record is public and persistent — edits are versioned, deletions are soft, moderation is logged.
 
-What's missing for real-world use: the zoom mechanic (Phase 9 — navigating between local and national views), cross-reference tagging (posts that mention officials in other districts should surface on those office pages), automatic election scheduling, and enough seed data to make the experience feel real at more than one office. The zoom mechanic is the highest-leverage missing piece now — it's the mechanism that connects a user's local context to their full ballot and makes BallotCard feel like infrastructure rather than a single-office demo.
+What's missing for real-world use: **data.** The entire platform currently runs on one congressional district with one office, one Witness, and five posts. The ingestion pipeline (bringing in real officeholders for all 50 states) is the single highest-leverage thing left to build. After that: the activation flow (users spawning pages for their local offices), cross-reference tagging (posts surfacing across district boundaries), and a polish pass. The zoom mechanic built today is the skeleton; real data is the muscle that makes it move.
