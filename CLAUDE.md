@@ -16,6 +16,18 @@ Make democratic functioning legible at the district level. Give residents a stru
 6. **Never monetized.** Operating costs are covered by the maintainer. If donations are ever accepted, they are capped at operating costs. No ads, no enterprise contracts, no pay-for-visibility.
 7. **One mechanism, applied recursively.** Voters watch officeholders through Witnesses, who are themselves watched by voters. Feature additions should extend this mechanism, not introduce a second one.
 
+## UX Philosophy
+
+Principle #5 ("Old-internet ergonomics") is anchored by three specific reference points:
+
+- **old.reddit:** Information density — many threads visible per screen, not cards. Real threading — indented, collapsible, oldest-first within threads. Clear subcommunity boundaries — each office page is a distinct place with its own norms, not a personalized soup.
+- **craigslist:** Locality as root of navigation — district pages are entry points, not a homepage that asks you to pick. Ruthless aesthetic restraint — every UI element justifies itself by utility, nothing is there for vibes. Persistence and permanence — permalinked, versioned edits, nothing truly deleted.
+- **Wikipedia talk pages:** Epistemic norms — sourced claims, corrections visible, edit history as part of the record. The post list is the interface; clicking into a thread is a deliberate act, not the default mode.
+
+Card-based UIs are for engagement-optimized products. BallotCard's disposition is forum-dense. The things to borrow from modern social (good mobile UX, clean typography, fast loads) are aesthetic. The things to not borrow (engagement optimization, algorithmic feeds, infinite scroll, push notifications, trending) are where modern social went wrong.
+
+Anti-pattern test for every feature addition: "Does this extend the core mechanism, or introduce a second one?" Second mechanisms are where civic platforms go wrong.
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router), React 19, TypeScript
@@ -49,6 +61,42 @@ Make democratic functioning legible at the district level. Give residents a stru
 - **Aggressive caching.** District and office pages change slowly. Static generation with on-write revalidation.
 - **Ingestion.** Seeded tier of offices (US Congress, Governors, top-300 city mayors, statewide execs) from OpenStates + Ballotpedia + SoS feeds. Sub-threshold offices are user-activated on first request.
 
+## The Zoom Mechanic
+
+Districts nest via `parent_id`. A user's view at any layer = "all offices whose district is in the subtree rooted at X."
+
+- Users control their own altitude: most days you stay local; on quiet days or during crises you zoom out.
+- Default zoom always resets to most-local on app open.
+- Counter zoom-drift: show what you're missing at your local layer when zoomed out. Make locality gravitationally attractive even when the county layer has juicier content.
+- This replaces algorithmic "recommended content" — the user stays in charge of the aperture.
+
+## Cross-References
+
+Posts tagged with a Pol or District appear on that entity's page even when authored at a different layer. A single good Witness post can seed content across dozens of related office pages via tags.
+
+- Cross-references are visually distinguished from in-context posts (different card style, "from [page] →" attribution).
+- Critical for cold-start: early activity has outsized footprint through structured tag routing.
+- A post about coastal pollution in Wilmington tagged [Rep. Vance] + [New Hanover County] surfaces correctly at every zoom level.
+
+## Cold-Start Design
+
+Don't collapse content upward; collapse presence downward.
+
+- Empty pages stay visibly empty with scaffolding intact. Vacancy is a recruitment pitch, not an error state.
+- Cross-references flow up-to-down: content from higher layers mentioning this office appears on the empty page.
+- Office states: `cold` | `warming` | `healthy` | `dormant` | `vacant` | `not_activated` — each classified and rendered differently.
+- Vacancy is better than a fake mandate (quorum exists for a reason).
+- Dormancy is surfaced: "Last post 47 days ago" for inactive Witnesses.
+- "Not yet on BallotCard" offices are visible on the user's ballot with single-click activation.
+- Empty pages show: officeholder identity card (from ingested data), "Run for Witness" / "Watch this office" / "Post here" as top CTAs, and cross-references from other layers.
+
+## Seeding Strategy
+
+- **Seeded tier** (~1,400 offices): US Congress, Governors, statewide execs, top-300 city mayors. Auto-created landing pages with ingested officeholder data.
+- **Below threshold:** User-activated on first request. Page doesn't exist as a rendered URL until someone activates it.
+- Activation = fetch from OpenStates, create Office + Official rows, create initial WitnessElection, credit the activating user as founder (timestamped, visible in page metadata).
+- `src/lib/ingestion/` will handle external data fetchers (not yet built).
+
 ## Key Directories
 
 ```
@@ -57,8 +105,6 @@ src/app/(public)/[state]/[district]/ # Geographic URL structure
 src/app/(protected)/                 # Post, vote, candidacy, settings
 src/components/ui/                   # shadcn/ui components
 src/lib/                             # Server actions, validation, types
-src/lib/ingestion/                   # External data fetchers (OpenStates, Ballotpedia)
-src/context/                         # Auth and District contexts
 migrations/                          # Supabase SQL migrations (applied in order)
 ```
 
@@ -74,6 +120,15 @@ migrations/                          # Supabase SQL migrations (applied in order
 - **PostTags** — many-to-many.
 - **ModActions** — audit log for moderation.
 
+## Content Architecture
+
+- **Threading:** Indented, collapsible, oldest-first everywhere — threads and top-level posts. Pinned posts float to top. This is a public record, not a social feed.
+- **Edit history:** Edits produce versioned records, not overwrites. The original is preserved. The civic archive shows its seams. (PostEdits table — not yet built.)
+- **Short permalinks:** `/p/[id]` resolves to canonical URL via 301. Posts must be shareable in a text message.
+- **Featured links:** OG metadata snapshot at post creation. Survives source removal/paywalling. Gracefully degrades: full card → text-only → bare link based on fetch status.
+- **Tags:** Structured, from controlled vocabulary. Three kinds: `official` (auto-generated per officeholder), `district` (geographic), `issue` (curated by Witnesses, dozen-to-thirty per district). No free-text hashtags. Users pick from dropdowns, not `#whateverfitsbehindahashtag`.
+- **Soft deletion:** Content archived via `deleted_at`. ModActions audit log is public. The archive is a civic record.
+
 ## Conventions
 
 - Table names: PascalCase, quoted (matches uunn style).
@@ -85,6 +140,17 @@ migrations/                          # Supabase SQL migrations (applied in order
 - Tabs component import: `@/components/ui/Tabs` (capital T, matches uunn).
 - Sentence case everywhere. No Title Case, no ALL CAPS.
 - `text-muted-foreground` over `text-gray-500 dark:text-gray-400`. Use shadcn semantic tokens.
+- Headings use Libre Baskerville (substituting for Bookman JF, which lacks an open license). Body uses Open Sans. CSS variables: `--font-serif`, `--font-sans`.
+
+## Terminology
+
+- **Witness** — the elected volunteer watcher (title case, coined term).
+- **Watch** (not Follow) — the user action for tracking an office. "Watch the office; the Witness watches the official." Schema table: `OfficeWatches`.
+- **Quorum** — the minimum vote count to seat a Witness (not "threshold").
+- **Activity** — the time-ordered content list on office pages. Use "Recent activity" in UI (not "feed").
+- **Office page** — the per-office discussion community (not "pol page", not "beat").
+- Officeholders are referred to by title (Senator, Representative, Mayor, etc.) — never "Primary Pol" or "Pol."
+- "Parallel Pol" — fully deprecated. Never use.
 
 ## Writing Style for Witness Communities
 
