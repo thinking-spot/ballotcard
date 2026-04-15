@@ -2,106 +2,107 @@
 
 **Date:** 2026-04-15  
 **Branch:** main  
-**Base commit:** 29912b6 (feat: phases 0-3 complete)  
-**Latest commit:** 29912b6 (all Phase 4 + Phase 5 work is uncommitted)  
+**Base commit:** d4fec01 (feat: phase 6 — witness elections)  
+**Latest commit:** d4fec01 (no new commits — Phase 7 changes are uncommitted)  
 
 ---
 
 ## What was accomplished
 
-### Phase 4 — Ballot home page (carried over as uncommitted changes)
+### Phase 7 — User profile pages
 
-- **`src/app/(protected)/ballot/page.tsx`** — full ballot home page: header with location + stats, election alert banners, layer cards (Federal / State / County & Municipal), office rows with officeholder + Witness status, inline post snippets under watched offices, cold-start card, filter toggle
-- **`src/lib/ballot-data.ts`** — `getBallotData(homeDistrictId, userId?)` — district ancestry, offices, officials, witnesses, watch state, posts, election alerts with candidate counts and vote status
-- **`src/components/ballot/BallotWatchButton.tsx`** — compact watch/unwatch toggle with `useOptimistic`
-- **`src/components/ballot/BallotFilterToggle.tsx`** — "All offices" / "Watching only" via URL search params
-- **`src/lib/office-actions.ts`** — added `revalidatePath("/ballot", "page")` to watch/unwatch actions
+Every `@username` link in the app now resolves to a real profile page instead of a 404.
 
-### Phase 5 — Thread view, replies, and post permalinks (this session)
+- **`src/lib/profile-data.ts`** — `getProfilePageData(username)` fetches everything needed for a user's public profile:
+  - User lookup by username (join date, home district)
+  - Posts authored (top-level, non-deleted, newest first, limited to 20)
+  - Witness terms (current and past, with office context)
+  - Active candidacies (not withdrawn, linked through election → office)
+  - Watched offices
+  - Stats (total post count, witness term count, offices watched)
+  - All office references resolved with title, slug, and district geo_slug for linking
+  - Uses the established pattern: parallel queries → collect office IDs → batch fetch offices + districts → build maps → assemble typed result
 
-- **`src/app/(public)/[state]/[...slug]/page.tsx`** — extended the catchall route to handle `/post/{uuid}` suffix; renders full thread view with root post, indented replies, reply composer, edit/delete actions
-- **`src/lib/office-data.ts`** — added `getThreadData(postId)` (loads post + nested replies + authors + revision counts + tags + breadcrumbs) and `getPostCanonicalPath(postId)` (resolves post ID to canonical URL)
-- **`src/lib/post-actions.ts`** — added `createReplyAction`, `editPostAction` (saves revision then updates), `softDeletePostAction` (sets `deleted_at`)
-- **`src/lib/validation.ts`** — added `EditPostSchema`
-- **`src/components/office/ReplyComposer.tsx`** — reply form with MarkdownEditor (uses `<div>` not `<form>` to avoid nav logout action collision)
-- **`src/components/office/PostEditForm.tsx`** — inline edit form, pre-fills current content, same no-form pattern
-- **`src/components/office/PostActions.tsx`** — reply/edit/delete action bar with confirmation dialog for delete
-- **`src/app/p/[postId]/route.ts`** — short permalink, 301 redirects to canonical thread URL
-- **`migrations/0005_post_revisions.sql`** — `PostRevisions` table for edit history (applied to Supabase)
+- **`src/app/(public)/u/[username]/page.tsx`** — Profile route with:
+  - **Header card:** `@username`, join date, home district link, stats row (posts / Witness terms / offices watched). "Settings" link shown on own profile.
+  - **Current Witness section:** Badge + office link + term dates + statement. Only shown when user is an active Witness.
+  - **Active candidacies section:** Blue-tinted card linking to election page, with short statement and filing date. Only shown when user has live candidacies.
+  - **Recent activity:** Post history with office attribution, reply counts, body preview (280 chars, line-clamped). Each post links to its thread; each office name links to the office page.
+  - **Past Witness terms:** Office link + term date range. Separate section from current terms.
+  - **Watched offices:** Simple list of office links.
+  - **`generateMetadata`:** Title is `@username — BallotCard`.
+  - **404 handling:** `notFound()` if username doesn't exist in the database.
 
 ## Key decisions made
 
-- **No `<form>` elements in client components that call server actions.** The public layout nav has `<form action={logout}>`. When a client component's `<form>` submits via `startTransition` + server action, Next.js can resolve to the wrong action ID (the nav's logout). Fix: use `<div>` with `type="button"` + `onClick` instead. This pattern must be used for all future client components on public pages.
-- **Revision tracking stores the _previous_ content**, not the new. The current state is always on the Posts row; PostRevisions is the trail. Revision count is displayed as "edited (N revisions)" in the thread metadata.
-- **PostRevisions query is fault-tolerant** in `getThreadData` — uses `.then(r => r.error ? { data: [] } : r)` so the page still works if the table doesn't exist (e.g., in a fresh dev environment before migrations run).
+- **Profile pages are fully public.** No auth required to view. Own-profile detection only affects the Settings link — there's no private content to gate.
+- **Posts shown are top-level only.** Replies are not listed in the profile activity feed — they're context-dependent and make more sense in their thread. The post count stat includes top-level posts only.
+- **20-post limit with no pagination yet.** Good enough for current data volume. Pagination can be added later without changing the data fetcher interface.
+- **Candidacies are shown without filtering by election phase.** If a user has a non-withdrawn candidacy in any election (open or closed), it shows. This could be refined to only show candidacies in open elections.
+- **Watched offices are visible to everyone.** This is a deliberate design choice — watching is a public act of attention, consistent with the "powerless by design" principle. The user's watched offices are part of their civic identity.
 
 ## Current state
 
 - **Build:** Clean (`npx tsc --noEmit` and `npm run build` both pass)
-- **Tests:** Not yet written (Vitest configured but no test files for Phase 4/5)
-- **Working tree:** Has uncommitted changes — all Phase 4 + Phase 5 work
+- **Tests:** Not yet written (Vitest configured but no test files for Phase 7)
+- **Working tree:** Has uncommitted changes:
+  - Modified: `SESSION_HANDOFF.md`
+  - New: `src/lib/profile-data.ts`, `src/app/(public)/u/[username]/page.tsx`
+  - Untracked: `.claude/worktrees/`
 
-### Uncommitted changes
+### File structure (what's new this session)
 
-**Modified:**
-| File | What changed |
-|---|---|
-| `src/app/(protected)/ballot/page.tsx` | Phase 4: full ballot home page |
-| `src/app/(public)/[state]/[...slug]/page.tsx` | Phase 5: thread view route + ReplyNode component |
-| `src/lib/ballot-data.ts` | Phase 4: `getBallotData()` |
-| `src/lib/office-actions.ts` | Phase 4: ballot revalidation |
-| `src/lib/office-data.ts` | Phase 5: `getThreadData()`, `getPostCanonicalPath()` |
-| `src/lib/post-actions.ts` | Phase 5: reply, edit, soft delete actions |
-| `src/lib/validation.ts` | Phase 5: `EditPostSchema` |
+```
+src/lib/profile-data.ts                   # Profile page data fetcher
+src/app/(public)/u/[username]/page.tsx    # Profile route + UI
+```
 
-**New files:**
-| File | Purpose |
-|---|---|
-| `src/components/ballot/BallotWatchButton.tsx` | Compact watch toggle |
-| `src/components/ballot/BallotFilterToggle.tsx` | All/Watching filter |
-| `src/components/office/ReplyComposer.tsx` | Reply form |
-| `src/components/office/PostEditForm.tsx` | Inline edit form |
-| `src/components/office/PostActions.tsx` | Reply/Edit/Delete bar |
-| `src/app/p/[postId]/route.ts` | Short permalink redirect |
-| `migrations/0005_post_revisions.sql` | PostRevisions table |
+Modified: `SESSION_HANDOFF.md`
 
 ## What's next
 
-**Phase 6 — Witness elections** (from `CLAUDE.md` / `IMPLEMENTATION_ORDER.md`):
+**Phase 8 — Moderation tools** (from `CLAUDE.md` / `IMPLEMENTATION_ORDER.md`):
 
-1. **Election page route** — `/{geo_slug}/{office_slug}/election` showing candidates, vote counts, deadline
-2. **Candidacy declaration** — `declareCandidacyAction` using existing `CandidacySchema` in validation.ts
-3. **Voting** — `castVoteAction` with district residency check, one-vote-per-user enforcement
-4. **Election resolution** — `resolveElectionAction` to seat the winning candidate as Witness when voting closes
-5. **Election alert links** on the ballot page already point to `/{geo_slug}/{office_slug}/election` — that route needs to exist
+1. **Witness-scoped moderation actions** — pin/unpin posts, soft-delete with reason. The `ModActions` table already exists in the schema. Server actions need to enforce that only the current Witness for an office can moderate that office's posts.
+2. **ModActions audit log display** — public log on office pages showing moderation history. Transparency is core to the design.
+3. **Moderation UI** — buttons on posts (visible only to the office's Witness) for pin, unpin, and delete-with-reason.
+
+**Phase 9 — Zoom mechanic:**
+
+1. **District navigation** — the zoom between local/county/state/national layers. The `Districts` table has `parent_id` for the tree. The user's home district determines their default view.
+2. **District pages** — currently return a placeholder ("District page coming in Phase 7" — now outdated text). These should show all offices in the district's subtree.
 
 **Also ready:**
-- Commit the current working tree (Phases 4 + 5 together, or split into two commits)
-- Nested reply test — nested replies render correctly in the tree but haven't been tested via the inline Reply button on a reply
+
+- **Automatic election creation** — function to create the next election when the current one resolves. Currently elections must be seeded manually.
+- **Profile page improvements** — pagination for post history, reply activity, edit counts
+- **Test coverage** — profile data fetcher and election actions have business logic worth testing
 
 ## Gotchas for the next session
 
-- **Everything is uncommitted.** Two full phases of work are in the working tree. Commit before starting Phase 6.
-- **`migrations/0004_rename_follows_to_watches.sql`** and **`0005_post_revisions.sql`** are both applied to Supabase. No direct psql access — migrations must be run via the Supabase dashboard SQL editor.
-- **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This account is the Witness for the US House NC-07 office.
-- **The `<form>` avoidance pattern** is critical. Any new client component on a `(public)` page that calls a server action must use `<div>` + `onClick`, not `<form>` + `onSubmit`. See `ReplyComposer.tsx` for the pattern.
-- **Office URL path is `/nc/07/us-house`**, not `/nc/new-hanover/us-house` — the office is in the NC-07 congressional district, not the county.
-- **`src/lib/rate-limit.ts`** already has `limits.createReply` defined (5/min, 30/day). All Phase 5 actions use it.
+- **Uncommitted changes.** The Phase 7 work has not been committed. The two new files and the updated `SESSION_HANDOFF.md` need to be staged and committed before starting new work.
+- **The `<form>` avoidance pattern** remains critical. All client components on `(public)` pages must use `<div>` + `onClick`, not `<form>` + `onSubmit`. The nav `<form action={logout}>` in the public layout causes action ID collisions.
+- **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This is the Witness for NC-07 and has a candidacy filed in the seeded election.
+- **The seeded election** (migration 0006) is in the voting phase with a 14-day window from 2026-04-15. It will naturally expire around 2026-04-29.
+- **Election resolution is manual.** After voting closes, someone must visit the election page and click "Resolve election."
+- **Office URL path is `/nc/07/us-house`**, not `/nc/new-hanover/us-house`.
+- **No direct psql access** — all migrations run via the Supabase dashboard SQL editor.
+- **District page placeholder text** says "coming in Phase 7" — this is now stale and should be updated when district pages are built.
 
 ## Why we love this project
 
-The thread view came together in a way that feels genuinely right for what BallotCard is. It's forum-dense — no cards, no infinite scroll, no engagement tricks. Click a post title, land on a real page with a permalink you can text to someone. Replies indent. Edits leave a revision trail. Deleted posts say "[deleted]" but the thread structure stays intact. The civic archive shows its seams.
+The profile page closes a loop that's been open since Phase 4. Every `@coastalwatcher` link on every post, every Witness card, every candidate card — all of those have been pointing to `/u/coastalwatcher` since the threading and election work was built. Until today, they were 404s. Now they resolve to a page that shows who this person is in the BallotCard context: their posts, their Witness service, their candidacies, the offices they're paying attention to.
 
-The thing that's satisfying about today's work is how the data layer handles threading. `getThreadData` fetches all replies for an office in one query, then builds the tree in memory with a simple set-expansion loop. No recursive CTEs, no N+1 queries. The `PostRevisions` table stores the _previous_ content before each edit — the current state is always on the Posts row, revisions are the trail. That's the right model for a civic record: the current truth is prominent, the history is accessible.
+What's satisfying about this specific implementation: the profile page turns `coastalwatcher` from a username into a civic identity. You can see their 4 posts about NC-07 (port infrastructure, defense contractor investigation, FOIA results, weekly roundups), their current Witness term with the statement about coastal policy and veterans, and their re-election candidacy. Without building any "campaign page" feature, the profile *is* the campaign page. The data fetcher pattern — parallel queries, batch office lookups, map-based assembly — is now battle-tested across four files (`office-data`, `election-data`, `ballot-data`, `profile-data`) and the consistency feels earned.
 
-What would make the next session satisfying: nailing the election mechanic. That's the core loop — voters elect Witnesses who watch officials who face voters. Right now the Witness is a seeded row in the database. Making the election real (declare candidacy, vote, seat the winner) would close the loop and make BallotCard feel like an actual system rather than a prototype with hard-coded data.
+What would make the next session satisfying: moderation tools. Right now `coastalwatcher` has the Witness badge but no Witness powers. Building pin/unpin and soft-delete with a public audit log would make the Witness role tangible — not just a title, but a toolkit. The `ModActions` table is already in the schema waiting to be used.
 
 ## The big picture
 
-BallotCard exists to make democratic functioning legible at the district level. For every elected official, residents elect a Witness — someone with no power except public attention — to watch, report, and discuss. One mechanism, applied recursively. No ads, no algorithm, no engagement optimization.
+BallotCard is infrastructure for making democratic accountability legible at the district level. One mechanism — voters elect Witnesses who watch officials who face voters — applied recursively. No ads, no algorithm, no engagement optimization. The platform is a public archive shaped like a forum.
 
-The codebase is roughly 30% of the way to a usable public beta. What exists: auth, district-rooted navigation, office pages with officeholder + Witness cards, threaded posts with OG cards and tags, a ballot home page that shows all offices on your ballot, and now a proper thread view with replies and permalinks. The data model is solid, the URL structure is clean, and the cold-start design (empty pages as recruitment pitches, not error states) is baked into the architecture.
+The codebase is now roughly 45% of the way to a usable public beta. What exists: auth with pseudonymous credentials, district-rooted geographic navigation, office pages with officeholder + Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic (candidacy, voting, resolution), and now user profile pages that make pseudonymous identities feel real. The core loop — the thing that makes BallotCard different from "a forum about politics" — is functional and navigable.
 
-What's missing for real-world use: the election mechanic (Phase 6), user profile pages, moderation tools, the zoom mechanic for navigating between district layers, and cross-reference tagging so a post about coastal pollution in Wilmington surfaces on the county, state, and federal pages. The election mechanic is the highest-leverage missing piece — without it, "Witnesses are elected by residents" is a claim rather than a feature. After that, it's moderation (Phase 8) and the zoom mechanic (Phase 9) that would make this feel like infrastructure rather than a demo.
+What's missing for real-world use: moderation tools (Phase 8 — Witnesses need the ability to pin important posts and remove bad-faith content, with a public audit trail), the zoom mechanic (Phase 9 — users need to navigate between their local and national ballots), cross-reference tagging (posts that mention officials in other districts should surface on those office pages), and automatic election scheduling. Moderation is the highest-leverage missing piece now — it's what turns the Witness from a title into a role with actual civic function. After that, the zoom mechanic is what would make this feel like infrastructure rather than a demo, because it's the mechanism that connects a user's local context to the full scope of their ballot.
 
-The gap between "working software" and "the thing this project is trying to be" is mostly about the election loop and geographic navigation. The threading, the permanence, the forum density, the pseudonymous auth — those feel right already. The next few phases close the loop.
+The gap between "working software" and "the thing this project is trying to be" has narrowed meaningfully. The profile page was the last piece needed to make the election mechanic feel complete — candidates are no longer faceless usernames, they're people with post histories and civic records. What remains is mostly about giving Witnesses real tools and giving users real navigation. The hard conceptual work (one mechanism, applied recursively, no engagement optimization) is already in the architecture.
