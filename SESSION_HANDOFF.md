@@ -2,107 +2,116 @@
 
 **Date:** 2026-04-15  
 **Branch:** main  
-**Base commit:** d4fec01 (feat: phase 6 — witness elections)  
-**Latest commit:** d4fec01 (no new commits — Phase 7 changes are uncommitted)  
+**Base commit:** 811b291 (feat: phase 7 — user profile pages)  
+**Latest commit:** 811b291 (no new commits — Phase 8 changes are uncommitted)  
 
 ---
 
 ## What was accomplished
 
-### Phase 7 — User profile pages
+### Phase 8 — Moderation tools
 
-Every `@username` link in the app now resolves to a real profile page instead of a 404.
+Witnesses now have real moderation powers: pin/unpin posts, remove posts with a public reason, and restore removed posts. Every action is recorded in a public audit log.
 
-- **`src/lib/profile-data.ts`** — `getProfilePageData(username)` fetches everything needed for a user's public profile:
-  - User lookup by username (join date, home district)
-  - Posts authored (top-level, non-deleted, newest first, limited to 20)
-  - Witness terms (current and past, with office context)
-  - Active candidacies (not withdrawn, linked through election → office)
-  - Watched offices
-  - Stats (total post count, witness term count, offices watched)
-  - All office references resolved with title, slug, and district geo_slug for linking
-  - Uses the established pattern: parallel queries → collect office IDs → batch fetch offices + districts → build maps → assemble typed result
+- **`src/lib/mod-actions.ts`** — Four server actions, all following the established pattern (auth → validate → rate-limit → verify Witness authority → execute → record mod action → revalidate):
+  - `pinPostAction(postId)` — Pins a top-level post (only Witness for that office). Guards: not deleted, not a reply, not already pinned.
+  - `unpinPostAction(postId)` — Unpins. Guards: must be pinned.
+  - `modDeletePostAction({ postId, reason })` — Soft-deletes with a required reason (min 5 chars). Guards: not already deleted. Records in ModActions audit log with the reason.
+  - `restorePostAction(postId)` — Restores a soft-deleted post. Guards: must be deleted. Records restore in audit log.
+  - Helper: `verifyWitnessForOffice(userId, officeId)` — shared check across all four actions.
+  - Helper: `recordModAction(params)` — inserts into `ModActions` table.
 
-- **`src/app/(public)/u/[username]/page.tsx`** — Profile route with:
-  - **Header card:** `@username`, join date, home district link, stats row (posts / Witness terms / offices watched). "Settings" link shown on own profile.
-  - **Current Witness section:** Badge + office link + term dates + statement. Only shown when user is an active Witness.
-  - **Active candidacies section:** Blue-tinted card linking to election page, with short statement and filing date. Only shown when user has live candidacies.
-  - **Recent activity:** Post history with office attribution, reply counts, body preview (280 chars, line-clamped). Each post links to its thread; each office name links to the office page.
-  - **Past Witness terms:** Office link + term date range. Separate section from current terms.
-  - **Watched offices:** Simple list of office links.
-  - **`generateMetadata`:** Title is `@username — BallotCard`.
-  - **404 handling:** `notFound()` if username doesn't exist in the database.
+- **`src/lib/validation.ts`** — Added `ModDeletePostSchema`, `ModPinPostSchema`, `ModRestorePostSchema`.
+
+- **`src/lib/rate-limit.ts`** — Added `limits.modAction`: 10 per user per minute.
+
+- **`src/lib/office-data.ts`** — Extended both data fetchers:
+  - `OfficePageData` now includes `isWitnessForOffice: boolean` and `modActions: ModActionEntry[]`.
+  - `ThreadData` now includes `isWitnessForOffice: boolean`.
+  - New types: `ModActionEntry` (for audit log), `ModDeletion` (for mod-deleted post attribution).
+  - `ThreadPost` and `ThreadReply` now have optional `modDeletion?: ModDeletion` — populated when a post was deleted via mod action (looked up from ModActions table).
+  - `getOfficePageData` fetches mod actions (most recent 20) with actor usernames, post titles, and post author usernames.
+  - `getThreadData` fetches mod deletion records for deleted posts in the thread, and checks if the current user is the Witness.
+
+- **`src/components/office/PostActions.tsx`** — Extended with Witness moderation buttons:
+  - **Pin/Unpin** button (top-level posts only, Witness only) — toggles based on current pin state.
+  - **Remove** button (Witness only, not on own posts — use regular Delete for that) — opens an amber-tinted panel with a required reason textarea. Clearly states the action is recorded in the public moderation log.
+  - **Restore** button (Witness only, on deleted posts) — opens an emerald-tinted confirmation panel.
+  - New props: `isWitness`, `isPinned`, `isDeleted`.
+
+- **`src/components/office/ModLog.tsx`** — New component. Collapsible `<details>` element showing the moderation audit log. Each entry shows: actor username (linked to profile), action verb, target post info (title linked to thread, author linked to profile), reason (for removals), and relative timestamp. Only renders when there are mod actions.
+
+- **`src/app/(public)/[state]/[...slug]/page.tsx`** — Updated thread view and office page:
+  - Thread view passes `isWitness`, `isPinned`, `isDeleted` to `PostActions` for both root post and replies.
+  - Mod-deleted posts show differently: amber-tinted box with "[Removed by Witness @username]" and the reason, instead of generic "[deleted]".
+  - Witnesses see a "Restore" button on deleted posts in threads.
+  - `ReplyNode` accepts and passes `isWitness` through the tree.
+  - Office page includes `<ModLog>` after the activity feed.
 
 ## Key decisions made
 
-- **Profile pages are fully public.** No auth required to view. Own-profile detection only affects the Settings link — there's no private content to gate.
-- **Posts shown are top-level only.** Replies are not listed in the profile activity feed — they're context-dependent and make more sense in their thread. The post count stat includes top-level posts only.
-- **20-post limit with no pagination yet.** Good enough for current data volume. Pagination can be added later without changing the data fetcher interface.
-- **Candidacies are shown without filtering by election phase.** If a user has a non-withdrawn candidacy in any election (open or closed), it shows. This could be refined to only show candidacies in open elections.
-- **Watched offices are visible to everyone.** This is a deliberate design choice — watching is a public act of attention, consistent with the "powerless by design" principle. The user's watched offices are part of their civic identity.
+- **Witness can't mod-delete their own posts.** They already have the regular "Delete" button as the post author. The "Remove" button (with reason + audit log) is for moderating *other* users' posts. This avoids confusing two different deletion flows.
+- **Pin is top-level only.** Pinning replies doesn't make sense in a threaded forum — pins are about surfacing important *threads* to the top of the office page.
+- **Mod-deleted posts show the reason publicly.** This is core to "the platform shows its seams" — users can see why content was removed and by whom. Self-deletions still show the generic "[deleted]" message.
+- **Restore is Witness-only.** If a Witness removes something and changes their mind (or a new Witness is elected), any current Witness can restore it. The restore action is also logged.
+- **Mod log is collapsible.** It's important that it exists and is public, but it shouldn't dominate the office page when most visitors are there for posts. The `<details>` element with count badge is the right weight.
+- **Rate limit is shared across all mod actions.** 10 per minute per user. This is generous for legitimate use and prevents abuse if someone scripts against the actions.
 
 ## Current state
 
 - **Build:** Clean (`npx tsc --noEmit` and `npm run build` both pass)
-- **Tests:** Not yet written (Vitest configured but no test files for Phase 7)
+- **Browser verified:** Pin/unpin works, mod log renders with entries, all actions record correctly
+- **Tests:** Not yet written (no test files for Phase 8)
 - **Working tree:** Has uncommitted changes:
-  - Modified: `SESSION_HANDOFF.md`
-  - New: `src/lib/profile-data.ts`, `src/app/(public)/u/[username]/page.tsx`
-  - Untracked: `.claude/worktrees/`
+  - Modified: `SESSION_HANDOFF.md`, `src/lib/office-data.ts`, `src/lib/validation.ts`, `src/lib/rate-limit.ts`, `src/components/office/PostActions.tsx`, `src/app/(public)/[state]/[...slug]/page.tsx`
+  - New: `src/lib/mod-actions.ts`, `src/components/office/ModLog.tsx`
 
 ### File structure (what's new this session)
 
 ```
-src/lib/profile-data.ts                   # Profile page data fetcher
-src/app/(public)/u/[username]/page.tsx    # Profile route + UI
+src/lib/mod-actions.ts                    # Mod server actions (pin, unpin, mod-delete, restore)
+src/components/office/ModLog.tsx           # Moderation audit log component
 ```
 
-Modified: `SESSION_HANDOFF.md`
+Modified:
+- `src/lib/office-data.ts` — isWitnessForOffice, modActions, modDeletion types and fetching
+- `src/lib/validation.ts` — ModDeletePostSchema, ModPinPostSchema, ModRestorePostSchema
+- `src/lib/rate-limit.ts` — limits.modAction
+- `src/components/office/PostActions.tsx` — Witness mod buttons (pin, unpin, remove, restore)
+- `src/app/(public)/[state]/[...slug]/page.tsx` — mod-deleted UI, isWitness prop threading, ModLog placement
 
 ## What's next
 
-**Phase 8 — Moderation tools** (from `CLAUDE.md` / `IMPLEMENTATION_ORDER.md`):
-
-1. **Witness-scoped moderation actions** — pin/unpin posts, soft-delete with reason. The `ModActions` table already exists in the schema. Server actions need to enforce that only the current Witness for an office can moderate that office's posts.
-2. **ModActions audit log display** — public log on office pages showing moderation history. Transparency is core to the design.
-3. **Moderation UI** — buttons on posts (visible only to the office's Witness) for pin, unpin, and delete-with-reason.
-
-**Phase 9 — Zoom mechanic:**
+**Phase 9 — Zoom mechanic** (from `CLAUDE.md` / `IMPLEMENTATION_ORDER.md`):
 
 1. **District navigation** — the zoom between local/county/state/national layers. The `Districts` table has `parent_id` for the tree. The user's home district determines their default view.
-2. **District pages** — currently return a placeholder ("District page coming in Phase 7" — now outdated text). These should show all offices in the district's subtree.
+2. **District pages** — currently return a placeholder ("District page coming in Phase 7" — stale text). These should show all offices in the district's subtree.
 
 **Also ready:**
 
 - **Automatic election creation** — function to create the next election when the current one resolves. Currently elections must be seeded manually.
 - **Profile page improvements** — pagination for post history, reply activity, edit counts
-- **Test coverage** — profile data fetcher and election actions have business logic worth testing
+- **Test coverage** — mod actions and profile data fetcher have business logic worth testing
+- **Mod-delete testing** — the UI for mod-delete (with reason textarea) and restore hasn't been browser-tested with a second user account (coastalwatcher can't mod-delete their own posts). Would need a second seeded user with posts to fully test.
 
 ## Gotchas for the next session
 
-- **Uncommitted changes.** The Phase 7 work has not been committed. The two new files and the updated `SESSION_HANDOFF.md` need to be staged and committed before starting new work.
+- **Uncommitted changes.** The Phase 8 work has not been committed. All modified and new files need to be staged and committed before starting new work.
+- **Mod-delete needs a second user to test.** All seeded posts are by `coastalwatcher`, who is the Witness. The "Remove" button correctly hides on own posts. To test mod-delete + restore + the amber "[Removed by Witness]" UI, seed a post by a different user.
 - **The `<form>` avoidance pattern** remains critical. All client components on `(public)` pages must use `<div>` + `onClick`, not `<form>` + `onSubmit`. The nav `<form action={logout}>` in the public layout causes action ID collisions.
-- **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This is the Witness for NC-07 and has a candidacy filed in the seeded election.
+- **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This is the Witness for NC-07.
 - **The seeded election** (migration 0006) is in the voting phase with a 14-day window from 2026-04-15. It will naturally expire around 2026-04-29.
-- **Election resolution is manual.** After voting closes, someone must visit the election page and click "Resolve election."
 - **Office URL path is `/nc/07/us-house`**, not `/nc/new-hanover/us-house`.
 - **No direct psql access** — all migrations run via the Supabase dashboard SQL editor.
-- **District page placeholder text** says "coming in Phase 7" — this is now stale and should be updated when district pages are built.
-
-## Why we love this project
-
-The profile page closes a loop that's been open since Phase 4. Every `@coastalwatcher` link on every post, every Witness card, every candidate card — all of those have been pointing to `/u/coastalwatcher` since the threading and election work was built. Until today, they were 404s. Now they resolve to a page that shows who this person is in the BallotCard context: their posts, their Witness service, their candidacies, the offices they're paying attention to.
-
-What's satisfying about this specific implementation: the profile page turns `coastalwatcher` from a username into a civic identity. You can see their 4 posts about NC-07 (port infrastructure, defense contractor investigation, FOIA results, weekly roundups), their current Witness term with the statement about coastal policy and veterans, and their re-election candidacy. Without building any "campaign page" feature, the profile *is* the campaign page. The data fetcher pattern — parallel queries, batch office lookups, map-based assembly — is now battle-tested across four files (`office-data`, `election-data`, `ballot-data`, `profile-data`) and the consistency feels earned.
-
-What would make the next session satisfying: moderation tools. Right now `coastalwatcher` has the Witness badge but no Witness powers. Building pin/unpin and soft-delete with a public audit log would make the Witness role tangible — not just a title, but a toolkit. The `ModActions` table is already in the schema waiting to be used.
+- **District page placeholder text** says "coming in Phase 7" — this is stale and should be updated when district pages are built.
+- **Two mod actions exist in the database** from browser testing (an unpin and a re-pin of the Weekly roundup post by coastalwatcher). These are real ModActions rows.
 
 ## The big picture
 
 BallotCard is infrastructure for making democratic accountability legible at the district level. One mechanism — voters elect Witnesses who watch officials who face voters — applied recursively. No ads, no algorithm, no engagement optimization. The platform is a public archive shaped like a forum.
 
-The codebase is now roughly 45% of the way to a usable public beta. What exists: auth with pseudonymous credentials, district-rooted geographic navigation, office pages with officeholder + Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic (candidacy, voting, resolution), and now user profile pages that make pseudonymous identities feel real. The core loop — the thing that makes BallotCard different from "a forum about politics" — is functional and navigable.
+The codebase is now roughly 50% of the way to a usable public beta. What exists: auth with pseudonymous credentials, district-rooted geographic navigation, office pages with officeholder + Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic (candidacy, voting, resolution), user profile pages, and now **moderation tools that make the Witness role tangible**.
 
-What's missing for real-world use: moderation tools (Phase 8 — Witnesses need the ability to pin important posts and remove bad-faith content, with a public audit trail), the zoom mechanic (Phase 9 — users need to navigate between their local and national ballots), cross-reference tagging (posts that mention officials in other districts should surface on those office pages), and automatic election scheduling. Moderation is the highest-leverage missing piece now — it's what turns the Witness from a title into a role with actual civic function. After that, the zoom mechanic is what would make this feel like infrastructure rather than a demo, because it's the mechanism that connects a user's local context to the full scope of their ballot.
+The Witness is no longer just a title — coastalwatcher can pin important threads to the top of NC-07, remove bad-faith content with a required public reason, and restore removed posts. Every action is recorded in a public audit log visible on the office page. This closes the gap between "elected to watch" and "equipped to watch."
 
-The gap between "working software" and "the thing this project is trying to be" has narrowed meaningfully. The profile page was the last piece needed to make the election mechanic feel complete — candidates are no longer faceless usernames, they're people with post histories and civic records. What remains is mostly about giving Witnesses real tools and giving users real navigation. The hard conceptual work (one mechanism, applied recursively, no engagement optimization) is already in the architecture.
+What's missing for real-world use: the zoom mechanic (Phase 9 — navigating between local and national views), cross-reference tagging (posts that mention officials in other districts should surface on those office pages), automatic election scheduling, and enough seed data to make the experience feel real at more than one office. The zoom mechanic is the highest-leverage missing piece now — it's the mechanism that connects a user's local context to their full ballot and makes BallotCard feel like infrastructure rather than a single-office demo.

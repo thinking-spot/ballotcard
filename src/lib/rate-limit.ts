@@ -67,4 +67,7 @@ export const limits = {
   /** Voting: 10 per user per minute */
   castVote: (userId: string) =>
     checkRateLimit(`vote:${userId}`, 10, 60 * 1000),
+  /** Mod actions (pin/unpin/delete/restore): 10 per user per minute */
+  modAction: (userId: string) =>
+    checkRateLimit(`mod:${userId}`, 10, 60 * 1000),
 };

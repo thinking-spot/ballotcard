@@ -94,3 +94,18 @@ export const CastVoteSchema = z.object({
   electionId: uuidField("Invalid election ID"),
   candidacyId: uuidField("Invalid candidacy ID"),
 });
+
+// ─── Moderation ────────────────────────────────────────────────────────────
+
+export const ModDeletePostSchema = z.object({
+  postId: uuidField("Invalid post ID"),
+  reason: z.string().min(5, "Reason must be at least 5 characters").max(500),
+});
+
+export const ModPinPostSchema = z.object({
+  postId: uuidField("Invalid post ID"),
+});
+
+export const ModRestorePostSchema = z.object({
+  postId: uuidField("Invalid post ID"),
+});

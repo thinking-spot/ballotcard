@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { resolveSlug } from "@/lib/slug-resolver";
 import { getOfficePageData, getThreadData } from "@/lib/office-data";
 import { getElectionPageData } from "@/lib/election-data";
-import type { ThreadReply } from "@/lib/office-data";
+import type { ThreadReply, ModDeletion } from "@/lib/office-data";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { WitnessBadge } from "@/components/ui/WitnessBadge";
 import { TagPill } from "@/components/ui/TagPill";
@@ -17,6 +17,7 @@ import { WitnessVacancyCard } from "@/components/office/WitnessVacancyCard";
 import { OfficeActivityFeed } from "@/components/office/OfficeActivityFeed";
 import { OfficeSidebar } from "@/components/office/OfficeSidebar";
 import { WatchButton } from "@/components/office/WatchButton";
+import { ModLog } from "@/components/office/ModLog";
 import { PostComposer } from "@/components/office/PostComposer";
 import { PostActions } from "@/components/office/PostActions";
 import { ReplyComposer } from "@/components/office/ReplyComposer";
@@ -117,12 +118,15 @@ function ReplyNode({
   reply,
   depth,
   userId,
+  isWitness,
 }: {
   reply: ThreadReply;
   depth: number;
   userId?: string;
+  isWitness?: boolean;
 }) {
   const isDeleted = !!reply.deletedAt;
+  const isModDeleted = isDeleted && !!reply.modDeletion;
   const isOwner = !!userId && reply.authorId === userId;
   const timeAgo = formatDistanceToNow(new Date(reply.createdAt), {
     addSuffix: true,
@@ -134,9 +138,33 @@ function ReplyNode({
     >
       <div className="py-3">
         {isDeleted ? (
-          <p className="text-sm text-muted-foreground italic">
-            [deleted]
-          </p>
+          <div>
+            {isModDeleted ? (
+              <div className="rounded border border-amber-200 bg-amber-50/50 px-3 py-2">
+                <p className="text-sm text-amber-800 italic">
+                  [Removed by Witness @{reply.modDeletion!.actorUsername}]
+                </p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  Reason: {reply.modDeletion!.reason}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                [deleted]
+              </p>
+            )}
+            {/* Witness can restore deleted replies */}
+            {isWitness && userId && (
+              <PostActions
+                postId={reply.id}
+                isOwner={false}
+                isTopLevel={false}
+                body=""
+                isWitness
+                isDeleted
+              />
+            )}
+          </div>
         ) : (
           <>
             <div className="flex items-center gap-2 mb-1">
@@ -169,6 +197,7 @@ function ReplyNode({
                 isOwner={isOwner}
                 isTopLevel={false}
                 body={reply.body}
+                isWitness={isWitness}
               />
             )}
           </>
@@ -184,6 +213,7 @@ function ReplyNode({
               reply={child}
               depth={depth + 1}
               userId={userId}
+              isWitness={isWitness}
             />
           ))}
         </div>
@@ -562,7 +592,9 @@ export default async function CatchallPage({
     const officeHref = `/${threadData.district.geoSlug}/${threadData.office.slug}`;
     const post = threadData.post;
     const isDeleted = !!post.deletedAt;
+    const isModDeleted = isDeleted && !!post.modDeletion;
     const isOwner = !!session && post.authorId === session.user.id;
+    const isWitness = threadData.isWitnessForOffice;
 
     const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
       addSuffix: true,
@@ -578,9 +610,32 @@ export default async function CatchallPage({
           {/* Root post — full view */}
           <article className="mt-4 rounded-lg border border-bc-light-lavender bg-white p-4 sm:p-6">
             {isDeleted ? (
-              <p className="text-sm text-muted-foreground italic">
-                [This post has been deleted]
-              </p>
+              <div>
+                {isModDeleted ? (
+                  <div className="rounded border border-amber-200 bg-amber-50/50 px-4 py-3">
+                    <p className="text-sm text-amber-800 italic">
+                      [This post was removed by Witness @{post.modDeletion!.actorUsername}]
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Reason: {post.modDeletion!.reason}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    [This post has been deleted]
+                  </p>
+                )}
+                {isWitness && session && (
+                  <PostActions
+                    postId={post.id}
+                    isOwner={false}
+                    isTopLevel={true}
+                    body=""
+                    isWitness
+                    isDeleted
+                  />
+                )}
+              </div>
             ) : (
               <>
                 <div className="flex items-start gap-2 mb-2">
@@ -649,6 +704,8 @@ export default async function CatchallPage({
                     isTopLevel={true}
                     title={post.title}
                     body={post.body}
+                    isWitness={isWitness}
+                    isPinned={post.isPinned}
                   />
                 )}
               </>
@@ -673,6 +730,7 @@ export default async function CatchallPage({
                     reply={reply}
                     depth={0}
                     userId={session?.user.id}
+                    isWitness={isWitness}
                   />
                 ))}
               </div>
@@ -780,6 +838,9 @@ export default async function CatchallPage({
               officeHref={officeHref}
               showNewPostLink={!!session}
             />
+
+            {/* Moderation log */}
+            <ModLog actions={data.modActions} officeHref={officeHref} />
           </div>
 
           {/* Sidebar */}

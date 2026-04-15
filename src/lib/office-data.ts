@@ -63,6 +63,19 @@ export type PostPreview = {
   tags: PostTag[];
 };
 
+export type ModActionEntry = {
+  id: string;
+  actorUsername: string;
+  targetType: string;
+  targetId: string;
+  action: string;
+  reason?: string;
+  createdAt: string;
+  /** Post title for context, when target is a post */
+  postTitle?: string;
+  postAuthorUsername?: string;
+};
+
 export type OfficePageData = {
   breadcrumbs: BreadcrumbItem[];
   district: {
@@ -85,11 +98,18 @@ export type OfficePageData = {
   posts: PostPreview[];
   watcherCount: number;
   isWatching: boolean;
+  isWitnessForOffice: boolean;
   issueTags: { id: string; label: string }[];
   relatedOffices: { id: string; title: string; slug: string; geoSlug: string }[];
+  modActions: ModActionEntry[];
 };
 
 // ─── Thread types ───────────────────────────────────────────────────────────
+
+export type ModDeletion = {
+  actorUsername: string;
+  reason: string;
+};
 
 export type ThreadPost = {
   id: string;
@@ -106,6 +126,7 @@ export type ThreadPost = {
   revisionCount: number;
   featuredLink?: FeaturedLink;
   tags: PostTag[];
+  modDeletion?: ModDeletion;
 };
 
 export type ThreadReply = {
@@ -120,6 +141,7 @@ export type ThreadReply = {
   authorUsername?: string;
   revisionCount: number;
   replies: ThreadReply[];
+  modDeletion?: ModDeletion;
 };
 
 export type ThreadData = {
@@ -136,6 +158,7 @@ export type ThreadData = {
   };
   post: ThreadPost;
   replies: ThreadReply[];
+  isWitnessForOffice: boolean;
 };
 
 // ─── Thread data fetcher ────────────────────────────────────────────────────
@@ -254,10 +277,18 @@ export async function getThreadData(
 
   const authorIds = [...allAuthorIds];
 
-  // 5. Fetch usernames + revision counts + post tags in parallel
+  // 5. Fetch usernames + revision counts + post tags + mod deletions + witness check in parallel
   const allPostIds = [rootPost.id as string, ...threadReplies.map((r) => r.id as string)];
 
-  const [authorRows, revisionRows, postTagRows] = await Promise.all([
+  // Collect deleted post IDs to look up mod actions
+  const deletedPostIds = [
+    ...(rootPost.deleted_at ? [rootPost.id as string] : []),
+    ...threadReplies.filter((r) => r.deleted_at).map((r) => r.id as string),
+  ];
+
+  const session = await auth();
+
+  const [authorRows, revisionRows, postTagRows, modDeletionRows, witnessCheck] = await Promise.all([
     authorIds.length > 0
       ? db.from("Users").select("id, username").in("id", authorIds)
       : Promise.resolve({ data: [] }),
@@ -270,11 +301,61 @@ export async function getThreadData(
       .from("PostTags")
       .select("post_id, tag_id, Tags(id, kind, label, ref_id)")
       .in("post_id", [rootPost.id as string]),
+    // Fetch mod deletion actions for deleted posts
+    deletedPostIds.length > 0
+      ? db
+          .from("ModActions")
+          .select("target_id, action, reason, actor_id")
+          .eq("target_type", "post")
+          .eq("action", "soft_delete")
+          .in("target_id", deletedPostIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    // Check if current user is the Witness for this office
+    session?.user.id
+      ? db
+          .from("Witnesses")
+          .select("id")
+          .eq("office_id", officeId)
+          .eq("user_id", session.user.id)
+          .eq("is_current", true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const authorMap = new Map(
     (authorRows.data ?? []).map((u) => [u.id as string, u.username as string])
   );
+
+  // Build mod deletion map: postId → { actorId, reason }
+  const modDeletionMap = new Map<string, { actorId: string; reason: string }>();
+  for (const row of modDeletionRows.data ?? []) {
+    const targetId = row.target_id as string;
+    if (!modDeletionMap.has(targetId)) {
+      modDeletionMap.set(targetId, {
+        actorId: row.actor_id as string,
+        reason: (row.reason as string) ?? "",
+      });
+    }
+  }
+
+  // Fetch mod actor usernames if needed
+  const modActorIds = [...new Set([...modDeletionMap.values()].map((v) => v.actorId))];
+  // authorMap already has author usernames; add mod actor usernames
+  if (modActorIds.length > 0) {
+    const missingIds = modActorIds.filter((id) => !authorMap.has(id));
+    if (missingIds.length > 0) {
+      const { data: modActorRows } = await db
+        .from("Users")
+        .select("id, username")
+        .in("id", missingIds);
+      for (const u of modActorRows ?? []) {
+        authorMap.set(u.id as string, u.username as string);
+      }
+    }
+  }
+
+  const isWitnessForOffice = !!(witnessCheck as { data: unknown }).data;
 
   // Count revisions per post
   const revisionCountMap = new Map<string, number>();
@@ -325,13 +406,23 @@ export async function getThreadData(
         }
       : undefined,
     tags: rootTags,
+    modDeletion: (() => {
+      const md = modDeletionMap.get(rootPost.id as string);
+      if (!md) return undefined;
+      return {
+        actorUsername: authorMap.get(md.actorId) ?? "unknown",
+        reason: md.reason,
+      };
+    })(),
   };
 
   // 7. Build reply tree
   const replyMap = new Map<string, ThreadReply>();
   for (const r of threadReplies) {
-    replyMap.set(r.id as string, {
-      id: r.id as string,
+    const rid = r.id as string;
+    const md = modDeletionMap.get(rid);
+    replyMap.set(rid, {
+      id: rid,
       parentId: r.parent_id as string,
       body: r.body as string,
       isWitnessPost: r.is_witness_post as boolean,
@@ -342,8 +433,11 @@ export async function getThreadData(
       authorUsername: r.author_id
         ? authorMap.get(r.author_id as string)
         : undefined,
-      revisionCount: revisionCountMap.get(r.id as string) ?? 0,
+      revisionCount: revisionCountMap.get(rid) ?? 0,
       replies: [],
+      modDeletion: md
+        ? { actorUsername: authorMap.get(md.actorId) ?? "unknown", reason: md.reason }
+        : undefined,
     });
   }
 
@@ -403,6 +497,7 @@ export async function getThreadData(
     },
     post,
     replies: topLevelReplies,
+    isWitnessForOffice,
   };
 }
 
@@ -552,9 +647,9 @@ export async function getOfficePageData(
     };
   }
 
-  // 5. Watcher count + is-watching check (parallel)
+  // 5. Watcher count + is-watching check + witness check + mod actions (parallel)
   const session = await auth();
-  const [{ count: watcherCount }, watchCheck] = await Promise.all([
+  const [{ count: watcherCount }, watchCheck, witnessForOfficeCheck, modActionsRaw] = await Promise.all([
     db
       .from("OfficeWatches")
       .select("*", { count: "exact", head: true })
@@ -567,6 +662,21 @@ export async function getOfficePageData(
           .eq("user_id", session.user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    session?.user.id
+      ? db
+          .from("Witnesses")
+          .select("id")
+          .eq("office_id", officeRaw.id)
+          .eq("user_id", session.user.id)
+          .eq("is_current", true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    db
+      .from("ModActions")
+      .select("id, actor_id, target_type, target_id, action, reason, created_at")
+      .eq("scope_office_id", officeRaw.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   if (witnessData) {
@@ -688,7 +798,75 @@ export async function getOfficePageData(
     .not("slug", "is", null)
     .limit(6);
 
-  // 10. Build breadcrumbs from parent chain
+  // 10. Process mod actions for audit log
+  const modActionActorIds = [
+    ...new Set((modActionsRaw.data ?? []).map((a) => a.actor_id as string).filter(Boolean)),
+  ];
+  // Fetch actor usernames (some may already be in authorMap)
+  const missingModActorIds = modActionActorIds.filter((id) => !authorMap.has(id));
+  if (missingModActorIds.length > 0) {
+    const { data: modActorUsers } = await db
+      .from("Users")
+      .select("id, username")
+      .in("id", missingModActorIds);
+    for (const u of modActorUsers ?? []) {
+      authorMap.set(u.id as string, u.username as string);
+    }
+  }
+
+  // Fetch target post info for mod actions targeting posts
+  const modTargetPostIds = [
+    ...new Set(
+      (modActionsRaw.data ?? [])
+        .filter((a) => a.target_type === "post")
+        .map((a) => a.target_id as string)
+    ),
+  ];
+  const modTargetPostMap = new Map<string, { title?: string; authorId?: string }>();
+  if (modTargetPostIds.length > 0) {
+    const { data: targetPosts } = await db
+      .from("Posts")
+      .select("id, title, author_id")
+      .in("id", modTargetPostIds);
+    for (const p of targetPosts ?? []) {
+      modTargetPostMap.set(p.id as string, {
+        title: (p.title as string) || undefined,
+        authorId: (p.author_id as string) || undefined,
+      });
+    }
+    // Fetch any missing author usernames for target posts
+    const targetAuthorIds = [...new Set(
+      [...modTargetPostMap.values()].map((v) => v.authorId).filter(Boolean) as string[]
+    )].filter((id) => !authorMap.has(id));
+    if (targetAuthorIds.length > 0) {
+      const { data: targetAuthorUsers } = await db
+        .from("Users")
+        .select("id, username")
+        .in("id", targetAuthorIds);
+      for (const u of targetAuthorUsers ?? []) {
+        authorMap.set(u.id as string, u.username as string);
+      }
+    }
+  }
+
+  const modActions: ModActionEntry[] = (modActionsRaw.data ?? []).map((a) => {
+    const targetPost = modTargetPostMap.get(a.target_id as string);
+    return {
+      id: a.id as string,
+      actorUsername: authorMap.get(a.actor_id as string) ?? "unknown",
+      targetType: a.target_type as string,
+      targetId: a.target_id as string,
+      action: a.action as string,
+      reason: (a.reason as string) || undefined,
+      createdAt: a.created_at as string,
+      postTitle: targetPost?.title,
+      postAuthorUsername: targetPost?.authorId
+        ? authorMap.get(targetPost.authorId)
+        : undefined,
+    };
+  });
+
+  // 11. Build breadcrumbs from parent chain
   type ParentRow = { name: string; geo_slug: string };
   const ancestors: ParentRow[] = [];
   const parent = (districtRaw as Record<string, unknown>).parent as
@@ -738,6 +916,7 @@ export async function getOfficePageData(
     posts,
     watcherCount: watcherCount ?? 0,
     isWatching: !!(watchCheck as { data: unknown }).data,
+    isWitnessForOffice: !!(witnessForOfficeCheck as { data: unknown }).data,
     issueTags: (issueTagsRaw ?? []).map((t) => ({
       id: t.id as string,
       label: t.label as string,
@@ -748,5 +927,6 @@ export async function getOfficePageData(
       slug: o.slug as string,
       geoSlug: `${districtRaw.geo_slug}/${o.slug}`,
     })),
+    modActions,
   };
 }
