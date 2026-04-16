@@ -2,111 +2,102 @@
 
 **Date:** 2026-04-15  
 **Branch:** main  
-**Base commit:** c1378d4 (feat: phase 8 — witness moderation tools)  
-**Latest commit:** c1378d4 (no new commits — Phase 9 changes are uncommitted)  
-
----
+**Base commit:** 9f18557 (feat: phases 10-12 — data ingestion, auto-elections, cross-reference tagging)  
+**Latest commit:** 9f18557 (no new commits — all work is uncommitted)
 
 ## What was accomplished
 
-### Phase 9 — District landing pages & zoom navigation
+**Sprint 1A: Test coverage for critical paths** — complete.
 
-District pages are now real pages instead of a placeholder. Every district in the tree — state, congressional district, county, municipality — renders a proper landing page with offices, child districts, recent activity, and zoom navigation.
-
-- **`src/lib/district-data.ts`** (new, 340 lines) — Data fetcher `getDistrictPageData(geoSlug)` that returns everything a district page needs:
-  - District info with parent chain for breadcrumbs (3 levels deep)
-  - All offices in the district with current official, Witness, watcher count, post count, open election status
-  - Child districts with office counts
-  - Recent activity across the subtree (last 20 posts from all offices in this district + children)
-  - Parent district for zoom-out navigation
-  - Types: `DistrictPageData`, `DistrictOffice`, `ChildDistrict`, `DistrictActivityPost`
-
-- **Route renamed: `[...slug]` → `[[...slug]]`** — The catchall is now optional, so state-level URLs like `/nc` work (previously only `/nc/07` and deeper paths matched).
-
-- **`src/app/(public)/[state]/[[...slug]]/page.tsx`** (modified, 1153 lines, was 859) — Added:
-  - `DistrictPageView` component — full district page with two-column layout matching the office page pattern
-  - `DistrictOfficeRow` component — compact office row with official name, Witness, stats, election badge
-  - `kindLabel()` helper — human-readable district kind labels
-  - State-level route handling in both `generateMetadata` and `CatchallPage` (early return when `slug` is undefined)
-  - District metadata in `generateMetadata` for both state-level and deeper district routes
-  - `Params` type updated: `slug` is now `string[] | undefined`
-
-### District page anatomy
-
-Each district page renders:
-- **Breadcrumb** — full ancestry (e.g., United States > North Carolina > NC-07)
-- **Offices section** — each office as a clickable row linking to the office page, showing officeholder, Witness, post count, watcher count, open election badge
-- **Child districts section** — contextual heading ("Districts & counties" for states, "Municipalities" for counties, "Sub-districts" for others), each linking to child district page with office count
-- **Recent activity** — posts from across the subtree with office attribution, author, Witness badge, relative timestamps
-- **Sidebar: Navigate** — zoom-out link to parent, current district highlighted, zoom-in links to children (capped at 8 with "+N more" overflow)
-- **Sidebar: Overview** — office count, sub-district count, active Witnesses, vacant seat count (amber)
+- **Vitest infrastructure** from scratch: `vitest.config.ts` with `@/` path alias, setup file for global mocks.
+- **Mock system** (`src/test-utils/setup.ts`, `src/test-utils/helpers.ts`): queue-based Supabase mock that simulates the chainable query builder (`.from().select().eq().maybeSingle()` etc.), with mutation tracking (`getInserts()`, `getUpdates()`, `getUpserts()`). Auth session mock, bcrypt fast mock, Next.js `revalidatePath`/`redirect` mocks, rate-limit passthrough, `isResidentOfDistrictSubtree` mock.
+- **72 tests across 4 files, all passing in ~300ms:**
+  - `src/lib/__tests__/slug-resolver.test.ts` (14 tests) — state/nested/deep district resolution, office resolution, all 8 reserved segments via parameterized test, nonexistent slugs.
+  - `src/lib/__tests__/election-actions.test.ts` (22 tests) — candidacy filing (auth, closed election, non-resident, duplicate, re-activation, new), withdrawal (auth, ownership, idempotency), vote casting (timing windows, withdrawn candidate, success), election resolution (quorum failure, date math validation, winner seating with vote tally).
+  - `src/lib/__tests__/actions.test.ts` (15 tests) — registration (Zod validation, username uniqueness, invalid district, auto-login redirect, AuthError fallback), authentication (redirect, credential failure), profile fetch, password change (wrong password, success redirect), account deletion (confirmation check, user redaction, post authorship clearing, witness vacancy).
+  - `src/lib/__tests__/post-actions.test.ts` (21 tests) — post creation (auth, validation, nonexistent office, witness flag, tag validation, tags with post), reply (auth, nonexistent parent, deleted parent, success), edit (auth, non-author, deleted post, revision save), soft-delete (auth, not found, already deleted, non-author, success).
 
 ## Key decisions made
 
-- **Optional catchall (`[[...slug]]`) over separate state page.** One route handler instead of two. Keeps all geographic rendering in a single file. The `slug` type becomes `string[] | undefined` with an early-return guard.
-- **District rendering is inline in page.tsx, not a separate component file.** Follows the existing pattern where office pages, thread views, and election pages are all in the same catchall file. Keeps routing logic and rendering co-located.
-- **Subtree activity includes immediate children only, not full recursive descendants.** The query fetches offices in `[this district] + [direct child districts]` — one level deep. Deep recursion would be expensive and the data is sparse right now. Can be extended later when districts have more depth.
-- **No separate ZoomNav component.** The sidebar navigation is simple enough to inline. If it grows (layer toggle, federal representation callout), it should be extracted.
+- **Queue-based Supabase mock** over per-query configuration. Tests push responses in the order the function consumes them via `q(data)`. Mutations are tracked separately with `getInserts(table)` etc. Trade-off: tests are coupled to query order, but they're readable and fast.
+- **Global setup file** (`src/test-utils/setup.ts`) mocks all shared dependencies via `vi.hoisted()` + `vi.mock()`. State is shared via `globalThis.__bcMockState`. Every test file gets the same mock environment — fine for server action tests, may need splitting if component tests need different mocks later.
+- **bcrypt mock** uses `hashed_{password}` convention so tests can set up stored hashes that match expected passwords without real hashing.
+- **`next-auth` is mocked** (just the `AuthError` class) so `instanceof` checks work in tests without importing the real next-auth module internals.
+- **UUID-format IDs required** in any test input that passes through Zod validation (election/candidacy/post schemas use UUID regex). Response objects from the mock DB don't need UUID format since they bypass validation.
 
 ## Current state
 
-- **Build:** Clean (`npx tsc --noEmit` and `npm run build` both pass)
-- **Browser verified:** `/nc`, `/nc/07`, `/nc/new-hanover`, `/nc/new-hanover/wilmington` all render correctly. Office page at `/nc/07/us-house` still works. Navigation between levels via breadcrumbs and zoom links works.
-- **Tests:** Not yet written (no test files for Phase 9)
-- **Working tree:** Has uncommitted changes:
-  - Deleted: `src/app/(public)/[state]/[...slug]/page.tsx` (renamed to `[[...slug]]`)
-  - New: `src/app/(public)/[state]/[[...slug]]/page.tsx`, `src/lib/district-data.ts`
+- **Build:** clean (production build succeeds)
+- **Tests:** 72 passing, 0 failing, ~300ms
+- **Working tree:** has uncommitted changes — 7 new files + modified SESSION_HANDOFF.md
 
-### File structure (what's new this session)
+### File structure (what's new)
 
 ```
-src/lib/district-data.ts                              # District page data fetcher
-src/app/(public)/[state]/[[...slug]]/page.tsx          # Renamed from [...slug], added district rendering
+vitest.config.ts                              # Vitest config with @/ alias
+src/test-utils/
+  setup.ts                                    # Global mocks (Supabase, auth, Next.js, bcrypt, rate-limit)
+  helpers.ts                                  # q(), loginAsTestUser(), getInserts(), formData()
+src/lib/__tests__/
+  slug-resolver.test.ts                       # 14 tests
+  election-actions.test.ts                    # 22 tests
+  actions.test.ts                             # 15 tests
+  post-actions.test.ts                        # 21 tests
 ```
 
 ## What's next
 
-**Immediate candidates (the codebase is ready for all of these):**
+This follows the sprint plan — Sprint 1A is done, proceed in order:
 
-1. **Commit Phase 9** — uncommitted changes need staging and committing.
-2. **Profile page improvements** — pagination for post history, reply activity. `src/lib/profile-data.ts` has the fetcher; the page at `src/app/(public)/u/[username]/page.tsx` could use pagination.
-3. **Automatic election creation** — when an election resolves, create the next one. Currently elections must be seeded manually via migration.
-4. **Cross-reference tagging** — posts tagged with a district or official should surface on those entity pages. The `Tags` and `PostTags` tables exist but cross-reference display isn't built.
-5. **Test coverage** — mod actions, district data, profile data, and ballot data all have business logic worth testing with Vitest.
-6. **Mod-delete browser testing** — needs a second seeded user to test the "[Removed by Witness]" UI (coastalwatcher can't mod-delete own posts).
+### Sprint 1B: Error boundaries + loading states (next)
+- Add React error boundaries: `src/app/(public)/error.tsx`, `src/app/(protected)/error.tsx`
+- Add `loading.tsx` skeletons for: office page (`src/app/(public)/[state]/[[...slug]]/loading.tsx`), ballot page (`src/app/(protected)/ballot/loading.tsx`), profile page
+- Keep skeletons simple — gray shimmer bars matching layout shape, not spinners
+- Handle Supabase downtime: "BallotCard is temporarily unavailable" instead of white screen
 
-**From IMPLEMENTATION_ORDER.md (not yet done):**
+### Sprint 1C: Mobile responsiveness
+- Office page: sidebar stacks below on mobile, officeholder/Witness cards become horizontal
+- District page: grid goes 3-col → 1-col, breadcrumbs truncate
+- PostCard: tag pills wrap, thread indent reduces to 1rem on narrow screens
+- PostComposer/ReplyComposer: full-width on mobile, TagPicker dropdown containment
+- Nav: hamburger/collapsible on small screens
+- Test at 375px (iPhone SE), 390px (iPhone 14), 768px (iPad)
 
-- **Phase 8 (in the plan):** Ingestion of seeded tier — real data for federal offices, governors, top-300 mayors. This would make district pages dramatically more useful.
-- **Phase 9 (in the plan):** Activation flow — `activateOfficeAction` for sub-threshold offices.
-- **Phase 11:** Polish, accessibility, mobile, error states, loading skeletons.
+### Sprint 1D: Production deployment
+- Vercel project setup, env vars (Supabase URL, service role key, NextAuth secret, Sentry DSN)
+- Run ingestion pipeline against production Supabase
+- Verify: all 614 offices render, auth works, posting works
+- Sentry for production only
+
+### Sprint 2A–2D: First-week survival features
+- Office activation flow, search (Supabase full-text), cold-start page polish, OG preview hardening
+- See the full sprint plan in CLAUDE.md context or the previous SESSION_HANDOFF.md version in git history
 
 ## Gotchas for the next session
 
-- **Uncommitted changes.** Phase 9 work has not been committed. Git sees a deleted file + two untracked files because the directory rename (`[...slug]` → `[[...slug]]`) isn't tracked as a rename.
-- **The `<form>` avoidance pattern** remains critical. All client components on `(public)` pages must use `<div>` + `onClick`, not `<form>` + `onSubmit`. The nav `<form action={logout}>` in the public layout causes action ID collisions.
-- **Seed credentials:** username `coastalwatcher`, password `witnesspass123`. This is the Witness for NC-07.
-- **The seeded election** (migration 0006) is in the voting phase with a 14-day window from 2026-04-15. It will naturally expire around 2026-04-29.
-- **Office URL path is `/nc/07/us-house`**, not `/nc/new-hanover/us-house`.
-- **No direct psql access** — all migrations run via the Supabase dashboard SQL editor.
-- **Subtree activity is one level deep.** The district page shows posts from this district's offices + child district offices, but not grandchild offices. This is a conscious choice for now, not a bug.
-- **Two mod actions exist in the database** from browser testing (an unpin and a re-pin of the Weekly roundup post by coastalwatcher).
-- **Implementation order diverged from plan.** The IMPLEMENTATION_ORDER.md phases 7-10 don't match the actual build order. Moderation (plan Phase 10) was built as session Phase 8. District pages (plan Phase 7) were built as session Phase 9. The plan's Phase 8 (ingestion) and Phase 9 (activation) haven't been built yet.
+- **All test work is uncommitted.** Run `git add vitest.config.ts src/test-utils/ src/lib/__tests__/ && git commit` before doing anything else.
+- **The `<form>` avoidance pattern** is still critical. Any new client component on `(public)` pages must use `<div>` + `onClick`, not `<form>`. The nav logout form causes action ID collisions. This is documented in CLAUDE.md and the project memory.
+- **Migration 0005 (PostRevisions)** may not be applied to production Supabase yet. Not blocking — edit history UI isn't in Sprint 1–2.
+- **Seed credentials** (`coastalwatcher` / `witnesspass123`) should not exist in production.
+- **Congress YAML source** is `https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml`. The old `theunitedstates.io` endpoint returns 410.
+- **Supabase free tier** connection limits: may need pooling if 20+ testers hit simultaneously.
+- **Rate limiter resets on cold start** — in-memory, fine for testing, needs Redis/Upstash before public launch.
+- **Test mock coupling**: tests depend on the order Supabase queries are made within each function. If someone reorders queries in the source, corresponding tests will break (wrong response consumed). The fix is always: reorder the `q()` calls to match.
 
 ## Why we love this project
 
-The district page is the first thing in BallotCard that makes "district-rooted" feel real instead of theoretical. Before this session, clicking a breadcrumb from the office page led to a placeholder. Now you can start at `/nc`, see the whole state's district tree, drill into NC-07, see the one office with its Witness and activity, and click through to the full office page — then zoom back out. That navigation loop is the core interaction loop of the platform. It's not fancy, but it's the right shape.
+The mock system came out clean. A queue-based Supabase mock that tracks mutations separately — `q({ id: "o-001" })` to set up a response, `getInserts("Posts")` to verify what was written — is the kind of infrastructure that makes writing 72 tests feel like 20 minutes of work instead of 3 hours. The `vi.hoisted()` + `globalThis` bridge for sharing state between the setup file and test helpers is a pattern worth remembering.
 
-What feels right: the data fetcher is a single function with parallel queries, the rendering follows the exact same two-column pattern as office pages (so the whole app feels like one surface), and the zoom sidebar actually works as navigation. The `kindLabel` function will scale gracefully as more district kinds are added. The activity feed showing posts attributed to their office ("US House, NC-07 · 3 days ago") makes the district page feel alive even with only one office seeded.
+What's satisfying about the test coverage specifically: the election date math test (`computes correct next election dates`) catches the kind of bug that would be invisible for months — a 6-month term from January to July is 181 days, but 181 days from July lands on December 29, not January 1. The test validates filing-opens-30-days-before and voting-opens-14-days-before as exact day counts, not date strings. That's the kind of test that earns its keep.
 
-What would make the next session satisfying: **real data.** Right now every district page eventually terminates at NC-07 or empty scaffolding. Running the ingestion pipeline (Phase 8 from the plan) would populate hundreds of offices, and suddenly the district pages would show actual content density — multiple offices per state, offices with and without Witnesses, active elections scattered across the map. That's when the zoom mechanic stops being a demo and starts being navigation.
+What would make the next session satisfying: nailing mobile responsiveness. The forum-dense layout is the soul of this product (old.reddit information density, not card-based engagement optimization), and making that work on a 375px screen without compromising density is a real design challenge. The win would be: a Witness on their phone can read threaded posts, see tag pills, compose a reply, and none of it feels like a mobile afterthought.
 
 ## The big picture
 
-BallotCard is trying to make it easy for any resident to see who represents them, who's watching those representatives, and what's being said — all organized by the one thing that actually structures democratic accountability: geography. Not party, not topic, not algorithm. Your ballot card is your entry point.
+BallotCard is building a permanent, public, district-rooted accountability structure where volunteer Witnesses — elected by their neighbors — watch elected officials and report in a forum-shaped, threaded, permalinked format. No algorithmic feed, no engagement optimization, no monetization. The organizing primitive is the ballot card: the specific set of offices one person can vote for. One mechanism (voters watch officials through Witnesses, who are themselves watched by voters), applied recursively.
 
-The codebase is now roughly 55-60% of the way to a usable public beta. What exists: pseudonymous auth, the full district tree with navigable pages at every level, office pages with officeholder and Witness cards, threaded posts with OG cards and tags, a ballot home page, thread views with replies and permalinks, the Witness election mechanic, user profile pages, moderation tools with a public audit log, and now **district landing pages with zoom navigation**.
+The codebase is feature-complete through phase 12: auth, ballot pages, office pages with threaded posts, Witness elections (filing, voting, resolution, auto-creation), user profiles, moderation tools, data ingestion for ~614 seeded offices, cross-reference tagging, and district zoom navigation. That's roughly 70% of the vision for a working soft launch.
 
-The Witness role is tangible — they can post, pin, moderate with a public reason, and stand for election. The geographic hierarchy is navigable — you can zoom from state to district to office and back. The civic record is public and persistent — edits are versioned, deletions are soft, moderation is logged.
+The remaining 30% is what separates "working software" from "a thing people actually use": deployment, mobile UX, search, cold-start polish (600+ empty pages need to feel intentional, not broken), and whatever the first 5–10 real Witnesses in North Carolina tell us they need. Sprint 1 removes the reasons the test would fail for non-product reasons (crashes, unusable on phone, not deployed). Sprint 2 adds the three features that prevent dead-ends for recruited testers. Sprint 3 is intentionally blank — it gets defined by what real users do, not by our roadmap.
 
-What's missing for real-world use: **data.** The entire platform currently runs on one congressional district with one office, one Witness, and five posts. The ingestion pipeline (bringing in real officeholders for all 50 states) is the single highest-leverage thing left to build. After that: the activation flow (users spawning pages for their local offices), cross-reference tagging (posts surfacing across district boundaries), and a polish pass. The zoom mechanic built today is the skeleton; real data is the muscle that makes it move.
+The highest-leverage thing left: making empty pages feel like an invitation rather than an error. 600 of 614 offices will be empty when testers arrive. If those pages say "this office is waiting for its first Witness — could that be you?" with the officeholder's name and a one-click candidacy button, that's a recruitment engine. If they show a blank white page, the product feels dead on arrival.
