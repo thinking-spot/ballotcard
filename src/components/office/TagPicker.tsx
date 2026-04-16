@@ -109,7 +109,7 @@ export function TagPicker({ selected, onChange, max = 10 }: TagPickerProps) {
               setTimeout(() => setIsOpen(false), 150);
             }}
             placeholder={selected.length === 0 ? "Search tags..." : ""}
-            className="flex-1 min-w-[120px] text-sm outline-none bg-transparent placeholder:text-muted-foreground"
+            className="flex-1 min-w-[60px] text-sm outline-none bg-transparent placeholder:text-muted-foreground"
           />
         )}
       </div>

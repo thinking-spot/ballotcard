@@ -54,7 +54,7 @@ export function ReplyComposer({ parentPostId, onCancel }: ReplyComposerProps) {
         placeholder="Write a reply..."
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           disabled={!isValid}

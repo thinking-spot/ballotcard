@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { WordMark } from "@/components/brand/WordMark";
 import { logout } from "@/lib/actions";
+import { NavMobileMenu } from "@/components/layout/NavMobileMenu";
 
 export async function PublicNav() {
   const session = await auth();
@@ -11,7 +12,7 @@ export async function PublicNav() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <WordMark color="offwhite" size="md" />
 
-        <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-4 sm:gap-6 text-sm">
           <Link
             href="/how-it-works"
             className="text-bc-lavender hover:text-bc-offwhite transition-colors hidden sm:block"
@@ -58,6 +59,8 @@ export async function PublicNav() {
               </Link>
             </>
           )}
+
+          <NavMobileMenu />
         </div>
       </div>
     </nav>
