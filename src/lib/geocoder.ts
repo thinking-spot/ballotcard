@@ -54,6 +54,34 @@ function str(entry: GeographyEntry | undefined, field: string): string | undefin
   return typeof v === "string" ? v : undefined;
 }
 
+const MAX_ATTEMPTS = 3;
+const ATTEMPT_TIMEOUT_MS = 8000;
+
+/** Fetch the geocoder with a per-attempt timeout and short backoff on failure. */
+async function fetchWithRetry(url: URL): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
+        // Census data is stable; cache the geocoder response edge-side by URL.
+        // (The URL contains the address, but it never reaches our logs/storage.)
+        next: { revalidate: 60 * 60 * 24 },
+      });
+      // 5xx is the geocoder's usual flaky failure mode — retry those.
+      if (res.status >= 500) throw new Error(`Geocoder returned ${res.status}`);
+      if (!res.ok) throw new Error(`Geocoder returned ${res.status}`);
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 300 * attempt));
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Geocoder unreachable");
+}
+
 /**
  * Resolve a free-text US address to its district geographies.
  * Returns null when the geocoder finds no match. NEVER logs the address.
@@ -67,15 +95,10 @@ export async function resolveAddress(
   url.searchParams.set("vintage", VINTAGE);
   url.searchParams.set("format", "json");
 
-  const res = await fetch(url, {
-    // Census data is stable; cache the geocoder response edge-side by URL.
-    // (The URL contains the address, but it never reaches our logs or storage.)
-    next: { revalidate: 60 * 60 * 24 },
-  });
-
-  if (!res.ok) {
-    throw new Error(`Geocoder returned ${res.status}`);
-  }
+  // The Census Geocoder is intermittently flaky (occasional 5xx / dropped
+  // connections / slow responses). It's fast when healthy (~0.5s), so retry a
+  // few times with a short backoff and a per-attempt timeout before giving up.
+  const res = await fetchWithRetry(url);
 
   const data = (await res.json()) as {
     result?: { addressMatches?: Array<{ geographies?: Record<string, GeographyEntry[]> }> };
