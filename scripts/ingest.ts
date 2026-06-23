@@ -26,6 +26,7 @@ import type {
   OpenStatesPerson,
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
+import { fetchFecCandidates, type FecCandidate } from "./lib/fec";
 import { parse as parseYaml } from "yaml";
 import governors from "../seed-data/governors.json";
 import mayors from "../seed-data/mayors.json";
@@ -414,27 +415,56 @@ async function ingestOfficials(sources: Sources) {
   );
 
   // Existing current officials, keyed by office.
-  const existingOfficials = await selectAll<{
+  type Existing = {
     id: string;
     office_id: string;
-    external_refs: Record<string, string>;
-  }>("Officials", "id, office_id, external_refs", ["is_current", true]);
-  const currentByOffice = new Map<string, { id: string; office_id: string; external_refs: Record<string, string> }>(
+    name: string;
+    party: string | null;
+    external_refs: Record<string, string> | null;
+  };
+  const existingOfficials = await selectAll<Existing>(
+    "Officials",
+    "id, office_id, name, party, external_refs",
+    ["is_current", true]
+  );
+  const currentByOffice = new Map<string, Existing>(
     existingOfficials.map((o) => [o.office_id, o])
   );
 
   const toInsert: Array<Record<string, unknown>> = [];
+  const toUpdate: Array<{ id: string; row: Record<string, unknown> }> = [];
   let skipped = 0;
 
+  // Authoritative upsert of the current officeholder: insert when the seat is
+  // empty, update in place when the source disagrees with what we have (fixes
+  // stale records and absorbs mid-term replacements), otherwise skip.
   const place = (oid: string | undefined, row: Record<string, unknown>) => {
     if (!oid) return false;
-    if (currentByOffice.has(oid)) {
-      skipped++;
+    const existing = currentByOffice.get(oid);
+    if (existing) {
+      if (existing.id === "pending") return false; // already placed this run
+      const sameName = existing.name === row.name;
+      const sameParty = (existing.party ?? null) === ((row.party as string) ?? null);
+      if (!sameName || !sameParty) {
+        const mergedRefs = {
+          ...(existing.external_refs ?? {}),
+          ...((row.external_refs as Record<string, string>) ?? {}),
+        };
+        toUpdate.push({ id: existing.id, row: { ...row, external_refs: mergedRefs } });
+      } else {
+        skipped++;
+      }
       return false;
     }
     toInsert.push({ office_id: oid, is_current: true, ...row });
     // Guard against two source rows targeting the same office in one run.
-    currentByOffice.set(oid, { id: "pending", office_id: oid, external_refs: {} });
+    currentByOffice.set(oid, {
+      id: "pending",
+      office_id: oid,
+      name: row.name as string,
+      party: (row.party as string) ?? null,
+      external_refs: {},
+    });
     return true;
   };
 
@@ -530,14 +560,134 @@ async function ingestOfficials(sources: Sources) {
 
   if (toInsert.length > 0) {
     await insertChunked("Officials", toInsert);
-    log("officials", `Inserted ${toInsert.length} officials, skipped ${skipped} existing`);
   }
+  for (const u of toUpdate) {
+    const { error } = await db.from("Officials").update(u.row).eq("id", u.id);
+    if (error) throw new Error(`Official update failed: ${error.message}`);
+  }
+  log(
+    "officials",
+    `Inserted ${toInsert.length}, updated ${toUpdate.length}, skipped ${skipped} existing`
+  );
 
   const { count } = await db
     .from("Officials")
     .select("*", { count: "exact", head: true })
     .eq("is_current", true);
   log("officials", `Total current officials: ${count}`);
+}
+
+// ─── Phase 4: Candidates (FEC, federal only) ─────────────────────────────────
+
+async function ingestCandidates(): Promise<number> {
+  const apiKey = process.env.FEC_API_KEY;
+  if (!apiKey) {
+    log("candidates", "FEC_API_KEY not set — skipping candidate ingestion");
+    return 0;
+  }
+
+  // Federal offices, with the district geo_slug + election year for mapping.
+  const offices = await selectAll<{
+    id: string;
+    slug: string;
+    district_id: string;
+    next_election_at: string | null;
+  }>("Offices", "id, slug, district_id, next_election_at");
+  const districts = await selectAll<{ id: string; geo_slug: string }>(
+    "Districts",
+    "id, geo_slug"
+  );
+  const districtIdToSlug = new Map(districts.map((d) => [d.id, d.geo_slug]));
+  const electionYear = (o: { next_election_at: string | null }) =>
+    o.next_election_at ? Number(o.next_election_at.slice(0, 4)) : null;
+
+  // House: geo_slug (nc/07) → office. Senate: state geo_slug + year → office.
+  const houseByGeo = new Map<string, (typeof offices)[number]>();
+  const senateByStateYear = new Map<string, (typeof offices)[number]>();
+  let presidentOffice: (typeof offices)[number] | undefined;
+  for (const o of offices) {
+    const geo = districtIdToSlug.get(o.district_id) ?? "";
+    if (o.slug === "us-house") houseByGeo.set(geo, o);
+    else if (o.slug.startsWith("us-senate-class-"))
+      senateByStateYear.set(`${geo}::${electionYear(o)}`, o);
+    else if (o.slug === "president") presidentOffice = o;
+  }
+
+  // Pull the cycles our seats actually face (House 2026, Senate 2026/2028,
+  // President 2028). Skip 2030 Senate — too early for meaningful filings.
+  const fetches: Array<["P" | "S" | "H", number]> = [
+    ["H", 2026],
+    ["S", 2026],
+    ["S", 2028],
+    ["P", 2028],
+  ];
+
+  const rows: Array<Record<string, unknown>> = [];
+  const cyclesTouched = new Set<number>();
+
+  for (const [office, cycle] of fetches) {
+    let fec: FecCandidate[];
+    try {
+      fec = await fetchFecCandidates(office, cycle, apiKey);
+    } catch (err) {
+      log("candidates", `WARN: ${office}/${cycle} — ${(err as Error).message}`);
+      continue;
+    }
+    cyclesTouched.add(cycle);
+    log("candidates", `FEC ${office}/${cycle}: ${fec.length} candidates`);
+
+    for (const c of fec) {
+      let office_id: string | undefined;
+      if (c.office === "H" && c.district) {
+        const sd = US_STATES.find((s) => s.abbr === c.state);
+        if (!sd) continue;
+        const geo =
+          c.district === "al"
+            ? `${c.state.toLowerCase()}/al`
+            : houseGeoSlug(c.state, Number(c.district), sd.houseSeats);
+        office_id = houseByGeo.get(geo)?.id;
+      } else if (c.office === "S") {
+        office_id = senateByStateYear.get(`${c.state.toLowerCase()}::${cycle}`)?.id;
+      } else if (c.office === "P") {
+        office_id = presidentOffice?.id;
+      }
+      if (!office_id) continue;
+
+      const target = offices.find((o) => o.id === office_id);
+      rows.push({
+        office_id,
+        name: c.name,
+        party: c.party,
+        cycle,
+        election_date: target?.next_election_at ?? null,
+        is_incumbent: c.isIncumbent,
+        status: c.status,
+        source: "fec",
+        external_refs: { fec_candidate_id: c.candidateId },
+      });
+    }
+  }
+
+  // Dedupe on the table's unique key (office_id, cycle, name) — FEC can list a
+  // person under multiple committee records, and rarely two people share a name
+  // in one race (keep the first, preferring an incumbent flag).
+  const deduped = new Map<string, Record<string, unknown>>();
+  for (const r of rows) {
+    const key = `${r.office_id}::${r.cycle}::${r.name}`;
+    const existing = deduped.get(key);
+    if (!existing) deduped.set(key, r);
+    else if (r.is_incumbent && !existing.is_incumbent) deduped.set(key, r);
+  }
+  const finalRows = [...deduped.values()];
+
+  // Idempotent refresh: clear the FEC rows for the cycles we re-fetched, then
+  // insert fresh (handles candidates who dropped out since the last run).
+  for (const cycle of cyclesTouched) {
+    await db.from("Candidates").delete().eq("source", "fec").eq("cycle", cycle);
+  }
+  if (finalRows.length > 0) await insertChunked("Candidates", finalRows);
+  log("candidates", `Inserted ${finalRows.length} federal candidates`);
+  return finalRows.length;
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -562,6 +712,8 @@ async function main() {
     await ingestOffices(sources);
     console.log();
     await ingestOfficials(sources);
+    console.log();
+    const candidates = await ingestCandidates();
 
     if (runId) {
       const [{ count: districts }, { count: offices }, { count: officials }] =
@@ -578,7 +730,7 @@ async function main() {
         .update({
           status: "succeeded",
           finished_at: new Date().toISOString(),
-          counts: { districts, offices, officials },
+          counts: { districts, offices, officials, candidates },
         })
         .eq("id", runId);
     }

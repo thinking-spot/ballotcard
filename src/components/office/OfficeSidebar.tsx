@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { format, formatDistanceToNow, isFuture } from "date-fns";
 import type { RelatedOffice } from "@/lib/office-data";
 
 interface OfficeSidebarProps {
@@ -8,7 +7,6 @@ interface OfficeSidebarProps {
     level: string;
     selectionMethod: string;
     termYears?: number;
-    nextElectionAt?: string;
   };
   relatedOffices: RelatedOffice[];
 }
@@ -54,9 +52,6 @@ const SELECTION_LABELS: Record<string, string> = {
 };
 
 export function OfficeSidebar({ office, relatedOffices }: OfficeSidebarProps) {
-  const nextElectionFuture =
-    office.nextElectionAt && isFuture(new Date(office.nextElectionAt + "T12:00:00"));
-
   return (
     <aside className="flex flex-col gap-3 w-full">
       <SidebarSection title="About this seat">
@@ -89,17 +84,6 @@ export function OfficeSidebar({ office, relatedOffices }: OfficeSidebarProps) {
           ) : null}
         </dl>
       </SidebarSection>
-
-      {nextElectionFuture && (
-        <SidebarSection title="Next election">
-          <p className="text-sm text-bc-navy font-medium">
-            {format(new Date(office.nextElectionAt! + "T12:00:00"), "MMMM d, yyyy")}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            in {formatDistanceToNow(new Date(office.nextElectionAt! + "T12:00:00"))}
-          </p>
-        </SidebarSection>
-      )}
 
       {relatedOffices.length > 0 && (
         <SidebarSection title="Other offices here">

@@ -9,6 +9,7 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { OfficeholderCard } from "@/components/office/OfficeholderCard";
 import { OfficeSidebar } from "@/components/office/OfficeSidebar";
 import { OfficeActivity } from "@/components/office/OfficeActivity";
+import { NextElection } from "@/components/office/NextElection";
 
 type Params = { state: string; slug?: string[] };
 
@@ -303,6 +304,14 @@ export default async function CatchallPage({
                 No current officeholder on record for this seat yet.
               </div>
             )}
+
+            {/* Next election — date, who's running, where to verify/register */}
+            <NextElection
+              office={data.office}
+              official={data.official}
+              candidates={data.candidates}
+              state={data.district.state}
+            />
 
             {/* Activity — articleOne-ready section (see src/lib/feed) */}
             {data.official && (

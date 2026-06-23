@@ -34,6 +34,15 @@ export type RelatedOffice = {
   geoSlug: string;
 };
 
+export type CandidateData = {
+  id: string;
+  name: string;
+  party?: string;
+  isIncumbent: boolean;
+  cycle: number;
+  fecId?: string;
+};
+
 export type OfficePageData = {
   breadcrumbs: BreadcrumbItem[];
   district: {
@@ -55,6 +64,7 @@ export type OfficePageData = {
     nextElectionAt?: string;
   };
   official: OfficialData | null;
+  candidates: CandidateData[];
   relatedOffices: RelatedOffice[];
 };
 
@@ -107,25 +117,40 @@ export async function getOfficePageData(
 
   if (!officeRaw) return null;
 
-  // 3. Current official + related offices in the same district (parallel)
-  const [{ data: officialRaw }, { data: relatedRaw }] = await Promise.all([
-    db
-      .from("Officials")
-      .select(
-        "id, name, party, term_start, term_end, first_took_office, photo_url, external_refs"
-      )
-      .eq("office_id", officeRaw.id)
-      .eq("is_current", true)
-      .maybeSingle(),
-    db
-      .from("Offices")
-      .select("id, title, slug")
-      .eq("district_id", districtRaw.id)
-      .neq("id", officeRaw.id)
-      .not("slug", "is", null)
-      .order("title")
-      .limit(6),
-  ]);
+  // Candidates for the upcoming election (year of next_election_at).
+  const nextElectionYear = officeRaw.next_election_at
+    ? Number((officeRaw.next_election_at as string).slice(0, 4))
+    : null;
+
+  // 3. Current official + related offices + upcoming candidates (parallel)
+  const [{ data: officialRaw }, { data: relatedRaw }, { data: candidatesRaw }] =
+    await Promise.all([
+      db
+        .from("Officials")
+        .select(
+          "id, name, party, term_start, term_end, first_took_office, photo_url, external_refs"
+        )
+        .eq("office_id", officeRaw.id)
+        .eq("is_current", true)
+        .maybeSingle(),
+      db
+        .from("Offices")
+        .select("id, title, slug")
+        .eq("district_id", districtRaw.id)
+        .neq("id", officeRaw.id)
+        .not("slug", "is", null)
+        .order("title")
+        .limit(6),
+      nextElectionYear
+        ? db
+            .from("Candidates")
+            .select("id, name, party, is_incumbent, cycle, external_refs")
+            .eq("office_id", officeRaw.id)
+            .eq("cycle", nextElectionYear)
+            .order("is_incumbent", { ascending: false })
+            .order("name")
+        : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    ]);
 
   // 4. Build breadcrumbs from parent chain
   type ParentRow = { name: string; geo_slug: string };
@@ -178,6 +203,17 @@ export async function getOfficePageData(
             undefined,
         }
       : null,
+    candidates: (candidatesRaw ?? []).map((c) => {
+      const refs = (c.external_refs ?? {}) as Record<string, string>;
+      return {
+        id: c.id as string,
+        name: c.name as string,
+        party: (c.party as string) || undefined,
+        isIncumbent: !!c.is_incumbent,
+        cycle: c.cycle as number,
+        fecId: refs.fec_candidate_id || undefined,
+      };
+    }),
     relatedOffices: (relatedRaw ?? []).map((o) => ({
       id: o.id as string,
       title: o.title as string,
