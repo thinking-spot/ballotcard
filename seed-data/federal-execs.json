@@ -1,0 +1,30 @@
+[
+  {
+    "office": "president",
+    "title": "President of the United States",
+    "name": "Donald J. Trump",
+    "party": "Republican",
+    "termStart": "2025-01-20",
+    "termEnd": "2029-01-20",
+    "firstTookOffice": "2017-01-20",
+    "nextElection": "2028-11-07",
+    "termYears": 4,
+    "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Donald_Trump_official_portrait.jpg",
+    "wikipedia": "Donald_Trump",
+    "ballotpedia": "Donald_Trump"
+  },
+  {
+    "office": "vice-president",
+    "title": "Vice President of the United States",
+    "name": "JD Vance",
+    "party": "Republican",
+    "termStart": "2025-01-20",
+    "termEnd": "2029-01-20",
+    "firstTookOffice": "2025-01-20",
+    "nextElection": "2028-11-07",
+    "termYears": 4,
+    "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cc/JD_Vance_official_Senate_portrait_%28cropped%29.jpg",
+    "wikipedia": "JD_Vance",
+    "ballotpedia": "JD_Vance"
+  }
+]

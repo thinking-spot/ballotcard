@@ -73,14 +73,17 @@ export async function fetchOpenStatesPeople(
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
     if (!row[iId]) continue;
-    const chamber = row[iChamber];
+    let chamber = row[iChamber];
+    // Nebraska is unicameral — Open States labels its body "legislature".
+    // The Census Geocoder tracks NE only as SLDU, so map to "upper".
+    if (chamber === "legislature") chamber = "upper";
     if (chamber !== "upper" && chamber !== "lower") continue;
     people.push({
       id: row[iId],
       name: row[iName] ?? "",
       current_party: row[iParty] ?? "",
       current_district: row[iDistrict] ?? "",
-      current_chamber: chamber,
+      current_chamber: chamber as "upper" | "lower",
       image: row[iImage] ?? "",
     });
   }

@@ -75,6 +75,22 @@ export type StatewideExecEntry = {
   nextElection: string | null;
 };
 
+// Shape of seed-data/federal-execs.json
+export type FederalExecEntry = {
+  office: "president" | "vice-president";
+  title: string;
+  name: string;
+  party: string;
+  termStart: string;
+  termEnd: string;
+  firstTookOffice: string;
+  nextElection: string;
+  termYears: number;
+  photoUrl?: string;
+  wikipedia?: string;
+  ballotpedia?: string;
+};
+
 // A person row from Open States bulk people CSV (data.openstates.org).
 export type OpenStatesPerson = {
   id: string; // ocd-person/...

@@ -18,8 +18,13 @@ Notes and known gaps:
   Gov arrives with the 2026 election); TN and WV give the title to the senate president
   (recorded as `appointed`). Whether an elected Lt. Gov runs on the governor's ticket or
   a separate ballot line is **not yet verified per state** — see `selectionDetail`.
-- `nextElection` is null for statewide execs where the cycle wasn't verified; the UI
-  must render null as unknown, never guess from the governor's cycle (e.g. PA row
-  offices run in presidential years while the governor runs in midterms).
+- `nextElection` for elected_partisan execs is filled by the governor-co-cycle
+  heuristic (most states elect AG/SoS/Treasurer with Governor). Known staggered
+  states are overridden explicitly: **PA** row offices run in presidential
+  years while Governor runs midterm; **IN** SoS/Treasurer/Auditor cycle in
+  midterms while Governor/AG cycle presidential. Audit other states as needed —
+  defensible date is better than null, but a *wrong* date is worse than null.
+- Appointed execs (including PA Secretary of State, AK AG, etc.) keep
+  `nextElection: null` — there is no election to point to.
 - No-SoS states: AK, HI, UT. No-treasurer equivalents are titled per state
   (NY/TX Comptroller, FL CFO, etc.) — `title` carries the real ballot title.

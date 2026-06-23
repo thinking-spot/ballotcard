@@ -23,6 +23,7 @@ import type {
   GovernorEntry,
   MayorEntry,
   StatewideExecEntry,
+  FederalExecEntry,
   OpenStatesPerson,
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
@@ -31,6 +32,7 @@ import { parse as parseYaml } from "yaml";
 import governors from "../seed-data/governors.json";
 import mayors from "../seed-data/mayors.json";
 import statewideExecs from "../seed-data/statewide-execs.json";
+import federalExecs from "../seed-data/federal-execs.json";
 
 const CONGRESS_URL =
   "https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml";
@@ -239,18 +241,19 @@ async function ingestOffices(sources: Sources) {
 
   const toInsert: Array<Record<string, unknown>> = [];
 
-  // 2a. President (national)
-  if (isNew(US_COUNTRY_ID, "president")) {
+  // 2a. President + Vice President (national)
+  for (const e of federalExecs as FederalExecEntry[]) {
+    if (!isNew(US_COUNTRY_ID, e.office)) continue;
     toInsert.push({
       district_id: US_COUNTRY_ID,
-      title: "President of the United States",
-      slug: "president",
+      title: e.title,
+      slug: e.office,
       kind: "executive",
       branch: "executive",
       level: "federal",
       selection_method: "elected_partisan",
-      term_years: 4,
-      next_election_at: "2028-11-07",
+      term_years: e.termYears,
+      next_election_at: e.nextElection,
       is_seeded: true,
     });
   }
@@ -468,6 +471,22 @@ async function ingestOfficials(sources: Sources) {
     });
     return true;
   };
+
+  // 3.pre. Federal execs (President, VP)
+  for (const e of federalExecs as FederalExecEntry[]) {
+    const refs: Record<string, string> = {};
+    if (e.wikipedia) refs.wikipedia = e.wikipedia;
+    if (e.ballotpedia) refs.ballotpedia = e.ballotpedia;
+    place(officeMap.get(key("us", e.office)), {
+      name: e.name,
+      party: e.party,
+      term_start: e.termStart,
+      term_end: e.termEnd,
+      first_took_office: e.firstTookOffice,
+      photo_url: e.photoUrl ?? undefined,
+      external_refs: refs,
+    });
+  }
 
   // 3a. Congress
   for (const leg of sources.legislators) {
