@@ -7,7 +7,7 @@ import { LandingFinalCta } from "@/components/landing/LandingFinalCta";
 export const metadata = {
   title: "BallotCard",
   description:
-    "A powerless, parallel government structure for public civic accountability.",
+    "Enter your address, see everyone who represents you — a faithful recreation of your actual ballot, federal to local. No account, no ads, no tracking.",
 };
 
 export default function LandingPage() {

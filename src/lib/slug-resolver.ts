@@ -36,11 +36,8 @@ export async function resolveSlug(
     const districtPath = segments.slice(0, -1).join("/");
     const officeSlug = segments[segments.length - 1];
 
-    // Skip obviously non-office terminal segments
-    const reservedSegments = new Set([
-      "post", "election", "moderate", "candidacy", "vote",
-      "new", "edit", "reply",
-    ]);
+    // Reserved terminal segments are handled by other routes, not office slugs.
+    const reservedSegments = new Set(["official"]);
     if (!reservedSegments.has(officeSlug)) {
       const { data: district } = await db
         .from("Districts")

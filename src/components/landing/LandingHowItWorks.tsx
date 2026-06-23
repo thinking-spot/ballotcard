@@ -1,19 +1,19 @@
 const cards = [
   {
-    title: "Your ballot card",
-    body: "Sign up and pick your home district. BallotCard shows you every office on your ballot — federal, state, county, and municipal — stacked in ballot order on one page. This is your organizing view.",
+    title: "Enter your address",
+    body: "We send it to the US Census Geocoder to find your voting districts, then discard it. Nothing about you is stored or logged — your address never touches our database.",
   },
   {
-    title: "The Witness",
-    body: "For each office, residents of that district can elect a Witness: a volunteer who watches the official, posts updates, and keeps a public record. Witnesses have zero governmental authority. Their job is attention.",
+    title: "See your full ballot",
+    body: "Every office you vote for — federal, state, county, and municipal — stacked in ballot order on one page. Who holds each seat now, their party, and when the seat is next on the ballot.",
   },
   {
-    title: "The thread",
-    body: "Witnesses post sourced updates, residents reply and push back. Threads are threaded, permalinked, and permanent. No algorithmic ranking. Oldest-first by default, like a public record should be.",
+    title: "Honest about the gaps",
+    body: "Where there's no data source yet for an office, the row is still shown — as an honest empty slot, not hidden. Your ballot is the complete one from the booth, not just the parts we've filled in.",
   },
   {
-    title: "The next election",
-    body: "Witnesses serve a fixed term and face re-election from their own district's residents. Good Witnesses get re-elected. Bad ones don't. The same self-regulating mechanism applies at every level.",
+    title: "Permanent and shareable",
+    body: "Every office and officeholder has a permalink you can bookmark, share, and find again. No feed, no ranking, no engagement metrics. A civic reference that stays put.",
   },
 ];
 

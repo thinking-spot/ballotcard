@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     template: "%s — BallotCard",
   },
   description:
-    "A powerless, parallel government structure. For each elected official, residents elect a Witness to watch, report, and publicly discuss what that official is doing.",
+    "Enter your address, see everyone who represents you — a faithful recreation of your actual ballot, federal to local, on one permanent page. No account, no ads, no tracking.",
   metadataBase: new URL("https://ballotcard.org"),
   openGraph: {
     siteName: "BallotCard",

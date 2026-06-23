@@ -1,23 +1,23 @@
 const negations = [
   {
+    label: "No account.",
+    body: "There is nothing to sign up for. You never create a profile, never set a password, never identify yourself. BallotCard is a reference you read, not a service you join.",
+  },
+  {
+    label: "No stored addresses.",
+    body: "Your address is resolved to voting districts by the US Census Geocoder and immediately discarded. It is never written to our database and never logged. localStorage holds district IDs only — facts about a place, never about you.",
+  },
+  {
+    label: "No ads, ever.",
+    body: "BallotCard is not monetized. Operating costs are covered by the maintainer. No ads, no lead-gen, no enterprise contracts, no selling your data. Nothing here is for sale.",
+  },
+  {
     label: "No algorithm.",
-    body: "There is no feed, no ranking, no trending, no engagement optimization. Posts appear in the order they were written. The archive is navigated by district and office, not by what the platform decided you should see next.",
+    body: "No feed, no ranking, no trending, no engagement optimization. Content is organized by district and office — by where you live and what you vote for — not by what a platform decided you should see next.",
   },
   {
-    label: "No ads.",
-    body: "BallotCard is not monetized. Operating costs are covered by the maintainer. If donations are ever accepted, they are capped at costs. Nothing is for sale here.",
-  },
-  {
-    label: "No email required.",
-    body: "Sign up with a username and password. No real name, no email address, no phone number. Pseudonymous by design. The users who need protection have it; the content they produce is meant to be seen.",
-  },
-  {
-    label: "No authority.",
-    body: "Witnesses cannot compel anything. They cannot fine, subpoena, or legislate. What they can do is publish a sourced account of what their official did and make it permanently findable. That is the whole mechanism.",
-  },
-  {
-    label: "No engagement optimization.",
-    body: "No notifications, no streaks, no karma, no follower counts visible as status. The platform does not try to keep you here longer than your civic interest does. Come when something happens, leave when you have read it.",
+    label: "No user-generated content.",
+    body: "No posts, no comments, no forums. Every fact comes from a cited public data source — government rosters, the Census, official records — and links back to it. Wikipedia's epistemic honesty, not a comment section.",
   },
 ];
 

@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import Image from "next/image";
 import { AvatarPseudonym } from "@/components/ui/AvatarPseudonym";
 import type { OfficialData } from "@/lib/office-data";
 
@@ -7,69 +8,78 @@ interface OfficeholderCardProps {
   nextElectionAt?: string;
 }
 
+function fmt(date?: string): string | null {
+  // Append T12:00:00 so date-only strings parse as local noon, not UTC midnight.
+  if (!date) return null;
+  return format(new Date(date + "T12:00:00"), "MMM yyyy");
+}
+
 export function OfficeholderCard({
   official,
   nextElectionAt,
 }: OfficeholderCardProps) {
   const refs = official.externalRefs ?? {};
   const externalLinks: { label: string; href: string }[] = [
-    refs.ballotpedia
+    refs.official_site ? { label: "Official site", href: refs.official_site } : null,
+    refs.bioguide
       ? {
-          label: "Ballotpedia",
-          href: `https://ballotpedia.org/${refs.ballotpedia}`,
+          label: "Congress.gov",
+          href: `https://www.congress.gov/member/${refs.bioguide}`,
         }
       : null,
     refs.openstates
       ? { label: "OpenStates", href: `https://openstates.org/person/${refs.openstates}` }
       : null,
-    refs.house_gov
-      ? { label: "house.gov", href: `https://${refs.house_gov}` }
+    refs.ballotpedia
+      ? { label: "Ballotpedia", href: `https://ballotpedia.org/${refs.ballotpedia}` }
       : null,
     refs.fec
       ? { label: "FEC", href: `https://www.fec.gov/data/candidate/${refs.fec}` }
       : null,
-    refs.official_site
-      ? { label: "Official site", href: refs.official_site }
+    refs.wikipedia
+      ? { label: "Wikipedia", href: `https://en.wikipedia.org/wiki/${refs.wikipedia}` }
       : null,
   ].filter(Boolean) as { label: string; href: string }[];
 
-  // Append T12:00:00 so date-only strings parse as local noon, not UTC midnight.
-  const termLabel = [
-    official.termStart
-      ? format(new Date(official.termStart + "T12:00:00"), "MMM yyyy")
-      : null,
-    official.termEnd
-      ? format(new Date(official.termEnd + "T12:00:00"), "MMM yyyy")
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" – ");
-
+  const sinceLabel = fmt(official.firstTookOffice) ?? fmt(official.termStart);
+  const termEndLabel = fmt(official.termEnd);
   const nextElectionLabel = nextElectionAt
     ? format(new Date(nextElectionAt + "T12:00:00"), "MMM d, yyyy")
     : null;
 
+  const meta = [
+    official.party,
+    sinceLabel ? `In office since ${sinceLabel}` : null,
+    termEndLabel ? `Term ends ${termEndLabel}` : null,
+    nextElectionLabel ? `Next election ${nextElectionLabel}` : null,
+  ].filter(Boolean);
+
   return (
     <div className="rounded-lg border border-bc-light-lavender bg-white p-4 mb-3">
       <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-3">
-        Incumbent
+        Current officeholder
       </p>
 
       <div className="flex items-start gap-3">
-        <AvatarPseudonym username={official.name} size="lg" />
+        {official.photoUrl ? (
+          <Image
+            src={official.photoUrl}
+            alt={official.name}
+            width={56}
+            height={56}
+            className="rounded-full object-cover w-14 h-14 flex-shrink-0 bg-bc-light-lavender"
+            unoptimized
+          />
+        ) : (
+          <AvatarPseudonym username={official.name} size="lg" />
+        )}
 
         <div className="min-w-0">
           <p className="font-serif text-base font-bold text-bc-navy leading-tight">
             {official.name}
           </p>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {[
-              official.party,
-              termLabel ? `Term: ${termLabel}` : null,
-              nextElectionLabel ? `Next election: ${nextElectionLabel}` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            {meta.join(" · ")}
           </p>
         </div>
       </div>

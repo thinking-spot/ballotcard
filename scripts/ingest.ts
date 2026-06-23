@@ -1,67 +1,146 @@
-// Ingestion pipeline for BallotCard seeded tier.
+// Ingestion pipeline for BallotCard.
 // Run: npx tsx --env-file=.env.local scripts/ingest.ts
+//
+// Idempotent upserts keyed on external IDs. Every run is recorded in
+// IngestionRuns so pages can show an honest "data as of" stamp.
+// Sources: unitedstates/congress-legislators (YAML), Open States bulk people
+// (CSV), and curated seeds in seed-data/.
 
 import { db } from "./lib/supabase-client";
-import { US_STATES, houseGeoSlug, houseDistrictName, senateSlug, senateClassLabel, senateNextElection } from "./lib/us-states";
-import type { Legislator, GovernorEntry, MayorEntry } from "./lib/types";
+import {
+  US_STATES,
+  houseGeoSlug,
+  houseDistrictName,
+  senateSlug,
+  senateClassLabel,
+  senateNextElection,
+  sldUpperSlug,
+  sldLowerSlug,
+  normDistrict,
+} from "./lib/us-states";
+import type {
+  Legislator,
+  GovernorEntry,
+  MayorEntry,
+  StatewideExecEntry,
+  OpenStatesPerson,
+} from "./lib/types";
+import { fetchOpenStatesPeople } from "./lib/openstates";
 import { parse as parseYaml } from "yaml";
 import governors from "../seed-data/governors.json";
 import mayors from "../seed-data/mayors.json";
+import statewideExecs from "../seed-data/statewide-execs.json";
 
-const CONGRESS_URL = "https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml";
+const CONGRESS_URL =
+  "https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml";
 const US_COUNTRY_ID = "00000000-0000-0000-0000-000000000001";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function log(phase: string, msg: string) {
   console.log(`[${phase}] ${msg}`);
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/['']/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+const stateName = (abbr: string) =>
+  US_STATES.find((s) => s.abbr === abbr)?.name ?? abbr;
+
+const congressPhoto = (bioguide: string) =>
+  `https://unitedstates.github.io/images/congress/450x550/${bioguide}.jpg`;
+
+// Insert helper: chunked to stay within payload limits.
+async function insertChunked(
+  table: string,
+  rows: Array<Record<string, unknown>>
+) {
+  for (let i = 0; i < rows.length; i += 200) {
+    const chunk = rows.slice(i, i + 200);
+    const { error } = await db.from(table).insert(chunk);
+    if (error) throw new Error(`${table} insert failed at ${i}: ${error.message}`);
+  }
+}
+
+// Paginated full-table read. Supabase caps a single SELECT at 1000 rows, so
+// any "fetch everything" read (districts, offices, officials) MUST paginate or
+// it silently drops rows — a subtle source of broken lookups.
+async function selectAll<T = Record<string, unknown>>(
+  table: string,
+  columns: string,
+  eq?: [string, unknown]
+): Promise<T[]> {
+  const PAGE = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let query = db.from(table).select(columns);
+    if (eq) query = query.eq(eq[0], eq[1]);
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) throw new Error(`${table} select failed: ${error.message}`);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+
+// ─── Source data (fetched once) ──────────────────────────────────────────────
+
+type Sources = {
+  legislators: Legislator[];
+  openStatesByState: Map<string, OpenStatesPerson[]>;
+};
+
+async function fetchSources(): Promise<Sources> {
+  log("fetch", "Fetching legislators-current.yaml...");
+  const res = await fetch(CONGRESS_URL);
+  if (!res.ok) throw new Error(`Congress fetch failed: ${res.status}`);
+  const legislators: Legislator[] = parseYaml(await res.text());
+  log("fetch", `Fetched ${legislators.length} members of Congress`);
+
+  log("fetch", "Fetching Open States people for all states...");
+  const openStatesByState = new Map<string, OpenStatesPerson[]>();
+  let total = 0;
+  // Sequential to be polite to the static host; the files are small.
+  for (const s of US_STATES) {
+    try {
+      const people = await fetchOpenStatesPeople(s.abbr);
+      openStatesByState.set(s.abbr, people);
+      total += people.length;
+    } catch (err) {
+      log("fetch", `WARN: ${s.abbr} Open States fetch failed: ${(err as Error).message}`);
+      openStatesByState.set(s.abbr, []);
+    }
+  }
+  log("fetch", `Fetched ${total} state legislators across ${US_STATES.length} states`);
+
+  return { legislators, openStatesByState };
 }
 
 // ─── Phase 1: Districts ──────────────────────────────────────────────────────
 
-async function ingestDistricts() {
-  log("districts", "Fetching existing districts...");
-  const { data: existing } = await db.from("Districts").select("geo_slug");
-  const existingSlugs = new Set((existing ?? []).map((d) => d.geo_slug));
+async function ingestDistricts(sources: Sources) {
+  const existing = await selectAll<{ geo_slug: string }>("Districts", "geo_slug");
+  const existingSlugs = new Set(existing.map((d) => d.geo_slug));
 
-  // 1a. State districts
+  // 1a. States
   const newStates = US_STATES.filter((s) => !existingSlugs.has(s.abbr.toLowerCase()));
   if (newStates.length > 0) {
-    const stateRows = newStates.map((s) => ({
-      name: s.name,
-      kind: "state",
-      state: s.abbr,
-      parent_id: US_COUNTRY_ID,
-      geo_slug: s.abbr.toLowerCase(),
-      external_refs: { census_fips: s.fips },
-    }));
-    const { error } = await db.from("Districts").insert(stateRows);
-    if (error) throw new Error(`State insert failed: ${error.message}`);
+    await insertChunked(
+      "Districts",
+      newStates.map((s) => ({
+        name: s.name,
+        kind: "state",
+        state: s.abbr,
+        parent_id: US_COUNTRY_ID,
+        geo_slug: s.abbr.toLowerCase(),
+        external_refs: { census_fips: s.fips },
+      }))
+    );
     log("districts", `Inserted ${newStates.length} state districts`);
-  } else {
-    log("districts", "All 50 state districts exist");
   }
 
-  // Refresh slug→id map after state inserts
-  const { data: allDistricts } = await db.from("Districts").select("id, geo_slug");
-  const slugToId = new Map((allDistricts ?? []).map((d) => [d.geo_slug, d.id]));
+  // refresh map
+  let all = await selectAll<{ id: string; geo_slug: string }>("Districts", "id, geo_slug");
+  let slugToId = new Map(all.map((d) => [d.geo_slug, d.id]));
 
   // 1b. US House districts
-  const houseDistricts: Array<{
-    name: string;
-    kind: string;
-    state: string;
-    parent_id: string;
-    geo_slug: string;
-  }> = [];
+  const houseDistricts: Array<Record<string, unknown>> = [];
   for (const s of US_STATES) {
     const stateId = slugToId.get(s.abbr.toLowerCase());
     if (!stateId) continue;
@@ -78,38 +157,47 @@ async function ingestDistricts() {
     }
   }
   if (houseDistricts.length > 0) {
-    // Insert in chunks of 200 to stay within Supabase limits
-    for (let i = 0; i < houseDistricts.length; i += 200) {
-      const chunk = houseDistricts.slice(i, i + 200);
-      const { error } = await db.from("Districts").insert(chunk);
-      if (error) throw new Error(`House district insert failed: ${error.message}`);
-    }
+    await insertChunked("Districts", houseDistricts);
     log("districts", `Inserted ${houseDistricts.length} US House districts`);
-  } else {
-    log("districts", "All 435 House districts exist");
   }
 
-  // 1c. Municipality districts for mayors
-  // Re-fetch slugToId after house inserts
-  const { data: refreshed } = await db.from("Districts").select("id, geo_slug");
-  const slugToIdFull = new Map((refreshed ?? []).map((d) => [d.geo_slug, d.id]));
-
-  const mayorEntries = mayors as MayorEntry[];
-  const newMunis: Array<{
-    name: string;
-    kind: string;
-    state: string;
-    parent_id: string;
-    geo_slug: string;
-  }> = [];
-  for (const m of mayorEntries) {
-    if (slugToIdFull.has(m.geoSlug)) continue;
-    const stateSlug = m.state.toLowerCase();
-    const stateId = slugToIdFull.get(stateSlug);
-    if (!stateId) {
-      log("districts", `WARN: No state district for ${m.state}, skipping ${m.cityName}`);
-      continue;
+  // 1c. State legislative districts (derived from Open States people)
+  const sldDistricts: Array<Record<string, unknown>> = [];
+  const seenSld = new Set<string>();
+  for (const s of US_STATES) {
+    const stateId = slugToId.get(s.abbr.toLowerCase());
+    if (!stateId) continue;
+    for (const p of sources.openStatesByState.get(s.abbr) ?? []) {
+      if (!p.current_district) continue;
+      const slug =
+        p.current_chamber === "upper"
+          ? sldUpperSlug(s.abbr, p.current_district)
+          : sldLowerSlug(s.abbr, p.current_district);
+      if (existingSlugs.has(slug) || seenSld.has(slug)) continue;
+      seenSld.add(slug);
+      const chamberWord = p.current_chamber === "upper" ? "Senate" : "House";
+      sldDistricts.push({
+        name: `${s.abbr} State ${chamberWord} District ${normDistrict(p.current_district)}`,
+        kind: p.current_chamber === "upper" ? "state_senate" : "state_house",
+        state: s.abbr,
+        parent_id: stateId,
+        geo_slug: slug,
+      });
     }
+  }
+  if (sldDistricts.length > 0) {
+    await insertChunked("Districts", sldDistricts);
+    log("districts", `Inserted ${sldDistricts.length} state legislative districts`);
+  }
+
+  // 1d. Municipalities for mayors
+  all = await selectAll<{ id: string; geo_slug: string }>("Districts", "id, geo_slug");
+  slugToId = new Map(all.map((d) => [d.geo_slug, d.id]));
+  const newMunis: Array<Record<string, unknown>> = [];
+  for (const m of mayors as MayorEntry[]) {
+    if (slugToId.has(m.geoSlug)) continue;
+    const stateId = slugToId.get(m.state.toLowerCase());
+    if (!stateId) continue;
     newMunis.push({
       name: m.cityName,
       kind: "municipality",
@@ -119,59 +207,74 @@ async function ingestDistricts() {
     });
   }
   if (newMunis.length > 0) {
-    const { error } = await db.from("Districts").insert(newMunis);
-    if (error) throw new Error(`Municipality insert failed: ${error.message}`);
+    await insertChunked("Districts", newMunis);
     log("districts", `Inserted ${newMunis.length} municipality districts`);
-  } else {
-    log("districts", "All municipality districts exist");
   }
 
-  // Final count
-  const { count } = await db.from("Districts").select("*", { count: "exact", head: true });
+  const { count } = await db
+    .from("Districts")
+    .select("*", { count: "exact", head: true });
   log("districts", `Total districts: ${count}`);
 }
 
 // ─── Phase 2: Offices ────────────────────────────────────────────────────────
 
-async function ingestOffices() {
-  // Build slug→id map
-  const { data: districts } = await db.from("Districts").select("id, geo_slug");
-  const slugToId = new Map((districts ?? []).map((d) => [d.geo_slug, d.id]));
-
-  // Fetch existing offices
-  const { data: existingOffices } = await db.from("Offices").select("district_id, slug");
-  const existingSet = new Set(
-    (existingOffices ?? []).map((o) => `${o.district_id}::${o.slug}`)
+async function ingestOffices(sources: Sources) {
+  const districts = await selectAll<{ id: string; geo_slug: string }>(
+    "Districts",
+    "id, geo_slug"
   );
+  const slugToId = new Map(districts.map((d) => [d.geo_slug, d.id]));
 
-  function isNew(districtId: string, slug: string): boolean {
-    return !existingSet.has(`${districtId}::${slug}`);
-  }
+  const existingOffices = await selectAll<{ district_id: string; slug: string }>(
+    "Offices",
+    "district_id, slug"
+  );
+  const existingSet = new Set(
+    existingOffices.map((o) => `${o.district_id}::${o.slug}`)
+  );
+  const isNew = (districtId: string, slug: string) =>
+    !existingSet.has(`${districtId}::${slug}`);
 
   const toInsert: Array<Record<string, unknown>> = [];
 
-  // 2a. US House offices
+  // 2a. President (national)
+  if (isNew(US_COUNTRY_ID, "president")) {
+    toInsert.push({
+      district_id: US_COUNTRY_ID,
+      title: "President of the United States",
+      slug: "president",
+      kind: "executive",
+      branch: "executive",
+      level: "federal",
+      selection_method: "elected_partisan",
+      term_years: 4,
+      next_election_at: "2028-11-07",
+      is_seeded: true,
+    });
+  }
+
+  // 2b. US House
   for (const s of US_STATES) {
     for (let d = 1; d <= s.houseSeats; d++) {
-      const geoSlug = houseGeoSlug(s.abbr, d, s.houseSeats);
-      const districtId = slugToId.get(geoSlug);
-      if (!districtId) continue;
-      if (!isNew(districtId, "us-house")) continue;
+      const districtId = slugToId.get(houseGeoSlug(s.abbr, d, s.houseSeats));
+      if (!districtId || !isNew(districtId, "us-house")) continue;
       toInsert.push({
         district_id: districtId,
         title: `US House, ${houseDistrictName(s.abbr, d, s.houseSeats)}`,
         slug: "us-house",
         kind: "legislative",
+        branch: "legislative",
+        level: "federal",
+        selection_method: "elected_partisan",
         term_years: 2,
         next_election_at: "2026-11-03",
         is_seeded: true,
       });
     }
   }
-  log("offices", `${toInsert.length} new House offices to insert`);
 
-  // 2b. US Senate offices
-  const senateCount = toInsert.length;
+  // 2c. US Senate
   for (const s of US_STATES) {
     const stateId = slugToId.get(s.abbr.toLowerCase());
     if (!stateId) continue;
@@ -183,6 +286,9 @@ async function ingestOffices() {
         title: `US Senate, ${s.name}`,
         slug,
         kind: "legislative",
+        branch: "legislative",
+        level: "federal",
+        selection_method: "elected_partisan",
         seat_label: `Class ${senateClassLabel(cls)}`,
         term_years: 6,
         next_election_at: senateNextElection(cls),
@@ -190,219 +296,241 @@ async function ingestOffices() {
       });
     }
   }
-  log("offices", `${toInsert.length - senateCount} new Senate offices to insert`);
 
-  // 2c. Governor offices
-  const govCount = toInsert.length;
-  const govEntries = governors as GovernorEntry[];
-  for (const g of govEntries) {
+  // 2d. Governors
+  for (const g of governors as GovernorEntry[]) {
     const stateId = slugToId.get(g.state.toLowerCase());
-    if (!stateId) continue;
-    if (!isNew(stateId, "governor")) continue;
+    if (!stateId || !isNew(stateId, "governor")) continue;
     toInsert.push({
       district_id: stateId,
-      title: `Governor of ${US_STATES.find((s) => s.abbr === g.state)?.name ?? g.state}`,
+      title: `Governor of ${stateName(g.state)}`,
       slug: "governor",
       kind: "executive",
+      branch: "executive",
+      level: "state",
+      selection_method: "elected_partisan",
       term_years: g.termYears,
       next_election_at: g.nextElection,
       is_seeded: true,
     });
   }
-  log("offices", `${toInsert.length - govCount} new Governor offices to insert`);
 
-  // 2d. Mayor offices
-  const mayorCount = toInsert.length;
-  const mayorEntries = mayors as MayorEntry[];
-  for (const m of mayorEntries) {
+  // 2e. Statewide executives (Lt. Gov, AG, SoS, Treasurer)
+  for (const e of statewideExecs as StatewideExecEntry[]) {
+    const stateId = slugToId.get(e.state.toLowerCase());
+    const slug = e.office.replace(/_/g, "-");
+    if (!stateId || !isNew(stateId, slug)) continue;
+    toInsert.push({
+      district_id: stateId,
+      title: `${e.title} of ${stateName(e.state)}`,
+      slug,
+      kind: "executive",
+      branch: "executive",
+      level: "state",
+      selection_method: e.selection,
+      description: e.selectionDetail,
+      next_election_at: e.nextElection,
+      is_seeded: true,
+    });
+  }
+
+  // 2f. State legislators (one office per district)
+  const seenSld = new Set<string>();
+  for (const s of US_STATES) {
+    for (const p of sources.openStatesByState.get(s.abbr) ?? []) {
+      if (!p.current_district) continue;
+      const slug = p.current_chamber === "upper" ? "state-senate" : "state-house";
+      const geoSlug =
+        p.current_chamber === "upper"
+          ? sldUpperSlug(s.abbr, p.current_district)
+          : sldLowerSlug(s.abbr, p.current_district);
+      const districtId = slugToId.get(geoSlug);
+      if (!districtId) continue;
+      const dedupe = `${districtId}::${slug}`;
+      if (seenSld.has(dedupe) || !isNew(districtId, slug)) continue;
+      seenSld.add(dedupe);
+      const chamberWord = p.current_chamber === "upper" ? "Senate" : "House";
+      toInsert.push({
+        district_id: districtId,
+        title: `${s.abbr} State ${chamberWord}, District ${normDistrict(p.current_district)}`,
+        slug,
+        kind: "legislative",
+        branch: "legislative",
+        level: "state",
+        selection_method: "elected_partisan",
+        term_years: p.current_chamber === "upper" ? 4 : 2,
+        is_seeded: true,
+      });
+    }
+  }
+
+  // 2g. Mayors
+  for (const m of mayors as MayorEntry[]) {
     const districtId = slugToId.get(m.geoSlug);
-    if (!districtId) continue;
-    if (!isNew(districtId, "mayor")) continue;
+    if (!districtId || !isNew(districtId, "mayor")) continue;
     toInsert.push({
       district_id: districtId,
       title: `Mayor of ${m.cityName}`,
       slug: "mayor",
       kind: "executive",
+      branch: "executive",
+      level: "municipal",
+      selection_method: "elected_nonpartisan",
       term_years: m.termYears,
       next_election_at: m.nextElection,
       is_seeded: true,
     });
   }
-  log("offices", `${toInsert.length - mayorCount} new Mayor offices to insert`);
 
-  // Insert in chunks
   if (toInsert.length > 0) {
-    for (let i = 0; i < toInsert.length; i += 200) {
-      const chunk = toInsert.slice(i, i + 200);
-      const { error } = await db.from("Offices").insert(chunk);
-      if (error) throw new Error(`Office insert failed at chunk ${i}: ${error.message}`);
-    }
-    log("offices", `Inserted ${toInsert.length} offices total`);
+    await insertChunked("Offices", toInsert);
+    log("offices", `Inserted ${toInsert.length} offices`);
   }
 
-  const { count } = await db.from("Offices").select("*", { count: "exact", head: true });
+  const { count } = await db
+    .from("Offices")
+    .select("*", { count: "exact", head: true });
   log("offices", `Total offices: ${count}`);
 }
 
 // ─── Phase 3: Officials ──────────────────────────────────────────────────────
 
-async function ingestOfficials() {
-  // Build lookup: (geo_slug, office_slug) → office_id
-  const { data: offices } = await db
-    .from("Offices")
-    .select("id, slug, district_id");
-  const { data: districts } = await db
-    .from("Districts")
-    .select("id, geo_slug");
-
-  const districtIdToSlug = new Map((districts ?? []).map((d) => [d.id, d.geo_slug]));
-  const officeKey = (geoSlug: string, officeSlug: string) => `${geoSlug}::${officeSlug}`;
+async function ingestOfficials(sources: Sources) {
+  const offices = await selectAll<{ id: string; slug: string; district_id: string }>(
+    "Offices",
+    "id, slug, district_id"
+  );
+  const districts = await selectAll<{ id: string; geo_slug: string }>(
+    "Districts",
+    "id, geo_slug"
+  );
+  const districtIdToSlug = new Map(districts.map((d) => [d.id, d.geo_slug]));
+  const key = (geoSlug: string, officeSlug: string) => `${geoSlug}::${officeSlug}`;
   const officeMap = new Map(
-    (offices ?? []).map((o) => [
-      officeKey(districtIdToSlug.get(o.district_id) ?? "", o.slug),
+    offices.map((o) => [
+      key(districtIdToSlug.get(o.district_id) ?? "", o.slug),
       o.id,
     ])
   );
 
-  // Fetch existing current officials by office_id
-  const { data: existingOfficials } = await db
-    .from("Officials")
-    .select("id, office_id, name, external_refs")
-    .eq("is_current", true);
-  const currentByOffice = new Map(
-    (existingOfficials ?? []).map((o) => [o.office_id, o])
+  // Existing current officials, keyed by office.
+  const existingOfficials = await selectAll<{
+    id: string;
+    office_id: string;
+    external_refs: Record<string, string>;
+  }>("Officials", "id, office_id, external_refs", ["is_current", true]);
+  const currentByOffice = new Map<string, { id: string; office_id: string; external_refs: Record<string, string> }>(
+    existingOfficials.map((o) => [o.office_id, o])
   );
 
   const toInsert: Array<Record<string, unknown>> = [];
-  const toUpdate: Array<{ id: string; external_refs: Record<string, string> }> = [];
   let skipped = 0;
 
-  // 3a. Congress members
-  log("officials", "Fetching legislators-current.yaml...");
-  const res = await fetch(CONGRESS_URL);
-  if (!res.ok) throw new Error(`Congress fetch failed: ${res.status}`);
-  const yamlText = await res.text();
-  const legislators: Legislator[] = parseYaml(yamlText);
-  log("officials", `Fetched ${legislators.length} legislators`);
+  const place = (oid: string | undefined, row: Record<string, unknown>) => {
+    if (!oid) return false;
+    if (currentByOffice.has(oid)) {
+      skipped++;
+      return false;
+    }
+    toInsert.push({ office_id: oid, is_current: true, ...row });
+    // Guard against two source rows targeting the same office in one run.
+    currentByOffice.set(oid, { id: "pending", office_id: oid, external_refs: {} });
+    return true;
+  };
 
-  for (const leg of legislators) {
-    const currentTerm = leg.terms[leg.terms.length - 1];
-    if (!currentTerm) continue;
-
+  // 3a. Congress
+  for (const leg of sources.legislators) {
+    const term = leg.terms[leg.terms.length - 1];
+    if (!term) continue;
     let geoSlug: string;
     let officeSlug: string;
-
-    if (currentTerm.type === "rep") {
-      const stateData = US_STATES.find((s) => s.abbr === currentTerm.state);
-      if (!stateData) continue;
-      const dist = currentTerm.district ?? 0;
-      geoSlug = houseGeoSlug(currentTerm.state, dist === 0 ? 1 : dist, stateData.houseSeats);
+    if (term.type === "rep") {
+      const sd = US_STATES.find((s) => s.abbr === term.state);
+      if (!sd) continue;
+      const dist = term.district ?? 0;
+      geoSlug = houseGeoSlug(term.state, dist === 0 ? 1 : dist, sd.houseSeats);
       officeSlug = "us-house";
     } else {
-      // senator
-      geoSlug = currentTerm.state.toLowerCase();
-      officeSlug = senateSlug(currentTerm.class ?? 1);
+      geoSlug = term.state.toLowerCase();
+      officeSlug = senateSlug(term.class ?? 1);
     }
-
-    const oid = officeMap.get(officeKey(geoSlug, officeSlug));
-    if (!oid) {
-      log("officials", `WARN: No office for ${leg.name.official_full ?? leg.name.last} at ${geoSlug}/${officeSlug}`);
-      continue;
-    }
-
-    const name = leg.name.official_full ?? `${leg.name.first} ${leg.name.last}`;
+    const oid = officeMap.get(key(geoSlug, officeSlug));
     const bioguide = leg.id.bioguide;
-    const existing = currentByOffice.get(oid);
-
-    if (existing) {
-      // Office already has a current official — merge external_refs if needed
-      const existingRefs = (existing.external_refs ?? {}) as Record<string, string>;
-      if (!existingRefs.bioguide) {
-        toUpdate.push({
-          id: existing.id,
-          external_refs: { ...existingRefs, bioguide },
-        });
-      }
-      skipped++;
-      continue;
-    }
-
-    toInsert.push({
-      office_id: oid,
-      name,
-      party: currentTerm.party,
-      term_start: currentTerm.start,
-      term_end: currentTerm.end,
-      is_current: true,
-      external_refs: { bioguide },
+    place(oid, {
+      name: leg.name.official_full ?? `${leg.name.first} ${leg.name.last}`,
+      party: term.party,
+      term_start: term.start,
+      term_end: term.end,
+      photo_url: congressPhoto(bioguide),
+      external_refs: {
+        bioguide,
+        ...(leg.id.fec?.length ? { fec: leg.id.fec[0] } : {}),
+        ...(term.url ? { official_site: term.url } : {}),
+      },
     });
   }
-  log("officials", `Congress: ${toInsert.length} to insert, ${skipped} skipped, ${toUpdate.length} to update refs`);
+  log("officials", `Congress queued (running total ${toInsert.length})`);
 
   // 3b. Governors
-  const govEntries = governors as GovernorEntry[];
-  for (const g of govEntries) {
-    const oid = officeMap.get(officeKey(g.state.toLowerCase(), "governor"));
-    if (!oid) {
-      log("officials", `WARN: No governor office for ${g.state}`);
-      continue;
-    }
-    const existing = currentByOffice.get(oid);
-    if (existing) {
-      skipped++;
-      continue;
-    }
-    toInsert.push({
-      office_id: oid,
+  for (const g of governors as GovernorEntry[]) {
+    place(officeMap.get(key(g.state.toLowerCase(), "governor")), {
       name: g.name,
       party: g.party,
       term_start: g.termStart,
       term_end: g.termEnd,
-      is_current: true,
       external_refs: g.ballotpedia ? { ballotpedia: g.ballotpedia } : {},
     });
   }
 
-  // 3c. Mayors
-  const mayorEntries = mayors as MayorEntry[];
-  for (const m of mayorEntries) {
-    const oid = officeMap.get(officeKey(m.geoSlug, "mayor"));
-    if (!oid) {
-      log("officials", `WARN: No mayor office for ${m.cityName} at ${m.geoSlug}`);
-      continue;
+  // 3c. Statewide execs
+  for (const e of statewideExecs as StatewideExecEntry[]) {
+    const slug = e.office.replace(/_/g, "-");
+    const tookOffice = e.tookOffice
+      ? /^\d{4}$/.test(e.tookOffice)
+        ? `${e.tookOffice}-01-01`
+        : e.tookOffice
+      : null;
+    place(officeMap.get(key(e.state.toLowerCase(), slug)), {
+      name: e.name,
+      party: e.party ?? undefined,
+      first_took_office: tookOffice,
+      external_refs: {},
+    });
+  }
+
+  // 3d. State legislators
+  for (const s of US_STATES) {
+    for (const p of sources.openStatesByState.get(s.abbr) ?? []) {
+      if (!p.current_district) continue;
+      const officeSlug = p.current_chamber === "upper" ? "state-senate" : "state-house";
+      const geoSlug =
+        p.current_chamber === "upper"
+          ? sldUpperSlug(s.abbr, p.current_district)
+          : sldLowerSlug(s.abbr, p.current_district);
+      const osId = p.id.replace("ocd-person/", "");
+      place(officeMap.get(key(geoSlug, officeSlug)), {
+        name: p.name,
+        party: p.current_party || undefined,
+        photo_url: p.image || undefined,
+        external_refs: { openstates: osId },
+      });
     }
-    const existing = currentByOffice.get(oid);
-    if (existing) {
-      skipped++;
-      continue;
-    }
-    toInsert.push({
-      office_id: oid,
+  }
+
+  // 3e. Mayors
+  for (const m of mayors as MayorEntry[]) {
+    place(officeMap.get(key(m.geoSlug, "mayor")), {
       name: m.name,
       party: m.party,
       term_start: m.termStart,
       term_end: m.termEnd,
-      is_current: true,
       external_refs: m.ballotpedia ? { ballotpedia: m.ballotpedia } : {},
     });
   }
 
-  // Execute inserts
   if (toInsert.length > 0) {
-    for (let i = 0; i < toInsert.length; i += 200) {
-      const chunk = toInsert.slice(i, i + 200);
-      const { error } = await db.from("Officials").insert(chunk);
-      if (error) throw new Error(`Official insert failed at chunk ${i}: ${error.message}`);
-    }
-    log("officials", `Inserted ${toInsert.length} officials`);
-  }
-
-  // Execute ref updates
-  for (const u of toUpdate) {
-    await db.from("Officials").update({ external_refs: u.external_refs }).eq("id", u.id);
-  }
-  if (toUpdate.length > 0) {
-    log("officials", `Updated external_refs on ${toUpdate.length} existing officials`);
+    await insertChunked("Officials", toInsert);
+    log("officials", `Inserted ${toInsert.length} officials, skipped ${skipped} existing`);
   }
 
   const { count } = await db
@@ -412,111 +540,60 @@ async function ingestOfficials() {
   log("officials", `Total current officials: ${count}`);
 }
 
-// ─── Phase 4: Tags ───────────────────────────────────────────────────────────
-
-async function ingestTags() {
-  // Get all current officials
-  const { data: officials } = await db
-    .from("Officials")
-    .select("id, name")
-    .eq("is_current", true);
-
-  if (!officials || officials.length === 0) {
-    log("tags", "No officials found, skipping");
-    return;
-  }
-
-  // Get existing official tags
-  const { data: existingTags } = await db
-    .from("Tags")
-    .select("ref_id")
-    .eq("kind", "official");
-  const existingRefIds = new Set((existingTags ?? []).map((t) => t.ref_id));
-
-  const newTags = officials
-    .filter((o) => !existingRefIds.has(o.id))
-    .map((o) => ({
-      kind: "official",
-      ref_id: o.id,
-      label: o.name,
-    }));
-
-  if (newTags.length > 0) {
-    for (let i = 0; i < newTags.length; i += 200) {
-      const chunk = newTags.slice(i, i + 200);
-      const { error } = await db.from("Tags").insert(chunk);
-      if (error) throw new Error(`Tag insert failed at chunk ${i}: ${error.message}`);
-    }
-    log("tags", `Inserted ${newTags.length} official tags`);
-  } else {
-    log("tags", "All official tags exist");
-  }
-
-  const { count } = await db
-    .from("Tags")
-    .select("*", { count: "exact", head: true })
-    .eq("kind", "official");
-  log("tags", `Total official tags: ${count}`);
-
-  // 4b. District tags
-  const tagKinds = ["state", "us_house", "county", "municipality"];
-  const { data: taggableDistricts } = await db
-    .from("Districts")
-    .select("id, name, kind")
-    .in("kind", tagKinds);
-
-  if (taggableDistricts && taggableDistricts.length > 0) {
-    const { data: existingDistrictTags } = await db
-      .from("Tags")
-      .select("ref_id")
-      .eq("kind", "district");
-    const existingDistrictRefIds = new Set(
-      (existingDistrictTags ?? []).map((t) => t.ref_id)
-    );
-
-    const newDistrictTags = taggableDistricts
-      .filter((d) => !existingDistrictRefIds.has(d.id))
-      .map((d) => ({
-        kind: "district",
-        ref_id: d.id,
-        label: d.name,
-      }));
-
-    if (newDistrictTags.length > 0) {
-      for (let i = 0; i < newDistrictTags.length; i += 200) {
-        const chunk = newDistrictTags.slice(i, i + 200);
-        const { error } = await db.from("Tags").insert(chunk);
-        if (error) throw new Error(`District tag insert failed at chunk ${i}: ${error.message}`);
-      }
-      log("tags", `Inserted ${newDistrictTags.length} district tags`);
-    } else {
-      log("tags", "All district tags exist");
-    }
-  }
-
-  const { count: districtTagCount } = await db
-    .from("Tags")
-    .select("*", { count: "exact", head: true })
-    .eq("kind", "district");
-  log("tags", `Total district tags: ${districtTagCount}`);
-}
-
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log("=== BallotCard Ingestion Pipeline ===\n");
   const start = Date.now();
 
+  // Open a run record for the "data as of" stamp.
+  const { data: run } = await db
+    .from("IngestionRuns")
+    .insert({ source: "full", status: "running" })
+    .select("id")
+    .single();
+  const runId = run?.id as string | undefined;
+
   try {
-    await ingestDistricts();
+    const sources = await fetchSources();
     console.log();
-    await ingestOffices();
+    await ingestDistricts(sources);
     console.log();
-    await ingestOfficials();
+    await ingestOffices(sources);
     console.log();
-    await ingestTags();
+    await ingestOfficials(sources);
+
+    if (runId) {
+      const [{ count: districts }, { count: offices }, { count: officials }] =
+        await Promise.all([
+          db.from("Districts").select("*", { count: "exact", head: true }),
+          db.from("Offices").select("*", { count: "exact", head: true }),
+          db
+            .from("Officials")
+            .select("*", { count: "exact", head: true })
+            .eq("is_current", true),
+        ]);
+      await db
+        .from("IngestionRuns")
+        .update({
+          status: "succeeded",
+          finished_at: new Date().toISOString(),
+          counts: { districts, offices, officials },
+        })
+        .eq("id", runId);
+    }
   } catch (err) {
     console.error("\n❌ Ingestion failed:", err);
+    if (runId) {
+      await db
+        .from("IngestionRuns")
+        .update({
+          status: "failed",
+          finished_at: new Date().toISOString(),
+          error: (err as Error).message,
+        })
+        .eq("id", runId);
+    }
     process.exit(1);
   }
 

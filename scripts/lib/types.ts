@@ -57,3 +57,30 @@ export type MayorEntry = {
   termYears: number;
   ballotpedia?: string;
 };
+
+// Shape of seed-data/statewide-execs.json
+export type StatewideExecEntry = {
+  state: string; // two-letter
+  office:
+    | "lieutenant_governor"
+    | "attorney_general"
+    | "secretary_of_state"
+    | "treasurer";
+  title: string; // real ballot title, e.g. "Secretary of State", "Comptroller"
+  name: string;
+  party: string | null;
+  tookOffice: string | null; // year or YYYY-MM-DD
+  selection: "elected_partisan" | "appointed";
+  selectionDetail: string;
+  nextElection: string | null;
+};
+
+// A person row from Open States bulk people CSV (data.openstates.org).
+export type OpenStatesPerson = {
+  id: string; // ocd-person/...
+  name: string;
+  current_party: string;
+  current_district: string;
+  current_chamber: "upper" | "lower";
+  image: string;
+};

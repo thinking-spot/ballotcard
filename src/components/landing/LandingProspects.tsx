@@ -1,15 +1,15 @@
-const might_work = [
-  "The mechanism is simple enough to explain in one paragraph and doesn't require anyone to trust a company.",
-  "It gives civic-minded people a structured outlet that isn't party organizing, punditry, or social media performance.",
-  "The public, permanent record has value even if a Witness seat goes unfilled. An empty page is still findable.",
-  "Self-regulation through elections means bad actors can be removed without a moderation team making editorial calls.",
+const covered_now = [
+  "President and Vice President.",
+  "US Senate and US House — sourced from the unitedstates/congress-legislators project.",
+  "Governors and statewide executives — attorney general, secretary of state, treasurer, and more.",
+  "State legislatures — every state senate and house seat, via Open States.",
 ];
 
-const might_not = [
-  "Most districts won't have enough engaged residents to fill Witness seats, especially at the municipal level.",
-  "The format requires people to write sourced, structured posts. That's a higher bar than a retweet or a comment.",
-  "Without virality, it's hard to reach the critical mass where an office page feels alive rather than abandoned.",
-  "A motivated political actor could run for Witness and use the seat to push a slanted account. Elections constrain this, but don't eliminate it.",
+const coming = [
+  "Elected state judges and retention elections.",
+  "Sheriffs, district attorneys, and county offices.",
+  "Mayors, city councils, and school boards, beyond the largest cities.",
+  "An activity record for each official — votes, floor statements, and hearings.",
 ];
 
 export function LandingProspects() {
@@ -19,10 +19,10 @@ export function LandingProspects() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
           <div>
             <h2 className="font-serif text-xl text-bc-navy mb-5">
-              Why it might work
+              On your card today
             </h2>
             <ul className="flex flex-col gap-3">
-              {might_work.map((item, i) => (
+              {covered_now.map((item, i) => (
                 <li key={i} className="text-sm text-bc-navy leading-relaxed flex gap-3">
                   <span className="text-bc-lavender select-none mt-0.5">—</span>
                   <span>{item}</span>
@@ -33,10 +33,10 @@ export function LandingProspects() {
 
           <div>
             <h2 className="font-serif text-xl text-bc-navy mb-5">
-              Why it might not
+              Coming, shown as honest empty rows
             </h2>
             <ul className="flex flex-col gap-3">
-              {might_not.map((item, i) => (
+              {coming.map((item, i) => (
                 <li key={i} className="text-sm text-bc-navy leading-relaxed flex gap-3">
                   <span className="text-bc-lavender select-none mt-0.5">—</span>
                   <span>{item}</span>

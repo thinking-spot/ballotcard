@@ -1,228 +1,18 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { formatDistanceToNow, format } from "date-fns";
-import { auth } from "@/auth";
 import { resolveSlug } from "@/lib/slug-resolver";
-import { getOfficePageData, getThreadData } from "@/lib/office-data";
-import { getElectionPageData } from "@/lib/election-data";
+import { getOfficePageData } from "@/lib/office-data";
 import { getDistrictPageData } from "@/lib/district-data";
 import type { DistrictPageData, DistrictOffice } from "@/lib/district-data";
-import type { ThreadReply, ModDeletion } from "@/lib/office-data";
+import { LAYER_ORDER, LAYER_LABELS } from "@/lib/district-data";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { WitnessBadge } from "@/components/ui/WitnessBadge";
-import { TagPill } from "@/components/ui/TagPill";
-import { StatusPill } from "@/components/ui/StatusPill";
-import { FeaturedLinkCard } from "@/components/office/FeaturedLinkCard";
 import { OfficeholderCard } from "@/components/office/OfficeholderCard";
-import { WitnessCard } from "@/components/office/WitnessCard";
-import { WitnessVacancyCard } from "@/components/office/WitnessVacancyCard";
-import { OfficeActivityFeed } from "@/components/office/OfficeActivityFeed";
 import { OfficeSidebar } from "@/components/office/OfficeSidebar";
-import { WatchButton } from "@/components/office/WatchButton";
-import { ModLog } from "@/components/office/ModLog";
-import { PostComposer } from "@/components/office/PostComposer";
-import { PostActions } from "@/components/office/PostActions";
-import { ReplyComposer } from "@/components/office/ReplyComposer";
-import { CandidacyForm } from "@/components/election/CandidacyForm";
-import { VoteButton } from "@/components/election/VoteButton";
-import { WithdrawButton } from "@/components/election/WithdrawButton";
-import { ResolveButton } from "@/components/election/ResolveButton";
+import { OfficeActivity } from "@/components/office/OfficeActivity";
 
 type Params = { state: string; slug?: string[] };
 
-/**
- * Detect /post/new suffix on the slug array.
- * Returns the base slug (without post/new) if matched, or null.
- */
-function extractNewPostSlug(slug: string[]): string[] | null {
-  if (
-    slug.length >= 3 &&
-    slug[slug.length - 2] === "post" &&
-    slug[slug.length - 1] === "new"
-  ) {
-    return slug.slice(0, -2);
-  }
-  return null;
-}
-
-/**
- * Detect /post/{uuid} suffix on the slug array.
- * Returns { baseSlug, postId } if matched, or null.
- */
-function extractPostSlug(
-  slug: string[]
-): { baseSlug: string[]; postId: string } | null {
-  if (
-    slug.length >= 3 &&
-    slug[slug.length - 2] === "post" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      slug[slug.length - 1]
-    )
-  ) {
-    return {
-      baseSlug: slug.slice(0, -2),
-      postId: slug[slug.length - 1],
-    };
-  }
-  return null;
-}
-
-// ─── Timeline row for election page ──────────────────────────────────────
-
-function TimelineRow({
-  label,
-  date,
-  isActive,
-  isPast,
-}: {
-  label: string;
-  date: Date;
-  isActive: boolean;
-  isPast: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        className={`w-2 h-2 rounded-full flex-shrink-0 ${
-          isActive
-            ? "bg-blue-500"
-            : isPast
-              ? "bg-emerald-500"
-              : "bg-gray-300"
-        }`}
-      />
-      <span
-        className={`flex-1 ${isActive ? "text-bc-navy font-medium" : "text-muted-foreground"}`}
-      >
-        {label}
-      </span>
-      <span className="text-xs text-muted-foreground flex-shrink-0">
-        {format(date, "MMM d, yyyy")}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Detect /election suffix on the slug array.
- * Returns the base slug (without election) if matched, or null.
- */
-function extractElectionSlug(slug: string[]): string[] | null {
-  if (slug.length >= 2 && slug[slug.length - 1] === "election") {
-    return slug.slice(0, -1);
-  }
-  return null;
-}
-
-// ─── Reply tree renderer ──────────────────────────────────────────────────
-
-function ReplyNode({
-  reply,
-  depth,
-  userId,
-  isWitness,
-}: {
-  reply: ThreadReply;
-  depth: number;
-  userId?: string;
-  isWitness?: boolean;
-}) {
-  const isDeleted = !!reply.deletedAt;
-  const isModDeleted = isDeleted && !!reply.modDeletion;
-  const isOwner = !!userId && reply.authorId === userId;
-  const timeAgo = formatDistanceToNow(new Date(reply.createdAt), {
-    addSuffix: true,
-  });
-
-  return (
-    <div
-      className={depth > 0 ? "ml-4 sm:ml-6 border-l-2 border-bc-light-lavender pl-4" : ""}
-    >
-      <div className="py-3">
-        {isDeleted ? (
-          <div>
-            {isModDeleted ? (
-              <div className="rounded border border-amber-200 bg-amber-50/50 px-3 py-2">
-                <p className="text-sm text-amber-800 italic">
-                  [Removed by Witness @{reply.modDeletion!.actorUsername}]
-                </p>
-                <p className="text-xs text-amber-600 mt-0.5">
-                  Reason: {reply.modDeletion!.reason}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                [deleted]
-              </p>
-            )}
-            {/* Witness can restore deleted replies */}
-            {isWitness && userId && (
-              <PostActions
-                postId={reply.id}
-                isOwner={false}
-                isTopLevel={false}
-                body=""
-                isWitness
-                isDeleted
-              />
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 mb-1">
-              {reply.isWitnessPost && <WitnessBadge />}
-              <p className="text-xs text-muted-foreground">
-                {reply.authorUsername && (
-                  <Link
-                    href={`/u/${reply.authorUsername}`}
-                    className="text-bc-navy hover:underline"
-                  >
-                    @{reply.authorUsername}
-                  </Link>
-                )}{" "}
-                · {timeAgo}
-                {reply.revisionCount > 0 && (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · edited ({reply.revisionCount}{" "}
-                    {reply.revisionCount === 1 ? "revision" : "revisions"})
-                  </span>
-                )}
-              </p>
-            </div>
-            <p className="text-sm text-bc-navy/80 leading-relaxed whitespace-pre-line">
-              {reply.body}
-            </p>
-            {userId && (
-              <PostActions
-                postId={reply.id}
-                isOwner={isOwner}
-                isTopLevel={false}
-                body={reply.body}
-                isWitness={isWitness}
-              />
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Nested replies */}
-      {reply.replies.length > 0 && (
-        <div>
-          {reply.replies.map((child) => (
-            <ReplyNode
-              key={child.id}
-              reply={child}
-              depth={depth + 1}
-              userId={userId}
-              isWitness={isWitness}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
   params,
@@ -231,49 +21,12 @@ export async function generateMetadata({
 }) {
   const { state, slug } = await params;
 
-  // State-level district (no slug)
   if (!slug || slug.length === 0) {
     const districtData = await getDistrictPageData(state);
     if (!districtData) return {};
-    return { title: `${districtData.district.name} — BallotCard` };
-  }
-
-  // Handle /post/new metadata
-  const baseSlug = extractNewPostSlug(slug);
-  if (baseSlug) {
-    const resolved = await resolveSlug(state, baseSlug);
-    if (!resolved || resolved.kind !== "office") return {};
-    const data = await getOfficePageData(
-      resolved.districtGeoSlug,
-      resolved.officeSlug
-    );
-    if (!data) return {};
-    return { title: `New post — ${data.office.title} — BallotCard` };
-  }
-
-  // Handle /election metadata
-  const electionBaseSlug = extractElectionSlug(slug);
-  if (electionBaseSlug) {
-    const resolved = await resolveSlug(state, electionBaseSlug);
-    if (!resolved || resolved.kind !== "office") return {};
-    const electionData = await getElectionPageData(
-      resolved.districtGeoSlug,
-      resolved.officeSlug
-    );
-    if (!electionData) return {};
     return {
-      title: `Witness election — ${electionData.office.title} — BallotCard`,
-    };
-  }
-
-  // Handle /post/{id} metadata
-  const postSlug = extractPostSlug(slug);
-  if (postSlug) {
-    const threadData = await getThreadData(postSlug.postId);
-    if (!threadData) return {};
-    const postTitle = threadData.post.title ?? "Thread";
-    return {
-      title: `${postTitle} — ${threadData.office.title} — BallotCard`,
+      title: `${districtData.district.name} — BallotCard`,
+      description: `Everyone who represents ${districtData.district.name}: offices, officeholders, and next elections.`,
     };
   }
 
@@ -292,20 +45,21 @@ export async function generateMetadata({
   );
   if (!data) return {};
 
+  const holder = data.official ? ` — ${data.official.name}` : "";
   return {
-    title: `${data.office.title} — BallotCard`,
+    title: `${data.office.title}${holder} — BallotCard`,
     description: data.office.description,
   };
 }
 
-// ─── District page view ─────────────────────────────────────────────────────
+// ─── Labels ───────────────────────────────────────────────────────────────────
 
 function kindLabel(kind: string): string {
   switch (kind) {
     case "country": return "Country";
     case "state": return "State";
     case "us_house": return "Congressional district";
-    case "us_senate_state": return "Senate seat";
+    case "us_senate_state": return "U.S. Senate seat";
     case "governor_state": return "Governor";
     case "state_house": return "State house district";
     case "state_senate": return "State senate district";
@@ -317,43 +71,43 @@ function kindLabel(kind: string): string {
   }
 }
 
+function partyAbbrev(party?: string): string | null {
+  if (!party) return null;
+  const p = party.toLowerCase();
+  if (p.startsWith("republican")) return "R";
+  if (p.startsWith("democratic-farmer")) return "DFL";
+  if (p.startsWith("democrat")) return "D";
+  if (p.startsWith("independent")) return "I";
+  if (p.startsWith("libertarian")) return "L";
+  if (p.startsWith("green")) return "G";
+  return party;
+}
+
+// ─── District page view ─────────────────────────────────────────────────────
+
 function DistrictOfficeRow({ office }: { office: DistrictOffice }) {
   const href = `/${office.districtGeoSlug}/${office.slug}`;
+  const party = partyAbbrev(office.officialParty);
   return (
     <Link
       href={href}
-      className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-bc-light-lavender bg-white hover:border-bc-lavender transition-colors"
+      className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-bc-light-lavender last:border-b-0 hover:bg-bc-light-lavender/30 transition-colors"
     >
-      <div className="min-w-0">
-        <span className="text-sm font-medium text-bc-navy">{office.title}</span>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-          {office.officialName && (
-            <span>
-              {office.officialName}
-              {office.officialParty && (
-                <span className="ml-1 text-muted-foreground/70">({office.officialParty})</span>
-              )}
-            </span>
-          )}
-          {office.witnessUsername && (
-            <span>Witness: @{office.witnessUsername}</span>
-          )}
-          {!office.witnessUsername && (
-            <span className="text-amber-600">No Witness</span>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-3 flex-shrink-0 text-xs text-muted-foreground">
-        {office.postCount > 0 && (
-          <span>{office.postCount} {office.postCount === 1 ? "post" : "posts"}</span>
+      <span className="text-sm font-medium text-bc-navy min-w-0 truncate">
+        {office.title}
+      </span>
+      <span className="text-sm text-muted-foreground flex-shrink-0 text-right">
+        {office.officialName ? (
+          <>
+            {office.officialName}
+            {party && (
+              <span className="ml-1 text-muted-foreground/70">({party})</span>
+            )}
+          </>
+        ) : (
+          <span className="text-muted-foreground/60 italic">data coming</span>
         )}
-        {office.watcherCount > 0 && (
-          <span>{office.watcherCount} watching</span>
-        )}
-        {office.hasOpenElection && (
-          <span className="text-blue-600 font-medium">Election open</span>
-        )}
-      </div>
+      </span>
     </Link>
   );
 }
@@ -361,15 +115,21 @@ function DistrictOfficeRow({ office }: { office: DistrictOffice }) {
 function DistrictPageView({ data }: { data: DistrictPageData }) {
   const hasOffices = data.offices.length > 0;
   const hasChildren = data.childDistricts.length > 0;
-  const hasActivity = data.recentActivity.length > 0;
+
+  // Group offices by ballot layer (federal → state → …)
+  const byLayer = new Map<string, DistrictOffice[]>();
+  for (const office of data.offices) {
+    const layer = office.level ?? "special";
+    if (!byLayer.has(layer)) byLayer.set(layer, []);
+    byLayer.get(layer)!.push(office);
+  }
+  const orderedLayers = LAYER_ORDER.filter((l) => byLayer.has(l));
 
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Breadcrumb */}
         <Breadcrumb items={data.breadcrumbs} />
 
-        {/* District header */}
         <div className="mt-4 mb-6">
           <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
             {data.district.name}
@@ -379,23 +139,22 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
           </p>
         </div>
 
-        {/* Two-column layout */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main column */}
           <div className="flex-1 min-w-0 flex flex-col gap-6">
-            {/* Offices in this district */}
-            {hasOffices && (
-              <section>
-                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
-                  Offices
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {data.offices.map((office) => (
-                    <DistrictOfficeRow key={office.id} office={office} />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Offices grouped by ballot layer */}
+            {hasOffices &&
+              orderedLayers.map((layer) => (
+                <section key={layer}>
+                  <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
+                    {LAYER_LABELS[layer] ?? layer}
+                  </h2>
+                  <div className="rounded-lg border border-bc-light-lavender bg-white overflow-hidden">
+                    {byLayer.get(layer)!.map((office) => (
+                      <DistrictOfficeRow key={office.id} office={office} />
+                    ))}
+                  </div>
+                </section>
+              ))}
 
             {/* Child districts */}
             {hasChildren && (
@@ -407,20 +166,23 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
                       ? "Municipalities"
                       : "Sub-districts"}
                 </h2>
-                <div className="flex flex-col gap-2">
+                <div className="rounded-lg border border-bc-light-lavender bg-white overflow-hidden">
                   {data.childDistricts.map((child) => (
                     <Link
                       key={child.id}
                       href={`/${child.geoSlug}`}
-                      className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-bc-light-lavender bg-white hover:border-bc-lavender transition-colors"
+                      className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-bc-light-lavender last:border-b-0 hover:bg-bc-light-lavender/30 transition-colors"
                     >
-                      <div>
-                        <span className="text-sm font-medium text-bc-navy">{child.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">{kindLabel(child.kind)}</span>
-                      </div>
+                      <span className="text-sm font-medium text-bc-navy">
+                        {child.name}
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          {kindLabel(child.kind)}
+                        </span>
+                      </span>
                       {child.officeCount > 0 && (
                         <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {child.officeCount} {child.officeCount === 1 ? "office" : "offices"}
+                          {child.officeCount}{" "}
+                          {child.officeCount === 1 ? "office" : "offices"}
                         </span>
                       )}
                     </Link>
@@ -429,198 +191,49 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
               </section>
             )}
 
-            {/* Recent activity across subtree */}
-            {hasActivity && (
-              <section>
-                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
-                  Recent activity
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {data.recentActivity.map((post) => {
-                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
-                      addSuffix: true,
-                    });
-                    return (
-                      <div
-                        key={post.id}
-                        className="px-4 py-3 rounded-lg border border-bc-light-lavender bg-white"
-                      >
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <Link
-                            href={post.officeHref}
-                            className="text-bc-navy hover:underline font-medium"
-                          >
-                            {post.officeTitle}
-                          </Link>
-                          <span>&middot;</span>
-                          <span>{timeAgo}</span>
-                        </div>
-                        {post.title && (
-                          <p className="text-sm font-medium text-bc-navy">
-                            {post.title}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {post.body}
-                        </p>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          <Link
-                            href={`/u/${post.authorUsername}`}
-                            className="hover:underline"
-                          >
-                            @{post.authorUsername}
-                          </Link>
-                          {post.isWitnessPost && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 text-bc-navy font-medium">
-                              Witness
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Cross-referenced posts (tagged with this district, from outside subtree) */}
-            {data.crossRefPosts.length > 0 && (
-              <section>
-                <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
-                  Cross-references
-                </h2>
-                <div className="flex flex-col gap-2">
-                  {data.crossRefPosts.map((post) => {
-                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
-                      addSuffix: true,
-                    });
-                    return (
-                      <div
-                        key={post.id}
-                        className="px-4 py-3 rounded-lg border-l-4 border-l-sky-300 border border-bc-light-lavender bg-sky-50/30"
-                      >
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <span className="text-sky-700 font-medium">
-                            from{" "}
-                            <Link
-                              href={post.officeHref}
-                              className="hover:underline"
-                            >
-                              {post.officeTitle}
-                            </Link>
-                            {" →"}
-                          </span>
-                          <span>&middot;</span>
-                          <span>{timeAgo}</span>
-                        </div>
-                        {post.title && (
-                          <p className="text-sm font-medium text-bc-navy">
-                            {post.title}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {post.body}
-                        </p>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          <Link
-                            href={`/u/${post.authorUsername}`}
-                            className="hover:underline"
-                          >
-                            @{post.authorUsername}
-                          </Link>
-                          {post.isWitnessPost && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 text-bc-navy font-medium">
-                              Witness
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Empty state */}
-            {!hasOffices && !hasChildren && !hasActivity && (
+            {!hasOffices && !hasChildren && (
               <div className="rounded-lg border border-bc-light-lavender bg-white p-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  No offices or activity in this district yet.
+                  No offices on record for this district yet.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Navigation sidebar */}
           <div className="lg:w-64 xl:w-72 flex-shrink-0">
-            <div className="flex flex-col gap-4">
-              {/* Zoom navigation */}
-              <div className="rounded-lg border border-bc-light-lavender bg-white p-4">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Navigate
-                </h3>
-                <div className="flex flex-col gap-1.5">
-                  {data.parentDistrict && (
-                    <Link
-                      href={`/${data.parentDistrict.geoSlug}`}
-                      className="text-sm text-bc-navy hover:underline flex items-center gap-1.5"
-                    >
-                      <span className="text-muted-foreground">&larr;</span>
-                      {data.parentDistrict.name}
-                    </Link>
-                  )}
-                  <span className="text-sm font-medium text-bc-navy pl-4">
-                    {data.district.name}
+            <div className="rounded-lg border border-bc-light-lavender bg-white p-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Navigate
+              </h3>
+              <div className="flex flex-col gap-1.5">
+                {data.parentDistrict && (
+                  <Link
+                    href={`/${data.parentDistrict.geoSlug}`}
+                    className="text-sm text-bc-navy hover:underline flex items-center gap-1.5"
+                  >
+                    <span className="text-muted-foreground">&larr;</span>
+                    {data.parentDistrict.name}
+                  </Link>
+                )}
+                <span className="text-sm font-medium text-bc-navy pl-4">
+                  {data.district.name}
+                </span>
+                {data.childDistricts.slice(0, 10).map((child) => (
+                  <Link
+                    key={child.id}
+                    href={`/${child.geoSlug}`}
+                    className="text-sm text-bc-navy hover:underline pl-8 flex items-center gap-1.5"
+                  >
+                    <span className="text-muted-foreground">&rarr;</span>
+                    {child.name}
+                  </Link>
+                ))}
+                {data.childDistricts.length > 10 && (
+                  <span className="text-xs text-muted-foreground pl-8">
+                    +{data.childDistricts.length - 10} more
                   </span>
-                  {data.childDistricts.slice(0, 8).map((child) => (
-                    <Link
-                      key={child.id}
-                      href={`/${child.geoSlug}`}
-                      className="text-sm text-bc-navy hover:underline pl-8 flex items-center gap-1.5"
-                    >
-                      <span className="text-muted-foreground">&rarr;</span>
-                      {child.name}
-                    </Link>
-                  ))}
-                  {data.childDistricts.length > 8 && (
-                    <span className="text-xs text-muted-foreground pl-8">
-                      +{data.childDistricts.length - 8} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Summary stats */}
-              <div className="rounded-lg border border-bc-light-lavender bg-white p-4">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Overview
-                </h3>
-                <div className="flex flex-col gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Offices</span>
-                    <span className="text-bc-navy font-medium">{data.offices.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Sub-districts</span>
-                    <span className="text-bc-navy font-medium">{data.childDistricts.length}</span>
-                  </div>
-                  {data.offices.filter((o) => o.witnessUsername).length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Active Witnesses</span>
-                      <span className="text-bc-navy font-medium">
-                        {data.offices.filter((o) => o.witnessUsername).length}
-                      </span>
-                    </div>
-                  )}
-                  {data.offices.filter((o) => !o.witnessUsername).length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-amber-600">Vacant seats</span>
-                      <span className="text-amber-600 font-medium">
-                        {data.offices.filter((o) => !o.witnessUsername).length}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -630,6 +243,8 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default async function CatchallPage({
   params,
 }: {
@@ -637,511 +252,34 @@ export default async function CatchallPage({
 }) {
   const { state, slug } = await params;
 
-  // ─── State-level district route (e.g. /nc with no slug) ─────────────
+  // State-level district route (e.g. /nc with no slug)
   if (!slug || slug.length === 0) {
     const districtData = await getDistrictPageData(state);
     if (!districtData) notFound();
-
     return <DistrictPageView data={districtData} />;
   }
 
-  // ─── New post page ───────────────────────────────────────────────────
-  const baseSlug = extractNewPostSlug(slug);
-  if (baseSlug) {
-    const session = await auth();
-    if (!session) {
-      redirect(`/login?next=/${state}/${slug.join("/")}`);
-    }
-
-    const resolved = await resolveSlug(state, baseSlug);
-    if (!resolved || resolved.kind !== "office") notFound();
-
-    const data = await getOfficePageData(
-      resolved.districtGeoSlug,
-      resolved.officeSlug
-    );
-    if (!data) notFound();
-
-    const officeHref = `/${resolved.districtGeoSlug}/${resolved.officeSlug}`;
-    const breadcrumbs = [...data.breadcrumbs, { label: "New post", href: "" }];
-
-    return (
-      <div className="min-h-screen bg-bc-light-lavender/30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <Breadcrumb items={breadcrumbs} />
-          <div className="mt-4 mb-6">
-            <h1 className="font-serif text-2xl text-bc-navy font-bold">
-              New post
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Posting to {data.office.title}
-            </p>
-          </div>
-          <div className="rounded-lg border border-bc-light-lavender bg-white p-4 sm:p-6">
-            <PostComposer officeId={data.office.id} officeHref={officeHref} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Election page ───────────────────────────────────────────────────
-  const electionSlug = extractElectionSlug(slug);
-  if (electionSlug) {
-    const resolved = await resolveSlug(state, electionSlug);
-    if (!resolved || resolved.kind !== "office") notFound();
-
-    const data = await getElectionPageData(
-      resolved.districtGeoSlug,
-      resolved.officeSlug
-    );
-    if (!data) notFound();
-
-    const session = await auth();
-    const isLoggedIn = !!session;
-    const officeHref = `/${data.district.geoSlug}/${data.office.slug}`;
-
-    const filingOpens = new Date(data.election.filingOpensAt);
-    const votingOpens = new Date(data.election.votingOpensAt);
-    const votingCloses = new Date(data.election.votingClosesAt);
-    const termStart = new Date(data.election.termStart + "T00:00:00");
-    const termEnd = new Date(data.election.termEnd + "T00:00:00");
-
-    const activeCandidates = data.candidates.filter((c) => !c.isWithdrawn);
-    const withdrawnCandidates = data.candidates.filter((c) => c.isWithdrawn);
-
-    const canFile =
-      isLoggedIn &&
-      data.isResidentOfDistrict &&
-      !data.userCandidacyId &&
-      data.phase !== "closed";
-
-    const canVote =
-      isLoggedIn &&
-      data.isResidentOfDistrict &&
-      data.phase === "voting";
-
-    return (
-      <div className="min-h-screen bg-bc-light-lavender/30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <Breadcrumb items={data.breadcrumbs} />
-
-          {/* Header */}
-          <div className="mt-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <StatusPill
-                variant="election"
-                label={
-                  data.phase === "filing"
-                    ? "Filing open"
-                    : data.phase === "voting"
-                      ? "Voting open"
-                      : "Election closed"
-                }
-              />
-            </div>
-            <h1 className="font-serif text-xl sm:text-2xl text-bc-navy font-bold">
-              Witness election
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              <Link href={officeHref} className="hover:underline">
-                {data.office.title}
-              </Link>
-              {" · "}
-              Term {format(termStart, "MMM yyyy")} – {format(termEnd, "MMM yyyy")}
-            </p>
-          </div>
-
-          {/* Timeline */}
-          <div className="rounded-lg border border-bc-light-lavender bg-white p-4 mb-4">
-            <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-3">
-              Timeline
-            </h2>
-            <div className="flex flex-col gap-2 text-sm">
-              <TimelineRow
-                label="Filing opens"
-                date={filingOpens}
-                isActive={data.phase === "filing"}
-                isPast={data.phase !== "filing"}
-              />
-              <TimelineRow
-                label="Voting opens"
-                date={votingOpens}
-                isActive={data.phase === "voting"}
-                isPast={data.phase === "closed"}
-              />
-              <TimelineRow
-                label="Voting closes"
-                date={votingCloses}
-                isActive={false}
-                isPast={data.phase === "closed"}
-              />
-            </div>
-            <div className="mt-3 pt-3 border-t border-bc-light-lavender text-xs text-muted-foreground">
-              Quorum: {data.election.quorum} vote{data.election.quorum !== 1 ? "s" : ""} needed to seat a Witness
-              {data.totalVotes > 0 && (
-                <> · {data.totalVotes} vote{data.totalVotes !== 1 ? "s" : ""} cast so far</>
-              )}
-            </div>
-          </div>
-
-          {/* Current Witness */}
-          {data.currentWitnessUsername && (
-            <div className="rounded-lg border border-bc-light-lavender bg-white p-4 mb-4">
-              <p className="text-xs text-muted-foreground">
-                Current Witness:{" "}
-                <Link
-                  href={`/u/${data.currentWitnessUsername}`}
-                  className="text-bc-navy hover:underline"
-                >
-                  @{data.currentWitnessUsername}
-                </Link>
-              </p>
-            </div>
-          )}
-
-          {/* Candidates */}
-          <div className="rounded-lg border border-bc-light-lavender bg-white mb-4">
-            <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender">
-              <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                {activeCandidates.length === 0
-                  ? "No candidates yet"
-                  : `${activeCandidates.length} candidate${activeCandidates.length !== 1 ? "s" : ""}`}
-              </h2>
-            </div>
-
-            {activeCandidates.length > 0 && (
-              <div className="divide-y divide-bc-light-lavender">
-                {activeCandidates.map((candidate) => (
-                  <div key={candidate.candidacyId} className="px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Link
-                            href={`/u/${candidate.username}`}
-                            className="text-sm font-medium text-bc-navy hover:underline"
-                          >
-                            @{candidate.username}
-                          </Link>
-                          {(data.phase === "voting" || data.phase === "closed") && (
-                            <span className="text-xs text-muted-foreground">
-                              {candidate.voteCount} vote{candidate.voteCount !== 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-bc-navy/80 leading-relaxed">
-                          {candidate.statementShort}
-                        </p>
-                        {candidate.statementLong && (
-                          <details className="mt-2">
-                            <summary className="text-xs text-muted-foreground cursor-pointer hover:underline">
-                              Read full statement
-                            </summary>
-                            <p className="mt-2 text-sm text-bc-navy/70 leading-relaxed whitespace-pre-line">
-                              {candidate.statementLong}
-                            </p>
-                          </details>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Filed {formatDistanceToNow(new Date(candidate.filedAt), { addSuffix: true })}
-                        </p>
-                        {/* Withdraw button for own candidacy */}
-                        {data.userCandidacyId === candidate.candidacyId && data.phase !== "closed" && (
-                          <div className="mt-2">
-                            <WithdrawButton candidacyId={candidate.candidacyId} />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Vote button */}
-                      {data.phase === "voting" && (
-                        <VoteButton
-                          electionId={data.election.id}
-                          candidacyId={candidate.candidacyId}
-                          isCurrentVote={data.userVotedCandidacyId === candidate.candidacyId}
-                          isLoggedIn={isLoggedIn}
-                          canVote={canVote}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeCandidates.length === 0 && (
-              <div className="px-4 py-6 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No one has filed yet. Be the first to run for Witness.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Withdrawn candidates */}
-          {withdrawnCandidates.length > 0 && (
-            <details className="rounded-lg border border-bc-light-lavender bg-white mb-4">
-              <summary className="px-4 py-3 text-xs text-muted-foreground cursor-pointer hover:bg-bc-light-lavender/30">
-                {withdrawnCandidates.length} withdrawn candidate{withdrawnCandidates.length !== 1 ? "s" : ""}
-              </summary>
-              <div className="divide-y divide-bc-light-lavender border-t border-bc-light-lavender">
-                {withdrawnCandidates.map((candidate) => (
-                  <div key={candidate.candidacyId} className="px-4 py-3 opacity-60">
-                    <p className="text-sm text-muted-foreground">
-                      @{candidate.username} — withdrawn
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-
-          {/* File candidacy form */}
-          {canFile && (
-            <div className="mb-4">
-              <CandidacyForm electionId={data.election.id} />
-            </div>
-          )}
-
-          {/* Login / residency prompt */}
-          {!isLoggedIn && data.phase !== "closed" && (
-            <div className="rounded-lg border border-bc-light-lavender bg-white p-4 mb-4">
-              <p className="text-sm text-muted-foreground">
-                <Link href="/login" className="text-bc-navy hover:underline">
-                  Log in
-                </Link>{" "}
-                to file a candidacy or vote.
-              </p>
-            </div>
-          )}
-
-          {isLoggedIn && !data.isResidentOfDistrict && data.phase !== "closed" && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-4">
-              <p className="text-sm text-amber-800">
-                Your home district does not cover this office. Only residents of
-                this district can file or vote.
-              </p>
-            </div>
-          )}
-
-          {/* Resolve button (shown when voting is closed and no winner seated) */}
-          {data.phase === "closed" && isLoggedIn && (
-            <div className="mb-4">
-              <ResolveButton electionId={data.election.id} />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Thread view ─────────────────────────────────────────────────────
-  const postSlug = extractPostSlug(slug);
-  if (postSlug) {
-    const [threadData, session] = await Promise.all([
-      getThreadData(postSlug.postId),
-      auth(),
-    ]);
-    if (!threadData) notFound();
-
-    const officeHref = `/${threadData.district.geoSlug}/${threadData.office.slug}`;
-    const post = threadData.post;
-    const isDeleted = !!post.deletedAt;
-    const isModDeleted = isDeleted && !!post.modDeletion;
-    const isOwner = !!session && post.authorId === session.user.id;
-    const isWitness = threadData.isWitnessForOffice;
-
-    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
-      addSuffix: true,
-    });
-
-    const issueTags = post.tags.filter((t) => t.kind === "issue");
-
-    return (
-      <div className="min-h-screen bg-bc-light-lavender/30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <Breadcrumb items={threadData.breadcrumbs} />
-
-          {/* Root post — full view */}
-          <article className="mt-4 rounded-lg border border-bc-light-lavender bg-white p-4 sm:p-6">
-            {isDeleted ? (
-              <div>
-                {isModDeleted ? (
-                  <div className="rounded border border-amber-200 bg-amber-50/50 px-4 py-3">
-                    <p className="text-sm text-amber-800 italic">
-                      [This post was removed by Witness @{post.modDeletion!.actorUsername}]
-                    </p>
-                    <p className="text-xs text-amber-600 mt-1">
-                      Reason: {post.modDeletion!.reason}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">
-                    [This post has been deleted]
-                  </p>
-                )}
-                {isWitness && session && (
-                  <PostActions
-                    postId={post.id}
-                    isOwner={false}
-                    isTopLevel={true}
-                    body=""
-                    isWitness
-                    isDeleted
-                  />
-                )}
-              </div>
-            ) : (
-              <>
-                <div className="flex items-start gap-2 mb-2">
-                  {post.isWitnessPost && <WitnessBadge />}
-                  {post.isPinned && (
-                    <span className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground border border-bc-light-lavender px-1.5 py-0.5 rounded">
-                      Pinned
-                    </span>
-                  )}
-                </div>
-
-                {post.title && (
-                  <h1 className="font-serif text-xl sm:text-2xl font-bold text-bc-navy leading-snug mb-2">
-                    {post.title}
-                  </h1>
-                )}
-
-                <p className="text-xs text-muted-foreground mb-4">
-                  {post.authorUsername && (
-                    <Link
-                      href={`/u/${post.authorUsername}`}
-                      className="text-bc-navy hover:underline"
-                    >
-                      @{post.authorUsername}
-                    </Link>
-                  )}{" "}
-                  · {timeAgo}
-                  {post.revisionCount > 0 && (
-                    <span>
-                      {" "}
-                      · edited ({post.revisionCount}{" "}
-                      {post.revisionCount === 1 ? "revision" : "revisions"})
-                    </span>
-                  )}
-                  {" · "}
-                  <Link
-                    href={officeHref}
-                    className="hover:underline"
-                  >
-                    {threadData.office.title}
-                  </Link>
-                </p>
-
-                {post.featuredLink && (
-                  <div className="mb-4">
-                    <FeaturedLinkCard link={post.featuredLink} />
-                  </div>
-                )}
-
-                <div className="text-sm text-bc-navy/90 leading-relaxed whitespace-pre-line">
-                  {post.body}
-                </div>
-
-                {issueTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-4">
-                    {issueTags.map((tag) => (
-                      <TagPill key={tag.id} label={tag.label} />
-                    ))}
-                  </div>
-                )}
-
-                {session && (
-                  <PostActions
-                    postId={post.id}
-                    isOwner={isOwner}
-                    isTopLevel={true}
-                    title={post.title}
-                    body={post.body}
-                    isWitness={isWitness}
-                    isPinned={post.isPinned}
-                  />
-                )}
-              </>
-            )}
-          </article>
-
-          {/* Replies section */}
-          <div className="mt-4 rounded-lg border border-bc-light-lavender bg-white">
-            <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender">
-              <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                {threadData.replies.length === 0
-                  ? "No replies yet"
-                  : `${threadData.replies.length} ${threadData.replies.length === 1 ? "reply" : "replies"}`}
-              </h2>
-            </div>
-
-            {threadData.replies.length > 0 && (
-              <div className="px-4 divide-y divide-bc-light-lavender">
-                {threadData.replies.map((reply) => (
-                  <ReplyNode
-                    key={reply.id}
-                    reply={reply}
-                    depth={0}
-                    userId={session?.user.id}
-                    isWitness={isWitness}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Reply composer at the bottom */}
-            {session && !isDeleted && (
-              <div className="px-4 py-4 border-t border-bc-light-lavender">
-                <ReplyComposer parentPostId={post.id} />
-              </div>
-            )}
-
-            {!session && (
-              <div className="px-4 py-4 border-t border-bc-light-lavender">
-                <p className="text-sm text-muted-foreground">
-                  <Link href="/login" className="text-bc-navy hover:underline">
-                    Log in
-                  </Link>{" "}
-                  to reply.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Standard routing ────────────────────────────────────────────────
   const resolved = await resolveSlug(state, slug);
-
   if (!resolved) notFound();
 
   if (resolved.kind === "district") {
     const districtData = await getDistrictPageData(resolved.geoSlug);
     if (!districtData) notFound();
-
     return <DistrictPageView data={districtData} />;
   }
 
   // Office page
-  const [data, session] = await Promise.all([
-    getOfficePageData(resolved.districtGeoSlug, resolved.officeSlug),
-    auth(),
-  ]);
+  const data = await getOfficePageData(
+    resolved.districtGeoSlug,
+    resolved.officeSlug
+  );
   if (!data) notFound();
-
-  const officeHref = `/${resolved.districtGeoSlug}/${resolved.officeSlug}`;
 
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Breadcrumb */}
         <Breadcrumb items={data.breadcrumbs} />
 
-        {/* Office header */}
         <div className="mt-4 mb-6">
           <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
             {data.office.title}
@@ -1151,21 +289,10 @@ export default async function CatchallPage({
               {data.office.description}
             </p>
           )}
-          <div className="mt-3">
-            <WatchButton
-              officeId={data.office.id}
-              initialIsWatching={data.isWatching}
-              initialCount={data.watcherCount}
-              isLoggedIn={!!session}
-            />
-          </div>
         </div>
 
-        {/* Two-column layout */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main column */}
           <div className="flex-1 min-w-0 flex flex-col gap-3">
-            {/* Officeholder */}
             {data.official ? (
               <OfficeholderCard
                 official={data.official}
@@ -1173,95 +300,19 @@ export default async function CatchallPage({
               />
             ) : (
               <div className="rounded-lg border border-bc-light-lavender bg-white p-4 text-sm text-muted-foreground">
-                No current officeholder on record.
+                No current officeholder on record for this seat yet.
               </div>
             )}
 
-            {/* Witness */}
-            {data.witness ? (
-              <WitnessCard witness={data.witness} />
-            ) : (
-              <WitnessVacancyCard officeHref={officeHref} />
+            {/* Activity — articleOne-ready section (see src/lib/feed) */}
+            {data.official && (
+              <OfficeActivity official={data.official} />
             )}
-
-            {/* Activity feed */}
-            <OfficeActivityFeed
-              posts={data.posts}
-              officeHref={officeHref}
-              showNewPostLink={!!session}
-            />
-
-            {/* Cross-references (posts from other offices tagged with this official) */}
-            {data.crossRefPosts.length > 0 && (
-              <div className="rounded-lg border-l-4 border-l-sky-300 border border-bc-light-lavender bg-sky-50/30">
-                <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender/50">
-                  <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-                    Cross-references
-                  </h2>
-                </div>
-                <div className="px-4 divide-y divide-bc-light-lavender/50">
-                  {data.crossRefPosts.map((post) => {
-                    const timeAgo = formatDistanceToNow(new Date(post.createdAt), {
-                      addSuffix: true,
-                    });
-                    return (
-                      <div key={post.id} className="py-3">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <span className="text-sky-700 font-medium">
-                            from{" "}
-                            <Link
-                              href={post.sourceOfficeHref}
-                              className="hover:underline"
-                            >
-                              {post.sourceOfficeTitle}
-                            </Link>
-                            {" →"}
-                          </span>
-                          <span>&middot;</span>
-                          <span>{timeAgo}</span>
-                        </div>
-                        {post.title && (
-                          <p className="text-sm font-medium text-bc-navy">
-                            {post.title}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {post.body.length > 280
-                            ? post.body.slice(0, 280).trimEnd() + "…"
-                            : post.body}
-                        </p>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {post.authorUsername && (
-                            <Link
-                              href={`/u/${post.authorUsername}`}
-                              className="hover:underline"
-                            >
-                              @{post.authorUsername}
-                            </Link>
-                          )}
-                          {post.isWitnessPost && (
-                            <span className="ml-1.5 text-bc-navy font-medium">
-                              Witness
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Moderation log */}
-            <ModLog actions={data.modActions} officeHref={officeHref} />
           </div>
 
-          {/* Sidebar */}
           <div className="lg:w-64 xl:w-72 flex-shrink-0">
             <OfficeSidebar
-              watcherCount={data.watcherCount}
-              nextRealElectionAt={data.office.nextElectionAt}
-              issueTags={data.issueTags}
+              office={data.office}
               relatedOffices={data.relatedOffices}
             />
           </div>

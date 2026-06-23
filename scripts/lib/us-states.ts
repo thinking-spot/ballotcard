@@ -97,3 +97,24 @@ export function houseDistrictName(stateAbbr: string, district: number, totalSeat
   if (totalSeats === 1) return `${stateAbbr}-AL`;
   return `${stateAbbr}-${String(district).padStart(2, "0")}`;
 }
+
+// Normalize a state-legislative district label so the Census-derived value
+// (numeric, e.g. "008") and the Open States label (e.g. "8") match.
+// Numeric districts collapse to their integer string; others are slugified.
+export function normDistrict(label: string): string {
+  const trimmed = label.trim();
+  if (/^\d+$/.test(trimmed)) return String(parseInt(trimmed, 10));
+  return trimmed
+    .toLowerCase()
+    .replace(/['']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// State-legislative district slugs — shared convention with the ballot card.
+export function sldUpperSlug(stateAbbr: string, district: string): string {
+  return `${stateAbbr.toLowerCase()}/sldu-${normDistrict(district)}`;
+}
+export function sldLowerSlug(stateAbbr: string, district: string): string {
+  return `${stateAbbr.toLowerCase()}/sldl-${normDistrict(district)}`;
+}
