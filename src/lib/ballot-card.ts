@@ -1,5 +1,6 @@
 import { db } from "@/lib/supabase";
 import { LAYER_ORDER, LAYER_LABELS } from "@/lib/district-data";
+import { COUNTY_TEMPLATES, MUNICIPAL_TEMPLATES } from "@/lib/ballot-templates";
 
 // The set of district identifiers a ballot card is built from. These are facts
 // about *places*, never about a person — safe to put in a URL and localStorage.
@@ -10,13 +11,15 @@ export type CardGeographies = {
   sl?: string; // state legislative lower district number
   county?: string; // county geo_slug tail or fips (best-effort)
   place?: string; // municipality geo_slug tail (best-effort)
+  countyName?: string; // human-readable county name from the geocoder
+  placeName?: string; // human-readable place name from the geocoder
 };
 
 export type CardOffice = {
   id: string;
   title: string;
   slug: string;
-  href: string;
+  href?: string; // absent for template-only rows (no permalink yet)
   branch: string;
   level: string;
   selectionMethod: string;
@@ -24,6 +27,8 @@ export type CardOffice = {
   officialName?: string;
   officialParty?: string;
   officialPhotoUrl?: string;
+  /** When true, this is a synthesized template row — no DB record exists. */
+  placeholder?: boolean;
 };
 
 export type CardSection = {
@@ -144,6 +149,47 @@ export async function getBallotCard(
     const level = office.level ?? "special";
     if (!byLevel.has(level)) byLevel.set(level, []);
     byLevel.get(level)!.push(office);
+  }
+
+  // 6. Synthesize honest empty rows from templates. The Census Geocoder gives
+  //    us the county/place name even when we have no district row — using that,
+  //    we render Sheriff/DA/Mayor as placeholder rows so the user sees their
+  //    complete ballot rather than silently truncated sections.
+  const existingSlugs = (level: string) =>
+    new Set((byLevel.get(level) ?? []).map((o) => o.slug));
+
+  if (geo.countyName) {
+    const countySlugs = existingSlugs("county");
+    for (const t of COUNTY_TEMPLATES) {
+      if (countySlugs.has(t.slug)) continue;
+      if (!byLevel.has("county")) byLevel.set("county", []);
+      byLevel.get("county")!.push({
+        id: `tmpl-county-${t.slug}`,
+        title: t.title(geo.countyName),
+        slug: t.slug,
+        branch: t.branch,
+        level: t.level,
+        selectionMethod: t.selectionMethod,
+        placeholder: true,
+      });
+    }
+  }
+
+  if (geo.placeName) {
+    const muniSlugs = existingSlugs("municipal");
+    for (const t of MUNICIPAL_TEMPLATES) {
+      if (muniSlugs.has(t.slug)) continue;
+      if (!byLevel.has("municipal")) byLevel.set("municipal", []);
+      byLevel.get("municipal")!.push({
+        id: `tmpl-muni-${t.slug}`,
+        title: t.title(geo.placeName),
+        slug: t.slug,
+        branch: t.branch,
+        level: t.level,
+        selectionMethod: t.selectionMethod,
+        placeholder: true,
+      });
+    }
   }
 
   const sections: CardSection[] = LAYER_ORDER.filter((l) => byLevel.has(l)).map(

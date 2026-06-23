@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 type ResolvedGeographies = {
   state?: { code: string; name: string; fips: string };
+  county?: { name: string; geoid: string };
+  place?: { name: string; geoid: string };
   congressionalDistrict?: { number: string };
   stateLegislativeUpper?: { number: string };
   stateLegislativeLower?: { number: string };
@@ -19,6 +21,10 @@ function cardPath(g: ResolvedGeographies): string {
   if (g.congressionalDistrict) params.set("cd", g.congressionalDistrict.number);
   if (g.stateLegislativeUpper) params.set("su", g.stateLegislativeUpper.number);
   if (g.stateLegislativeLower) params.set("sl", g.stateLegislativeLower.number);
+  // Geocoder-provided place facts — names only, no identifying information.
+  // Used to render honest empty rows (Sheriff of X County, Mayor of Y).
+  if (g.county?.name) params.set("cn", g.county.name);
+  if (g.place?.name) params.set("pn", g.place.name);
   return `/card?${params.toString()}`;
 }
 

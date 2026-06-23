@@ -33,11 +33,8 @@ function OfficeRow({ office }: { office: CardOffice }) {
     ? format(new Date(office.nextElectionAt + "T12:00:00"), "MMM yyyy")
     : null;
 
-  return (
-    <Link
-      href={office.href}
-      className="flex items-center justify-between gap-4 px-4 py-3 border-b border-bc-light-lavender last:border-b-0 hover:bg-bc-light-lavender/30 transition-colors"
-    >
+  const body = (
+    <>
       <div className="min-w-0">
         <p className="text-sm font-medium text-bc-navy truncate">{office.title}</p>
         {office.officialName ? (
@@ -47,7 +44,9 @@ function OfficeRow({ office }: { office: CardOffice }) {
           </p>
         ) : (
           <p className="text-sm text-muted-foreground/60 italic mt-0.5">
-            Officeholder data coming
+            {office.placeholder
+              ? "No data source for this office yet"
+              : "Officeholder data coming"}
           </p>
         )}
       </div>
@@ -58,6 +57,24 @@ function OfficeRow({ office }: { office: CardOffice }) {
           {nextElection}
         </span>
       )}
+    </>
+  );
+
+  const rowClass =
+    "flex items-center justify-between gap-4 px-4 py-3 border-b border-bc-light-lavender last:border-b-0";
+
+  // Placeholder rows have no permalink to link to; render them as dim, static
+  // rows so they're visibly distinct from offices we have data for.
+  if (office.placeholder || !office.href) {
+    return <div className={`${rowClass} bg-bc-light-lavender/10`}>{body}</div>;
+  }
+
+  return (
+    <Link
+      href={office.href}
+      className={`${rowClass} hover:bg-bc-light-lavender/30 transition-colors`}
+    >
+      {body}
     </Link>
   );
 }
@@ -93,6 +110,8 @@ export default async function CardPage({
     sl: one(sp.sl),
     county: one(sp.county),
     place: one(sp.place),
+    countyName: one(sp.cn),
+    placeName: one(sp.pn),
   };
 
   const card = await getBallotCard(geo);
@@ -106,6 +125,8 @@ export default async function CardPage({
   if (geo.sl) cardParams.set("sl", geo.sl);
   if (geo.county) cardParams.set("county", geo.county);
   if (geo.place) cardParams.set("place", geo.place);
+  if (geo.countyName) cardParams.set("cn", geo.countyName);
+  if (geo.placeName) cardParams.set("pn", geo.placeName);
   const cardPath = `/card?${cardParams.toString()}`;
 
   if (!card || card.sections.length === 0) {
