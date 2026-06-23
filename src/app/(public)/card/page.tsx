@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { getBallotCard } from "@/lib/ballot-card";
 import type { CardGeographies, CardOffice } from "@/lib/ballot-card";
 import { AddressEntry } from "@/components/AddressEntry";
+import { SaveBallotButton } from "@/components/SaveBallotButton";
 
 export const metadata = {
   title: "Your ballot — BallotCard",
@@ -96,6 +97,17 @@ export default async function CardPage({
 
   const card = await getBallotCard(geo);
 
+  // Rebuild the canonical district URL — facts about a place, nothing about the
+  // user — so "Save my ballot" persists a link, not an identity.
+  const cardParams = new URLSearchParams();
+  cardParams.set("s", geo.state);
+  if (geo.cd) cardParams.set("cd", geo.cd);
+  if (geo.su) cardParams.set("su", geo.su);
+  if (geo.sl) cardParams.set("sl", geo.sl);
+  if (geo.county) cardParams.set("county", geo.county);
+  if (geo.place) cardParams.set("place", geo.place);
+  const cardPath = `/card?${cardParams.toString()}`;
+
   if (!card || card.sections.length === 0) {
     return (
       <div className="min-h-screen bg-bc-light-lavender/30">
@@ -116,14 +128,20 @@ export default async function CardPage({
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6">
-          <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
-            Your ballot
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Everyone who represents you
-            {card.stateName ? ` in ${card.stateName}` : ""} — federal to local.
-          </p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
+              Your ballot
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Everyone who represents you
+              {card.stateName ? ` in ${card.stateName}` : ""} — federal to local.
+            </p>
+          </div>
+          <SaveBallotButton
+            path={cardPath}
+            label={card.stateName ? `${card.stateName} ballot` : "My ballot"}
+          />
         </div>
 
         <div className="flex flex-col gap-6">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { WordMark } from "@/components/brand/WordMark";
 import { NavMobileMenu } from "@/components/layout/NavMobileMenu";
+import { MyBallotLink } from "@/components/MyBallotLink";
 
 export function PublicNav() {
   return (
@@ -27,6 +28,7 @@ export function PublicNav() {
           >
             Principles
           </Link>
+          <MyBallotLink className="text-bc-blush font-medium hover:text-bc-offwhite transition-colors" />
 
           <NavMobileMenu />
         </div>
