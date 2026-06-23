@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   description:
     "Enter your address, see everyone who represents you — a faithful recreation of your actual ballot, federal to local, on one permanent page. No account, no ads, no tracking.",
-  metadataBase: new URL("https://ballotcard.org"),
+  metadataBase: new URL("https://ballot-card.com"),
   openGraph: {
     siteName: "BallotCard",
     type: "website",
