@@ -360,6 +360,7 @@ async function ingestOffices(sources: Sources) {
         level: "state",
         selection_method: "elected_partisan",
         term_years: p.current_chamber === "upper" ? 4 : 2,
+        next_election_at: "2026-11-03",
         is_seeded: true,
       });
     }

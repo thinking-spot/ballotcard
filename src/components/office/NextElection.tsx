@@ -78,56 +78,63 @@ export function NextElection({
         </p>
 
         {candidates.length > 0 || showIncumbentFallback ? (
-          <ul className="flex flex-col divide-y divide-bc-light-lavender/70">
-            {showIncumbentFallback && official && (
-              <li className="py-2 flex items-center justify-between gap-3">
-                <span className="text-sm text-bc-navy">
-                  {official.name}
-                  {partyAbbrev(official.party) && (
-                    <span className="ml-1 text-muted-foreground/70">
-                      ({partyAbbrev(official.party)})
-                    </span>
-                  )}
-                </span>
-                <span className="text-[10px] font-medium tracking-wide uppercase text-bc-navy/70 border border-bc-light-lavender rounded px-1.5 py-0.5">
-                  Incumbent
-                </span>
-              </li>
-            )}
-            {candidates.map((c) => (
-              <li key={c.id} className="py-2 flex items-center justify-between gap-3">
-                <span className="text-sm text-bc-navy">
-                  {c.fecId ? (
-                    <a
-                      href={`https://www.fec.gov/data/candidate/${c.fecId}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      {c.name}
-                    </a>
-                  ) : (
-                    c.name
-                  )}
-                  {partyAbbrev(c.party) && (
-                    <span className="ml-1 text-muted-foreground/70">
-                      ({partyAbbrev(c.party)})
-                    </span>
-                  )}
-                </span>
-                {c.isIncumbent && (
+          <>
+            <ul className="flex flex-col divide-y divide-bc-light-lavender/70">
+              {showIncumbentFallback && official && (
+                <li className="py-2 flex items-center justify-between gap-3">
+                  <span className="text-sm text-bc-navy">
+                    {official.name}
+                    {partyAbbrev(official.party) && (
+                      <span className="ml-1 text-muted-foreground/70">
+                        ({partyAbbrev(official.party)})
+                      </span>
+                    )}
+                  </span>
                   <span className="text-[10px] font-medium tracking-wide uppercase text-bc-navy/70 border border-bc-light-lavender rounded px-1.5 py-0.5">
                     Incumbent
                   </span>
-                )}
-              </li>
-            ))}
-          </ul>
+                </li>
+              )}
+              {candidates.map((c) => (
+                <li key={c.id} className="py-2 flex items-center justify-between gap-3">
+                  <span className="text-sm text-bc-navy">
+                    {c.fecId ? (
+                      <a
+                        href={`https://www.fec.gov/data/candidate/${c.fecId}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        {c.name}
+                      </a>
+                    ) : (
+                      c.name
+                    )}
+                    {partyAbbrev(c.party) && (
+                      <span className="ml-1 text-muted-foreground/70">
+                        ({partyAbbrev(c.party)})
+                      </span>
+                    )}
+                  </span>
+                  {c.isIncumbent && (
+                    <span className="text-[10px] font-medium tracking-wide uppercase text-bc-navy/70 border border-bc-light-lavender rounded px-1.5 py-0.5">
+                      Incumbent
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {showIncumbentFallback && !isFederal && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Challenger filings for state and local races aren’t tracked here yet.
+              </p>
+            )}
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">
             {isFederal
               ? "No candidate filings on record for this race yet."
-              : "Candidate filings for this race aren’t published here yet — state and local candidate data is coming."}
+              : "Candidate filings for this race aren’t published here yet."}
           </p>
         )}
       </div>
