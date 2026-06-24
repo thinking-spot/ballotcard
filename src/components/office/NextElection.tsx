@@ -6,11 +6,18 @@ interface NextElectionProps {
     title: string;
     level: string;
     nextElectionAt?: string;
+    primaryElectionAt?: string;
     selectionMethod: string;
   };
   official: OfficialData | null;
   candidates: CandidateData[];
   state?: string;
+}
+
+function fmtMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 1_000) return `$${Math.round(n / 1_000)}k`;
+  return `$${n}`;
 }
 
 function partyAbbrev(party?: string): string | null {
@@ -57,18 +64,35 @@ export function NextElection({
 
   return (
     <section className="rounded-lg border border-bc-light-lavender bg-white">
-      <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender flex items-baseline justify-between gap-3">
-        <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
-          Next election
-        </h2>
-        {date && (
-          <span className="text-xs text-muted-foreground">
-            {format(date, "MMMM d, yyyy")}
-            {upcoming && (
-              <> · in {formatDistanceToNow(date)}</>
-            )}
-          </span>
-        )}
+      <div className="px-4 pt-4 pb-2 border-b border-bc-light-lavender flex flex-col gap-1">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground">
+            Next election
+          </h2>
+          {date && (
+            <span className="text-xs text-muted-foreground">
+              {format(date, "MMMM d, yyyy")}
+              {upcoming && (
+                <> · in {formatDistanceToNow(date)}</>
+              )}
+            </span>
+          )}
+        </div>
+        {office.primaryElectionAt && (() => {
+          const pd = new Date(office.primaryElectionAt + "T12:00:00");
+          const pUpcoming = isFuture(pd);
+          return (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground/80">
+                Primary
+              </span>
+              <span className="text-xs text-muted-foreground/80">
+                {format(pd, "MMMM d, yyyy")}
+                {pUpcoming && <> · in {formatDistanceToNow(pd)}</>}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* On the ballot */}
@@ -97,7 +121,7 @@ export function NextElection({
               )}
               {candidates.map((c) => (
                 <li key={c.id} className="py-2 flex items-center justify-between gap-3">
-                  <span className="text-sm text-bc-navy">
+                  <span className="text-sm text-bc-navy min-w-0">
                     {c.fecId ? (
                       <a
                         href={`https://www.fec.gov/data/candidate/${c.fecId}/`}
@@ -115,9 +139,14 @@ export function NextElection({
                         ({partyAbbrev(c.party)})
                       </span>
                     )}
+                    {c.fecTotals && c.fecTotals.receipts > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground/70">
+                        · Raised {fmtMoney(c.fecTotals.receipts)}
+                      </span>
+                    )}
                   </span>
                   {c.isIncumbent && (
-                    <span className="text-[10px] font-medium tracking-wide uppercase text-bc-navy/70 border border-bc-light-lavender rounded px-1.5 py-0.5">
+                    <span className="text-[10px] font-medium tracking-wide uppercase text-bc-navy/70 border border-bc-light-lavender rounded px-1.5 py-0.5 flex-shrink-0">
                       Incumbent
                     </span>
                   )}

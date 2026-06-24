@@ -41,6 +41,11 @@ export type CandidateData = {
   isIncumbent: boolean;
   cycle: number;
   fecId?: string;
+  fecTotals?: {
+    receipts: number;
+    disbursements: number;
+    coverage_end_date?: string;
+  };
 };
 
 export type OfficePageData = {
@@ -62,6 +67,7 @@ export type OfficePageData = {
     selectionMethod: string;
     termYears?: number;
     nextElectionAt?: string;
+    primaryElectionAt?: string;
   };
   official: OfficialData | null;
   candidates: CandidateData[];
@@ -109,7 +115,7 @@ export async function getOfficePageData(
   const { data: officeRaw } = await db
     .from("Offices")
     .select(
-      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at"
+      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at, primary_election_at"
     )
     .eq("district_id", districtRaw.id)
     .eq("slug", officeSlug)
@@ -144,7 +150,7 @@ export async function getOfficePageData(
       nextElectionYear
         ? db
             .from("Candidates")
-            .select("id, name, party, is_incumbent, cycle, external_refs")
+            .select("id, name, party, is_incumbent, cycle, external_refs, fec_totals")
             .eq("office_id", officeRaw.id)
             .eq("cycle", nextElectionYear)
             .order("is_incumbent", { ascending: false })
@@ -188,6 +194,7 @@ export async function getOfficePageData(
       selectionMethod: officeRaw.selection_method as string,
       termYears: (officeRaw.term_years as number) || undefined,
       nextElectionAt: (officeRaw.next_election_at as string) || undefined,
+      primaryElectionAt: (officeRaw.primary_election_at as string) || undefined,
     },
     official: officialRaw
       ? {
@@ -205,6 +212,7 @@ export async function getOfficePageData(
       : null,
     candidates: (candidatesRaw ?? []).map((c) => {
       const refs = (c.external_refs ?? {}) as Record<string, string>;
+      const totals = c.fec_totals as CandidateData["fecTotals"] | null;
       return {
         id: c.id as string,
         name: c.name as string,
@@ -212,6 +220,7 @@ export async function getOfficePageData(
         isIncumbent: !!c.is_incumbent,
         cycle: c.cycle as number,
         fecId: refs.fec_candidate_id || undefined,
+        fecTotals: totals ?? undefined,
       };
     }),
     relatedOffices: (relatedRaw ?? []).map((o) => ({

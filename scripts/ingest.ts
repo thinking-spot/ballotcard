@@ -29,6 +29,11 @@ import type {
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
 import { fetchFecCandidates, type FecCandidate } from "./lib/fec";
+import {
+  fetchFecElectionDates,
+  earliestPrimaryByStateOffice,
+} from "./lib/fec-dates";
+import { fetchFecCandidateTotals } from "./lib/fec-totals";
 import { parse as parseYaml } from "yaml";
 import governors from "../seed-data/governors.json";
 import mayors from "../seed-data/mayors.json";
@@ -700,6 +705,11 @@ async function ingestCandidates(): Promise<number> {
   const rows: Array<Record<string, unknown>> = [];
   const cyclesTouched = new Set<number>();
 
+  // Per-candidate money totals indexed by FEC ID. Bulk-fetched per (office,
+  // cycle) so 3,000+ candidates take ~30 paginated calls instead of 3,000.
+  type Totals = { receipts: number; disbursements: number; coverage_end_date?: string };
+  const totalsById = new Map<string, Totals>();
+
   for (const [office, cycle] of fetches) {
     let fec: FecCandidate[];
     try {
@@ -710,6 +720,21 @@ async function ingestCandidates(): Promise<number> {
     }
     cyclesTouched.add(cycle);
     log("candidates", `FEC ${office}/${cycle}: ${fec.length} candidates`);
+
+    // Pull aggregate totals for this office × cycle in bulk.
+    try {
+      const totals = await fetchFecCandidateTotals(office, cycle, apiKey);
+      for (const t of totals) {
+        totalsById.set(`${t.candidateId}::${cycle}`, {
+          receipts: t.receipts,
+          disbursements: t.disbursements,
+          coverage_end_date: t.coverageEndDate,
+        });
+      }
+      log("candidates", `FEC ${office}/${cycle} totals: ${totals.length}`);
+    } catch (err) {
+      log("candidates", `WARN: ${office}/${cycle} totals — ${(err as Error).message}`);
+    }
 
     for (const c of fec) {
       let office_id: string | undefined;
@@ -729,6 +754,7 @@ async function ingestCandidates(): Promise<number> {
       if (!office_id) continue;
 
       const target = offices.find((o) => o.id === office_id);
+      const totals = totalsById.get(`${c.candidateId}::${cycle}`);
       rows.push({
         office_id,
         name: c.name,
@@ -739,6 +765,7 @@ async function ingestCandidates(): Promise<number> {
         status: c.status,
         source: "fec",
         external_refs: { fec_candidate_id: c.candidateId },
+        fec_totals: totals ?? null,
       });
     }
   }
@@ -765,6 +792,59 @@ async function ingestCandidates(): Promise<number> {
   return finalRows.length;
 }
 
+// ─── Phase 5: Primary election dates (FEC) ───────────────────────────────────
+
+async function ingestPrimaryDates(): Promise<number> {
+  const apiKey = process.env.FEC_API_KEY;
+  if (!apiKey) {
+    log("primaries", "FEC_API_KEY not set — skipping primary date ingestion");
+    return 0;
+  }
+
+  // 2026: House (all states) + Senate (Class II). 2028 primary calendar isn't
+  // populated by FEC this far out; reattempt next year.
+  const dates2026 = await fetchFecElectionDates(2026, apiKey);
+  log("primaries", `FEC 2026 election dates: ${dates2026.length} entries`);
+  const byKey = earliestPrimaryByStateOffice(dates2026);
+
+  const offices = await selectAll<{
+    id: string;
+    slug: string;
+    district_id: string;
+    next_election_at: string | null;
+  }>("Offices", "id, slug, district_id, next_election_at");
+  const districts = await selectAll<{ id: string; geo_slug: string; state: string | null }>(
+    "Districts",
+    "id, geo_slug, state"
+  );
+  const districtStateById = new Map(districts.map((d) => [d.id, d.state]));
+
+  // For each federal office with a 2026 next election, find the matching
+  // (state, office_type) primary date and queue an update.
+  let queued = 0;
+  for (const o of offices) {
+    if (!o.next_election_at?.startsWith("2026")) continue;
+    let officeType: "H" | "S" | null = null;
+    if (o.slug === "us-house") officeType = "H";
+    else if (o.slug.startsWith("us-senate-class-")) officeType = "S";
+    if (!officeType) continue;
+
+    const state = districtStateById.get(o.district_id);
+    if (!state) continue;
+    const primary = byKey.get(`${state}::${officeType}`);
+    if (!primary) continue;
+
+    // Update only when changed (avoids no-op writes).
+    const { error } = await db
+      .from("Offices")
+      .update({ primary_election_at: primary })
+      .eq("id", o.id);
+    if (!error) queued++;
+  }
+  log("primaries", `Updated primary_election_at on ${queued} offices`);
+  return queued;
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -789,6 +869,8 @@ async function main() {
     await ingestOfficials(sources);
     console.log();
     const candidates = await ingestCandidates();
+    console.log();
+    await ingestPrimaryDates();
 
     if (runId) {
       const [{ count: districts }, { count: offices }, { count: officials }] =
