@@ -64,6 +64,27 @@ export const US_STATES: USState[] = [
   { abbr: "WY", name: "Wyoming", fips: "56", houseSeats: 1, senateClasses: [1, 2], governorTermYears: 4 },
 ];
 
+// US territories with non-voting House representation. Districts here render
+// as state-equivalents but have no Senate seats, no state legislature, and no
+// statewide execs beyond the territory's own (DC has a mayor; the islands
+// have governors — handled in separate seeds).
+export type USTerritory = {
+  abbr: string;
+  name: string;
+  fips: string;
+  /** "delegate" (DC, GU, VI, AS, MP, 2-year term) or "resident_commissioner" (PR, 4-year term). */
+  delegateKind: "delegate" | "resident_commissioner";
+};
+
+export const US_TERRITORIES: USTerritory[] = [
+  { abbr: "DC", name: "District of Columbia", fips: "11", delegateKind: "delegate" },
+  { abbr: "PR", name: "Puerto Rico", fips: "72", delegateKind: "resident_commissioner" },
+  { abbr: "GU", name: "Guam", fips: "66", delegateKind: "delegate" },
+  { abbr: "VI", name: "U.S. Virgin Islands", fips: "78", delegateKind: "delegate" },
+  { abbr: "AS", name: "American Samoa", fips: "60", delegateKind: "delegate" },
+  { abbr: "MP", name: "Northern Mariana Islands", fips: "69", delegateKind: "delegate" },
+];
+
 // Roman numeral labels for Senate classes
 export function senateClassLabel(classNum: number): string {
   const labels: Record<number, string> = { 1: "I", 2: "II", 3: "III" };

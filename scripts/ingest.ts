@@ -9,6 +9,7 @@
 import { db } from "./lib/supabase-client";
 import {
   US_STATES,
+  US_TERRITORIES,
   houseGeoSlug,
   houseDistrictName,
   senateSlug,
@@ -136,6 +137,25 @@ async function ingestDistricts(sources: Sources) {
       }))
     );
     log("districts", `Inserted ${newStates.length} state districts`);
+  }
+
+  // 1a-bis. Territories with non-voting House representation.
+  const newTerritories = US_TERRITORIES.filter(
+    (t) => !existingSlugs.has(t.abbr.toLowerCase())
+  );
+  if (newTerritories.length > 0) {
+    await insertChunked(
+      "Districts",
+      newTerritories.map((t) => ({
+        name: t.name,
+        kind: "territory",
+        state: t.abbr,
+        parent_id: US_COUNTRY_ID,
+        geo_slug: t.abbr.toLowerCase(),
+        external_refs: { census_fips: t.fips },
+      }))
+    );
+    log("districts", `Inserted ${newTerritories.length} territory districts`);
   }
 
   // refresh map
@@ -276,6 +296,32 @@ async function ingestOffices(sources: Sources) {
         is_seeded: true,
       });
     }
+  }
+
+  // 2b-bis. US House non-voting delegates (DC, GU, VI, AS, MP) +
+  //         resident commissioner (PR). These ride alongside voting House
+  //         seats but live directly under the territory district.
+  for (const t of US_TERRITORIES) {
+    const territoryId = slugToId.get(t.abbr.toLowerCase());
+    if (!territoryId || !isNew(territoryId, "us-house")) continue;
+    const isPR = t.delegateKind === "resident_commissioner";
+    toInsert.push({
+      district_id: territoryId,
+      title: isPR
+        ? `Resident Commissioner of ${t.name}`
+        : `US House Delegate, ${t.name}`,
+      slug: "us-house",
+      kind: "legislative",
+      branch: "legislative",
+      level: "federal",
+      selection_method: "elected_partisan",
+      term_years: isPR ? 4 : 2,
+      next_election_at: isPR ? "2028-11-07" : "2026-11-03",
+      description: isPR
+        ? "Non-voting member of the US House; 4-year term."
+        : "Non-voting member of the US House; 2-year term.",
+      is_seeded: true,
+    });
   }
 
   // 2c. US Senate
@@ -496,10 +542,19 @@ async function ingestOfficials(sources: Sources) {
     let officeSlug: string;
     if (term.type === "rep") {
       const sd = US_STATES.find((s) => s.abbr === term.state);
-      if (!sd) continue;
-      const dist = term.district ?? 0;
-      geoSlug = houseGeoSlug(term.state, dist === 0 ? 1 : dist, sd.houseSeats);
-      officeSlug = "us-house";
+      const td = US_TERRITORIES.find((t) => t.abbr === term.state);
+      if (sd) {
+        const dist = term.district ?? 0;
+        geoSlug = houseGeoSlug(term.state, dist === 0 ? 1 : dist, sd.houseSeats);
+        officeSlug = "us-house";
+      } else if (td) {
+        // Territories have one delegate (or resident commissioner) per
+        // territory; the district is the territory itself, not a numbered seat.
+        geoSlug = td.abbr.toLowerCase();
+        officeSlug = "us-house";
+      } else {
+        continue;
+      }
     } else {
       geoSlug = term.state.toLowerCase();
       officeSlug = senateSlug(term.class ?? 1);
