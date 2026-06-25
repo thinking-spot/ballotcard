@@ -15,6 +15,15 @@ export type CardGeographies = {
   placeName?: string; // human-readable place name from the geocoder
 };
 
+export type CardCandidate = {
+  id: string;
+  name: string;
+  party?: string;
+  isIncumbent: boolean;
+  fecId?: string;
+  raised?: number;
+};
+
 export type CardOffice = {
   id: string;
   title: string;
@@ -24,9 +33,14 @@ export type CardOffice = {
   level: string;
   selectionMethod: string;
   nextElectionAt?: string;
+  primaryElectionAt?: string;
   officialName?: string;
   officialParty?: string;
   officialPhotoUrl?: string;
+  /** Officeholder external refs — power the Activity panel's outbound links. */
+  officialRefs?: Record<string, string>;
+  /** Declared candidates for the upcoming election (challengers panel). */
+  candidates?: CardCandidate[];
   /** When true, this is a synthesized template row — no DB record exists. */
   placeholder?: boolean;
 };
@@ -90,7 +104,7 @@ export async function getBallotCard(
   const { data: officesRaw } = await db
     .from("Offices")
     .select(
-      "id, title, slug, branch, level, selection_method, next_election_at, district_id"
+      "id, title, slug, branch, level, selection_method, next_election_at, primary_election_at, district_id"
     )
     .in("district_id", districtIds)
     .not("slug", "is", null)
@@ -100,14 +114,20 @@ export async function getBallotCard(
   const offices = officesRaw ?? [];
   const officeIds = offices.map((o) => o.id as string);
 
-  // 3. Current officials + latest ingestion stamp (parallel)
-  const [officialsResult, ingestionResult] = await Promise.all([
+  // 3. Current officials + declared candidates + latest ingestion stamp.
+  const [officialsResult, candidatesResult, ingestionResult] = await Promise.all([
     officeIds.length > 0
       ? db
           .from("Officials")
-          .select("office_id, name, party, photo_url")
+          .select("office_id, name, party, photo_url, external_refs")
           .in("office_id", officeIds)
           .eq("is_current", true)
+      : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+    officeIds.length > 0
+      ? db
+          .from("Candidates")
+          .select("office_id, name, party, is_incumbent, cycle, external_refs, fec_totals")
+          .in("office_id", officeIds)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     db
       .from("IngestionRuns")
@@ -123,11 +143,40 @@ export async function getBallotCard(
     officialByOffice.set(o.office_id as string, o);
   }
 
+  // Candidates grouped by office — the challengers panel shows the ones whose
+  // cycle matches the office's next election year. Incumbents sort first.
+  const candidatesByOffice = new Map<string, Record<string, unknown>[]>();
+  for (const c of (candidatesResult.data ?? []) as Record<string, unknown>[]) {
+    const oid = c.office_id as string;
+    if (!candidatesByOffice.has(oid)) candidatesByOffice.set(oid, []);
+    candidatesByOffice.get(oid)!.push(c);
+  }
+
   // 4. Assemble offices with their district hrefs
   const cardOffices: CardOffice[] = offices.map((o) => {
     const district = districtById.get(o.district_id as string);
     const geoSlug = district?.geo_slug as string;
     const official = officialByOffice.get(o.id as string);
+    const nextAt = (o.next_election_at as string) || undefined;
+    const cycle = nextAt ? Number(nextAt.slice(0, 4)) : undefined;
+
+    const rawCandidates = candidatesByOffice.get(o.id as string) ?? [];
+    const candidates: CardCandidate[] = rawCandidates
+      .filter((c) => (cycle ? c.cycle === cycle : true))
+      .map((c) => {
+        const refs = (c.external_refs ?? {}) as Record<string, string>;
+        const totals = c.fec_totals as { receipts?: number } | null;
+        return {
+          id: refs.fec_candidate_id || `${o.id}-${c.name}`,
+          name: c.name as string,
+          party: (c.party as string) || undefined,
+          isIncumbent: !!c.is_incumbent,
+          fecId: refs.fec_candidate_id || undefined,
+          raised: totals?.receipts && totals.receipts > 0 ? totals.receipts : undefined,
+        };
+      })
+      .sort((a, b) => Number(b.isIncumbent) - Number(a.isIncumbent));
+
     return {
       id: o.id as string,
       title: o.title as string,
@@ -136,10 +185,14 @@ export async function getBallotCard(
       branch: o.branch as string,
       level: o.level as string,
       selectionMethod: o.selection_method as string,
-      nextElectionAt: (o.next_election_at as string) || undefined,
+      nextElectionAt: nextAt,
+      primaryElectionAt: (o.primary_election_at as string) || undefined,
       officialName: (official?.name as string) || undefined,
       officialParty: (official?.party as string) || undefined,
       officialPhotoUrl: (official?.photo_url as string) || undefined,
+      officialRefs:
+        (official?.external_refs as Record<string, string>) || undefined,
+      candidates,
     };
   });
 

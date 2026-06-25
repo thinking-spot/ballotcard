@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BallotCard — Design Mockup v4 (Light)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* ── Ballot card interior (paper world — identical across all versions) ── */
+      --paper:             #f9f8f3;
+      --paper-warm:        #f2ede0;
+      --ink:               #1a1a1a;
+      --ink-mid:           #3c3c3c;
+      --ink-light:         #717171;
+      --border:            #cec9b9;
+      --border-light:      #e3ddd1;
+      --dem:               #1d4ed8;
+      --rep:               #b91c1c;
+      --ind:               #6d28d9;
+      --ballot-navy:       #1c2b4a;
+
+      /* Accordion panel tints (unchanged) */
+      --activity-tint:     #eef2ff;
+      --activity-border:   #b8c5ef;
+      --activity-head:     #3d4fa8;
+      --challenger-tint:   #fefce8;
+      --challenger-border: #e8d88a;
+      --challenger-head:   #854d0e;
+
+      /* ── Light mode chrome ── */
+      --glass-bg:         rgba(168, 188, 220, 0.52);
+      --glass-border:     rgba(0, 0, 0, 0.07);
+      --glass-text:       rgba(0, 0, 0, 0.45);
+      --glass-active:     rgba(0, 0, 0, 0.88);
+      --glass-hover-bg:   rgba(0, 0, 0, 0.05);
+      --glass-active-bg:  rgba(0, 0, 0, 0.07);
+    }
+
+    /* ─────────────────────────────────────────
+       PAGE — bright iPad-light wallpaper
+       Warm cool gradient; feels like a lit
+       screen on a clear day.
+    ───────────────────────────────────────── */
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse at 20% 0%,   rgba(195, 215, 255, 0.55) 0%,  transparent 50%),
+        radial-gradient(ellipse at 85% 85%,  rgba(215, 195, 255, 0.30) 0%,  transparent 50%),
+        radial-gradient(ellipse at 55% 50%,  rgba(235, 240, 255, 0.20) 0%,  transparent 65%),
+        #eceef5;
+      background-attachment: fixed;
+      color: var(--glass-active);
+      min-height: 100vh;
+    }
+
+    /* ─────────────────────────────────────────
+       NAV — frosted white glass bar
+    ───────────────────────────────────────── */
+    nav {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 0 2rem;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .nav-brand {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--glass-active);
+      letter-spacing: -0.025em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.125rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--glass-text);
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 400;
+      padding: 0.3125rem 0.6875rem;
+      border-radius: 7px;
+      transition: color 0.12s, background 0.12s;
+    }
+
+    .nav-links a:hover {
+      color: var(--glass-active);
+      background: var(--glass-hover-bg);
+    }
+
+    .nav-links a.active {
+      color: var(--glass-active);
+      background: var(--glass-active-bg);
+      font-weight: 500;
+    }
+
+    /* ─────────────────────────────────────────
+       PAGE WRAPPER
+    ───────────────────────────────────────── */
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 3rem 1.25rem 5rem;
+    }
+
+    /* ─────────────────────────────────────────
+       BALLOT HEADER — in the digital world,
+       dark text on light background
+    ───────────────────────────────────────── */
+    .ballot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.75rem;
+    }
+
+    .ballot-eyebrow {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(0, 0, 0, 0.52);
+      margin-bottom: 0.375rem;
+    }
+
+    /* Bridge between worlds: serif title on the light screen */
+    .ballot-title {
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.85);
+      line-height: 1.15;
+    }
+
+    .ballot-subtitle {
+      margin-top: 0.3125rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.9375rem;
+      color: rgba(0, 0, 0, 0.62);
+      font-weight: 400;
+    }
+
+    /* Frosted pill button — light version */
+    .saved-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4375rem;
+      background: rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: rgba(0, 0, 0, 0.70);
+      border: 1px solid rgba(0, 0, 0, 0.10);
+      border-radius: 9px;
+      padding: 0.5rem 0.9375rem;
+      font-size: 0.8125rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-top: 0.375rem;
+      letter-spacing: -0.01em;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .saved-btn:hover {
+      background: rgba(0, 0, 0, 0.10);
+      border-color: rgba(0, 0, 0, 0.16);
+      color: rgba(0, 0, 0, 0.88);
+    }
+
+    /* ─────────────────────────────────────────
+       LEGEND
+    ───────────────────────────────────────── */
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1.25rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.8125rem;
+      color: rgba(0, 0, 0, 0.55);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4375rem;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      opacity: 0.75;
+    }
+
+    /* ─────────────────────────────────────────
+       BALLOT CARD — same paper document,
+       different surface beneath it.
+       Shadow is softer for light mode.
+    ───────────────────────────────────────── */
+    .ballot-card {
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        0 2px 6px  rgba(0, 0, 0, 0.08),
+        0 10px 36px rgba(0, 0, 0, 0.10),
+        0 28px 64px rgba(0, 0, 0, 0.07);
+      overflow: hidden;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 23px,
+        rgba(0, 0, 0, 0.018) 24px
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       BALLOT CARD INTERNALS — paper world
+       Everything below is identical to v3
+    ───────────────────────────────────────── */
+    .section-header {
+      background: var(--ballot-navy);
+      color: rgba(255, 255, 255, 0.90);
+      padding: 0.4375rem 1.125rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background-image: none;
+    }
+
+    .section-label {
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .section-rule {
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .section-count {
+      font-size: 0.6875rem;
+      color: rgba(255, 255, 255, 0.38);
+      letter-spacing: 0.02em;
+    }
+
+    .ballot-row { border-bottom: 1px solid var(--border-light); }
+    .ballot-row:last-of-type { border-bottom: none; }
+
+    .row-main {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      min-height: 54px;
+    }
+
+    .row-left {
+      padding: 0.6875rem 0.625rem 0.6875rem 1.125rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-right: 1px solid var(--border-light);
+      transition: background 0.12s;
+    }
+
+    .row-left:hover  { background: var(--paper-warm); }
+    .row-left.open   { background: var(--activity-tint); }
+    .row-left-content { flex: 1; min-width: 0; }
+
+    .office-name {
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-size: 0.9375rem;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .officeholder-name {
+      margin-top: 0.125rem;
+      font-size: 0.8125rem;
+      color: var(--ink-light);
+    }
+
+    .party-d { color: var(--dem); }
+    .party-r { color: var(--rep); }
+    .party-i { color: var(--ind); }
+
+    .left-expand {
+      font-size: 0.5625rem;
+      color: var(--ink-light);
+      flex-shrink: 0;
+      padding-right: 0.25rem;
+      transition: transform 0.18s ease;
+      user-select: none;
+      opacity: 0.45;
+    }
+
+    .row-left:hover .left-expand { opacity: 1; }
+    .row-left.open  .left-expand { opacity: 1; transform: rotate(90deg); color: var(--activity-head); }
+
+    .row-right {
+      padding: 0.6875rem 1.125rem 0.6875rem 1rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0.125rem;
+      min-width: 118px;
+      transition: background 0.12s;
+    }
+
+    .row-right:hover { background: var(--paper-warm); }
+    .row-right.open  { background: var(--challenger-tint); }
+
+    .election-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-light);
+    }
+
+    .election-date {
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-size: 0.875rem;
+      color: var(--ink-mid);
+    }
+
+    .right-expand {
+      font-size: 0.5625rem;
+      color: var(--ink-light);
+      transition: transform 0.18s ease;
+      opacity: 0.45;
+      margin-top: 0.0625rem;
+    }
+
+    .row-right:hover .right-expand { opacity: 1; }
+    .row-right.open  .right-expand { opacity: 1; transform: rotate(180deg); color: var(--challenger-head); }
+
+    .activity-panel {
+      display: none;
+      background: var(--activity-tint);
+      border-top: 1px solid var(--activity-border);
+      background-image: none;
+    }
+
+    .activity-panel.open { display: block; }
+
+    .panel-header {
+      padding: 0.4375rem 1.125rem;
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--activity-border);
+    }
+
+    .panel-header.activity-head   { color: var(--activity-head); }
+    .panel-header.challenger-head { color: var(--challenger-head); }
+
+    .panel-header a {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.75rem;
+      text-decoration: none;
+      opacity: 0.75;
+    }
+
+    .panel-header.activity-head   a { color: var(--activity-head); }
+    .panel-header.challenger-head a { color: var(--challenger-head); }
+    .panel-header a:hover { opacity: 1; }
+
+    .activity-item {
+      padding: 0.5625rem 1.125rem;
+      border-bottom: 1px solid var(--activity-border);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.625rem 0.75rem;
+      align-items: baseline;
+    }
+
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-tag {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.125rem 0.3125rem;
+      border-radius: 2px;
+      white-space: nowrap;
+      align-self: center;
+    }
+
+    .tag-vote      { background: #dbeafe; color: #1e40af; }
+    .tag-floor     { background: #e0e7ff; color: #3730a3; }
+    .tag-hearing   { background: #ede9fe; color: #6d28d9; }
+    .tag-signed    { background: #d1fae5; color: #065f46; }
+    .tag-press     { background: #fce7f3; color: #9d174d; }
+    .tag-statement { background: #e0e7ff; color: #3730a3; }
+
+    .activity-desc {
+      font-size: 0.8125rem;
+      color: var(--ink-mid);
+      line-height: 1.4;
+    }
+
+    .activity-date {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .challengers-panel {
+      display: none;
+      background: var(--challenger-tint);
+      border-top: 1px solid var(--challenger-border);
+      background-image: none;
+    }
+
+    .challengers-panel.open { display: block; }
+
+    .challenger-item {
+      padding: 0.5625rem 1.125rem;
+      border-bottom: 1px solid var(--challenger-border);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .challenger-item:last-child { border-bottom: none; }
+
+    .challenger-name {
+      font-size: 0.8125rem;
+      color: var(--ink-mid);
+      font-weight: 500;
+    }
+
+    .challenger-meta {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+      margin-top: 0.125rem;
+      font-style: italic;
+    }
+
+    .challenger-badge {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.125rem 0.375rem;
+      border-radius: 2px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-incumbent  { background: #d1fae5; color: #065f46; }
+    .badge-challenger { background: #fef9c3; color: #854d0e; }
+
+    .row-empty .office-name       { color: var(--ink-light); font-style: italic; }
+    .row-empty .officeholder-name { color: var(--border); font-size: 0.75rem; }
+
+    .ballot-footer {
+      padding: 0.875rem 1.125rem;
+      background: var(--paper-warm);
+      border-top: 1px solid var(--border);
+      font-size: 0.8125rem;
+      color: var(--ink-light);
+      line-height: 1.5;
+      background-image: none;
+    }
+
+    .ballot-footer a { color: var(--ink-mid); text-decoration: none; }
+    .ballot-footer a:hover { text-decoration: underline; }
+
+    /* ─────────────────────────────────────────
+       SITE FOOTER — frosted white glass
+    ───────────────────────────────────────── */
+    .site-footer {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-top: 1px solid var(--glass-border);
+      color: var(--glass-text);
+      padding: 1.5rem 2rem;
+      margin-top: 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.8125rem;
+    }
+
+    .site-footer-brand {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      letter-spacing: -0.025em;
+      color: var(--glass-active);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .site-footer-sub { font-size: 0.75rem; }
+    .site-footer-sub a { color: var(--glass-text); text-decoration: none; }
+    .site-footer-sub a:hover { color: var(--glass-active); }
+
+    .site-footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+
+    .site-footer-links a {
+      color: var(--glass-text);
+      text-decoration: none;
+      transition: color 0.12s;
+    }
+
+    .site-footer-links a:hover { color: var(--glass-active); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">BallotCard</span>
+  <ul class="nav-links">
+    <li><a href="#">How it works</a></li>
+    <li><a href="#">About</a></li>
+    <li><a href="#">Principles</a></li>
+    <li><a href="#" class="active">My ballot</a></li>
+  </ul>
+</nav>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- BALLOT HEADER -->
+  <div class="ballot-header">
+    <div>
+      <p class="ballot-eyebrow">North Carolina · June 25, 2026</p>
+      <h1 class="ballot-title">My ballot</h1>
+      <p class="ballot-subtitle">Everyone who represents you — federal to local.</p>
+    </div>
+    <button class="saved-btn">★ Saved to My ballot</button>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--activity-tint); border:1px solid var(--activity-border);"></div>
+      Click an office to see recent activity
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:var(--challenger-tint); border:1px solid var(--challenger-border);"></div>
+      Click a date to see who's running
+    </div>
+  </div>
+
+  <!-- BALLOT CARD — the paper document -->
+  <div class="ballot-card" role="list">
+
+    <!-- ═══════════ FEDERAL ═══════════ -->
+    <div class="section-header">
+      <span class="section-label">Federal</span>
+      <div class="section-rule"></div>
+      <span class="section-count">5 offices</span>
+    </div>
+
+    <!-- President -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">President of the United States</div>
+            <div class="officeholder-name">Donald J. Trump <span class="party-r">(R)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Donald J. Trump</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">Executive Order on AI governance and federal procurement standards issued</span>
+          <span class="activity-date">Jun 20</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-signed">Signed</span>
+          <span class="activity-desc">H.R. 1234 — Federal Budget Reconciliation Act signed into law</span>
+          <span class="activity-date">Jun 14</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Addressed joint session on infrastructure investment priorities</span>
+          <span class="activity-date">Jun 8</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- US House NC-04 -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">US House, NC-04</div>
+            <div class="officeholder-name">Valerie P. Foushee <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Valerie P. Foushee</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Voted Yea — H.R. 4521 CHIPS and Science Act Reauthorization</span>
+          <span class="activity-date">Jun 19</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Science, Space &amp; Technology Committee — AI in K–12 education</span>
+          <span class="activity-date">Jun 12</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-floor">Floor</span>
+          <span class="activity-desc">Remarks on NC-04 broadband infrastructure funding allocation</span>
+          <span class="activity-date">Jun 5</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2026</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">General election</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Valerie P. Foushee <span class="party-d">(D)</span></div>
+            <div class="challenger-meta">Incumbent · running for re-election</div>
+          </div>
+          <span class="challenger-badge badge-incumbent">Incumbent</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Marcus D. Holt <span class="party-r">(R)</span></div>
+            <div class="challenger-meta">Durham County Commissioner · declared Jun 2025</div>
+          </div>
+          <span class="challenger-badge badge-challenger">Challenger</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No other declared candidates</div>
+            <div class="challenger-meta">Primary results finalized May 2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- US Senate — Tillis -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">US Senate, North Carolina</div>
+            <div class="officeholder-name">Thom Tillis <span class="party-r">(R)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Thom Tillis</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Voted Nay — S. 2891 Expanding Social Security Benefits Act</span>
+          <span class="activity-date">Jun 22</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Judiciary Committee — oversight of federal AI regulations</span>
+          <span class="activity-date">Jun 16</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-floor">Floor</span>
+          <span class="activity-desc">Introduced S. 3102 — Southeast Economic Development Zone Act</span>
+          <span class="activity-date">Jun 10</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2026</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">General election</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Thom Tillis <span class="party-r">(R)</span></div>
+            <div class="challenger-meta">Incumbent · running for re-election</div>
+          </div>
+          <span class="challenger-badge badge-incumbent">Incumbent</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Jeff Jackson <span class="party-d">(D)</span></div>
+            <div class="challenger-meta">NC Attorney General · declared Feb 2026</div>
+          </div>
+          <span class="challenger-badge badge-challenger">Challenger</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Shannon Bray <span class="party-i">(L)</span></div>
+            <div class="challenger-meta">Libertarian candidate · declared Mar 2026</div>
+          </div>
+          <span class="challenger-badge badge-challenger">Challenger</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- US Senate — Budd -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">US Senate, North Carolina</div>
+            <div class="officeholder-name">Ted Budd <span class="party-r">(R)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Ted Budd</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Voted Yea — S. 1876 National Defense Authorization Act FY2027</span>
+          <span class="activity-date">Jun 18</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">Statement on border security appropriations and DHS oversight</span>
+          <span class="activity-date">Jun 11</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Armed Services Committee — military base realignment in NC</span>
+          <span class="activity-date">Jun 4</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vice President -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">Vice President of the United States</div>
+            <div class="officeholder-name">JD Vance <span class="party-r">(R)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — JD Vance</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">Presided over Senate session on reconciliation budget vote</span>
+          <span class="activity-date">Jun 21</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">Official remarks at NATO summit on European defense commitments</span>
+          <span class="activity-date">Jun 15</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Cast tie-breaking vote — S. 1944 Energy Infrastructure Act</span>
+          <span class="activity-date">Jun 9</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ STATE ═══════════ -->
+    <div class="section-header">
+      <span class="section-label">State</span>
+      <div class="section-rule"></div>
+      <span class="section-count">7 offices</span>
+    </div>
+
+    <!-- Attorney General -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">Attorney General of North Carolina</div>
+            <div class="officeholder-name">Jeff Jackson <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Jeff Jackson</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">Office filed suit against three pharmacy benefit managers for price fixing</span>
+          <span class="activity-date">Jun 17</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">New consumer data protection enforcement guidelines released</span>
+          <span class="activity-date">Jun 11</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Testimony before NC General Assembly on environmental enforcement</span>
+          <span class="activity-date">Jun 3</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Governor -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">Governor of North Carolina</div>
+            <div class="officeholder-name">Josh Stein <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Josh Stein</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-signed">Signed</span>
+          <span class="activity-desc">Signed SB 382 — NC Hurricane Recovery and Resilience Act</span>
+          <span class="activity-date">Jun 20</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">Announced $240M in federal infrastructure funding for western NC</span>
+          <span class="activity-date">Jun 13</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Testimony</span>
+          <span class="activity-desc">Testified before Senate Appropriations on hurricane relief fund usage</span>
+          <span class="activity-date">Jun 6</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lieutenant Governor -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">Lieutenant Governor of North Carolina</div>
+            <div class="officeholder-name">Rachel Hunt <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Rachel Hunt</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">Presided over NC Senate session on education budget amendments</span>
+          <span class="activity-date">Jun 18</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">Announced NC Community College Workforce Initiative grant awards</span>
+          <span class="activity-date">Jun 10</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Chaired NC Economic Development Board quarterly meeting</span>
+          <span class="activity-date">Jun 4</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NC State House -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">NC State House, District 50</div>
+            <div class="officeholder-name">Renée Price <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Renée Price</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Voted Yea — HB 711 NC Affordable Housing Investment Act</span>
+          <span class="activity-date">Jun 19</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-floor">Floor</span>
+          <span class="activity-desc">Remarks on proposed redistricting of Orange County precincts</span>
+          <span class="activity-date">Jun 12</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Education Committee — HB 811 School Funding Equity Act</span>
+          <span class="activity-date">Jun 5</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2026</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">General election</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Renée Price <span class="party-d">(D)</span></div>
+            <div class="challenger-meta">Incumbent · running for re-election</div>
+          </div>
+          <span class="challenger-badge badge-incumbent">Incumbent</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">Opponent TBD</div>
+            <div class="challenger-meta">Republican primary ongoing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NC State Senate -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">NC State Senate, District 23</div>
+            <div class="officeholder-name">Jonah Garson <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Jonah Garson</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-vote">Vote</span>
+          <span class="activity-desc">Voted Nay — SB 544 Voter ID Implementation Act</span>
+          <span class="activity-date">Jun 23</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-floor">Floor</span>
+          <span class="activity-desc">Senate floor debate on SB 703 Charter School Expansion Act</span>
+          <span class="activity-date">Jun 17</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Finance Committee — property tax reform and senior exemptions</span>
+          <span class="activity-date">Jun 9</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2026</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">General election</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name">Jonah Garson <span class="party-d">(D)</span></div>
+            <div class="challenger-meta">Incumbent · running for re-election</div>
+          </div>
+          <span class="challenger-badge badge-incumbent">Incumbent</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">Opponent TBD</div>
+            <div class="challenger-meta">Republican primary ongoing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secretary of State -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">Secretary of State of North Carolina</div>
+            <div class="officeholder-name">Elaine Marshall <span class="party-d">(D)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Elaine Marshall</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">Q2 2026 business registration report — 14,200 new NC businesses</span>
+          <span class="activity-date">Jun 22</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">Launched updated NC Business Registry online portal</span>
+          <span class="activity-date">Jun 15</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Testimony on securities fraud enforcement actions</span>
+          <span class="activity-date">Jun 7</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State Treasurer -->
+    <div class="ballot-row" role="listitem">
+      <div class="row-main">
+        <div class="row-left" onclick="toggleActivity(this)">
+          <div class="row-left-content">
+            <div class="office-name">State Treasurer of North Carolina</div>
+            <div class="officeholder-name">Brad Briner <span class="party-r">(R)</span></div>
+          </div>
+          <span class="left-expand" aria-hidden="true">▶</span>
+        </div>
+        <div class="row-right" onclick="toggleChallengers(this)">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2028</span>
+          <span class="right-expand" aria-hidden="true">▼</span>
+        </div>
+      </div>
+      <div class="activity-panel">
+        <div class="panel-header activity-head">
+          <span>Recent activity — Brad Briner</span>
+          <a href="#">View all →</a>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-press">Press</span>
+          <span class="activity-desc">NC Pension Fund Annual Report — $110B AUM, 7.2% annual returns</span>
+          <span class="activity-date">Jun 21</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-statement">Statement</span>
+          <span class="activity-desc">State bond issuance approved for school construction projects statewide</span>
+          <span class="activity-date">Jun 14</span>
+        </div>
+        <div class="activity-item">
+          <span class="activity-tag tag-hearing">Hearing</span>
+          <span class="activity-desc">Finance Committee — State Investment Commission quarterly review</span>
+          <span class="activity-date">Jun 7</span>
+        </div>
+      </div>
+      <div class="challengers-panel">
+        <div class="panel-header challenger-head">
+          <span>Candidates — Nov 2028</span>
+          <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.75rem;opacity:0.75;">Primaries TBD</span>
+        </div>
+        <div class="challenger-item">
+          <div>
+            <div class="challenger-name" style="font-style:italic;font-weight:400;">No declared challengers yet</div>
+            <div class="challenger-meta">Check back closer to the 2028 cycle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ COUNTY ═══════════ -->
+    <div class="section-header">
+      <span class="section-label">County</span>
+      <div class="section-rule"></div>
+      <span class="section-count">3 offices</span>
+    </div>
+
+    <div class="ballot-row row-empty" role="listitem">
+      <div class="row-main">
+        <div class="row-left" style="cursor:default;">
+          <div class="row-left-content">
+            <div class="office-name">Orange County Board of Commissioners, District 2</div>
+            <div class="officeholder-name">No data source yet — checking back</div>
+          </div>
+        </div>
+        <div class="row-right" style="cursor:default; opacity:0.4;">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ballot-row row-empty" role="listitem">
+      <div class="row-main">
+        <div class="row-left" style="cursor:default;">
+          <div class="row-left-content">
+            <div class="office-name">Orange County Sheriff</div>
+            <div class="officeholder-name">No data source yet — checking back</div>
+          </div>
+        </div>
+        <div class="row-right" style="cursor:default; opacity:0.4;">
+          <span class="election-label">Next election</span>
+          <span class="election-date">Nov 2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BALLOT FOOTER -->
+    <div class="ballot-footer">
+      <p>Data as of June 24, 2026. Offices we don't yet have a data source for appear as honest empty rows — your ballot is shown in full.</p>
+      <p style="margin-top:0.5rem;"><a href="#">▶ Look up a different address</a></p>
+    </div>
+
+  </div><!-- /.ballot-card -->
+
+</div><!-- /.page -->
+
+<!-- SITE FOOTER -->
+<footer class="site-footer">
+  <div>
+    <span class="site-footer-brand">BallotCard</span>
+    <span class="site-footer-sub">open source · <a href="#">github</a></span>
+  </div>
+  <ul class="site-footer-links">
+    <li><a href="#">Principles</a></li>
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">Support</a></li>
+  </ul>
+</footer>
+
+<script>
+  function toggleActivity(leftEl) {
+    const row = leftEl.closest('.ballot-row');
+    const actPanel = row.querySelector('.activity-panel');
+    const chalPanel = row.querySelector('.challengers-panel');
+    const rightEl = row.querySelector('.row-right');
+    const isOpen = actPanel.classList.contains('open');
+    if (chalPanel && chalPanel.classList.contains('open')) {
+      chalPanel.classList.remove('open');
+      if (rightEl) rightEl.classList.remove('open');
+    }
+    actPanel.classList.toggle('open', !isOpen);
+    leftEl.classList.toggle('open', !isOpen);
+  }
+
+  function toggleChallengers(rightEl) {
+    const row = rightEl.closest('.ballot-row');
+    const chalPanel = row.querySelector('.challengers-panel');
+    const actPanel = row.querySelector('.activity-panel');
+    const leftEl = row.querySelector('.row-left');
+    const isOpen = chalPanel.classList.contains('open');
+    if (actPanel && actPanel.classList.contains('open')) {
+      actPanel.classList.remove('open');
+      if (leftEl) leftEl.classList.remove('open');
+    }
+    chalPanel.classList.toggle('open', !isOpen);
+    rightEl.classList.toggle('open', !isOpen);
+  }
+</script>
+
+</body>
+</html>

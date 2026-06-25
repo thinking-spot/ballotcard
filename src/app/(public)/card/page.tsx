@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { format } from "date-fns";
 import { getBallotCard } from "@/lib/ballot-card";
-import type { CardGeographies, CardOffice } from "@/lib/ballot-card";
+import type { CardGeographies } from "@/lib/ballot-card";
 import { AddressEntry } from "@/components/AddressEntry";
 import { SaveBallotButton } from "@/components/SaveBallotButton";
+import { BallotCardRow } from "@/components/card/BallotCardRow";
 
 export const metadata = {
   title: "Your ballot — BallotCard",
@@ -15,67 +15,22 @@ function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-function partyAbbrev(party?: string): string | null {
-  if (!party) return null;
-  const p = party.toLowerCase();
-  if (p.startsWith("republican")) return "R";
-  if (p.startsWith("democratic-farmer")) return "DFL";
-  if (p.startsWith("democrat")) return "D";
-  if (p.startsWith("independent")) return "I";
-  if (p.startsWith("libertarian")) return "L";
-  if (p.startsWith("green")) return "G";
-  return party;
-}
-
-function OfficeRow({ office }: { office: CardOffice }) {
-  const party = partyAbbrev(office.officialParty);
-  const nextElection = office.nextElectionAt
-    ? format(new Date(office.nextElectionAt + "T12:00:00"), "MMM yyyy")
-    : null;
-
-  const body = (
-    <>
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-bc-navy truncate">{office.title}</p>
-        {office.officialName ? (
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {office.officialName}
-            {party && <span className="ml-1 text-muted-foreground/70">({party})</span>}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground/60 italic mt-0.5">
-            {office.placeholder
-              ? "No data source for this office yet"
-              : "Officeholder data coming"}
-          </p>
-        )}
-      </div>
-      {nextElection && (
-        <span className="text-xs text-muted-foreground flex-shrink-0 text-right">
-          Next election
-          <br />
-          {nextElection}
-        </span>
-      )}
-    </>
-  );
-
-  const rowClass =
-    "flex items-center justify-between gap-4 px-4 py-3 border-b border-bc-light-lavender last:border-b-0";
-
-  // Placeholder rows have no permalink to link to; render them as dim, static
-  // rows so they're visibly distinct from offices we have data for.
-  if (office.placeholder || !office.href) {
-    return <div className={`${rowClass} bg-bc-light-lavender/10`}>{body}</div>;
-  }
-
+// Chrome-world wrapper for the address-entry fallback states. Transparent so
+// the iPad page gradient shows through.
+function ChromeShell({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Link
-      href={office.href}
-      className={`${rowClass} hover:bg-bc-light-lavender/30 transition-colors`}
-    >
-      {body}
-    </Link>
+    <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
+      <h1 className="font-serif text-[2rem] font-bold leading-[1.15] text-[var(--chrome-title)] mb-2">
+        {title}
+      </h1>
+      {children}
+    </div>
   );
 }
 
@@ -89,17 +44,12 @@ export default async function CardPage({
 
   if (!state) {
     return (
-      <div className="min-h-screen bg-bc-light-lavender/30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-          <h1 className="font-serif text-2xl text-bc-navy font-bold mb-2">
-            Find your ballot
-          </h1>
-          <p className="text-sm text-muted-foreground mb-6">
-            Enter your home address to see everyone who represents you.
-          </p>
-          <AddressEntry variant="plain" />
-        </div>
-      </div>
+      <ChromeShell title="Find your ballot">
+        <p className="text-[0.9375rem] text-[var(--chrome-subtitle)] mb-6">
+          Enter your home address to see everyone who represents you.
+        </p>
+        <AddressEntry variant="plain" />
+      </ChromeShell>
     );
   }
 
@@ -131,66 +81,98 @@ export default async function CardPage({
 
   if (!card || card.sections.length === 0) {
     return (
-      <div className="min-h-screen bg-bc-light-lavender/30">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-          <h1 className="font-serif text-2xl text-bc-navy font-bold mb-2">
-            We don&rsquo;t have data for that ballot yet
-          </h1>
-          <p className="text-sm text-muted-foreground mb-6">
-            Your districts resolved, but we haven&rsquo;t ingested their offices
-            yet. Try another address, or check back soon.
-          </p>
-          <AddressEntry variant="plain" />
-        </div>
-      </div>
+      <ChromeShell title="We don't have data for that ballot yet">
+        <p className="text-[0.9375rem] text-[var(--chrome-subtitle)] mb-6">
+          Your districts resolved, but we haven&rsquo;t ingested their offices
+          yet. Try another address, or check back soon.
+        </p>
+        <AddressEntry variant="plain" />
+      </ChromeShell>
     );
   }
 
+  const eyebrow = [card.stateName, format(new Date(), "MMMM d, yyyy")]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="min-h-screen bg-bc-light-lavender/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl text-bc-navy font-bold leading-tight">
-              Your ballot
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Everyone who represents you
-              {card.stateName ? ` in ${card.stateName}` : ""} — federal to local.
-            </p>
-          </div>
+    <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
+      {/* BALLOT HEADER — chrome world: dark text on the lit screen */}
+      <div className="flex items-start justify-between gap-4 mb-7">
+        <div>
+          <p className="text-[0.6875rem] font-medium tracking-[0.08em] uppercase text-[var(--chrome-eyebrow)] mb-1.5">
+            {eyebrow}
+          </p>
+          {/* Serif title bridges the two worlds */}
+          <h1 className="font-serif text-[2rem] font-bold leading-[1.15] text-[var(--chrome-title)]">
+            My ballot
+          </h1>
+          <p className="mt-1.5 text-[0.9375rem] text-[var(--chrome-subtitle)]">
+            Everyone who represents you — federal to local.
+          </p>
+        </div>
+        <div className="mt-1.5">
           <SaveBallotButton
             path={cardPath}
             label={card.stateName ? `${card.stateName} ballot` : "My ballot"}
           />
         </div>
+      </div>
 
-        <div className="flex flex-col gap-6">
-          {card.sections.map((section) => (
-            <section key={section.level}>
-              <h2 className="font-serif text-lg text-bc-navy font-semibold mb-3">
-                {section.label}
-              </h2>
-              <div className="rounded-lg border border-bc-light-lavender bg-white overflow-hidden">
-                {section.offices.map((office) => (
-                  <OfficeRow key={office.id} office={office} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+      {/* LEGEND */}
+      <div className="flex flex-wrap gap-x-6 gap-y-1.5 mb-5 text-[0.8125rem] text-[var(--chrome-muted)]">
+        <span className="flex items-center gap-1.5">
+          <span
+            className="w-[9px] h-[9px] rounded-[2px] opacity-75 flex-shrink-0"
+            style={{
+              background: "var(--activity-tint)",
+              border: "1px solid var(--activity-border)",
+            }}
+          />
+          Click an office to see recent activity
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className="w-[9px] h-[9px] rounded-[2px] opacity-75 flex-shrink-0"
+            style={{
+              background: "var(--challenger-tint)",
+              border: "1px solid var(--challenger-border)",
+            }}
+          />
+          Click a date to see who&rsquo;s running
+        </span>
+      </div>
 
-        <div className="mt-8 pt-6 border-t border-bc-light-lavender flex flex-col gap-4">
+      {/* BALLOT CARD — the paper document */}
+      <div className="ballot-card" role="list">
+        {card.sections.map((section) => (
+          <div key={section.level}>
+            <div className="section-header">
+              <span className="section-label">{section.label}</span>
+              <span className="section-rule" />
+              <span className="section-count">
+                {section.offices.length}{" "}
+                {section.offices.length === 1 ? "office" : "offices"}
+              </span>
+            </div>
+            {section.offices.map((office) => (
+              <BallotCardRow key={office.id} office={office} />
+            ))}
+          </div>
+        ))}
+
+        {/* BALLOT FOOTER — inside the card (paper world) */}
+        <div className="ballot-footer-inner">
           {card.dataAsOf && (
-            <p className="text-xs text-muted-foreground">
+            <p>
               Data as of {format(new Date(card.dataAsOf), "MMMM d, yyyy")}.
               Offices we don&rsquo;t yet have a data source for appear as honest
               empty rows — your ballot is shown in full.
             </p>
           )}
-          <details className="text-sm">
-            <summary className="text-bc-navy cursor-pointer hover:underline">
-              Look up a different address
+          <details className="mt-2">
+            <summary className="cursor-pointer">
+              <a>▶ Look up a different address</a>
             </summary>
             <div className="mt-3">
               <AddressEntry variant="plain" />

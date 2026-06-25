@@ -21,13 +21,13 @@ export function NavMobileMenu() {
   }, []);
 
   return (
-    <div ref={ref} className="relative sm:hidden">
+    <div ref={ref} className="relative sm:hidden font-[family-name:var(--font-sans-ui)]">
       <div
         role="button"
         aria-label="Open menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((o) => !o)}
-        className="flex items-center justify-center w-8 h-8 text-bc-lavender hover:text-bc-offwhite transition-colors cursor-pointer select-none"
+        className="flex items-center justify-center w-8 h-8 text-[var(--glass-text)] hover:text-[var(--glass-active)] transition-colors cursor-pointer select-none"
       >
         {isOpen ? (
           // ✕
@@ -43,20 +43,34 @@ export function NavMobileMenu() {
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-44 bg-bc-navy border border-bc-deep-navy rounded-md shadow-lg py-1 z-50">
+        <div
+          className="absolute right-0 top-full mt-1.5 w-44 rounded-[10px] border border-[var(--glass-border)] shadow-lg py-1 z-50"
+          style={{
+            background: "var(--glass-bg)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          }}
+        >
           <Link
             href="/how-it-works"
-            className="block px-4 py-2.5 text-sm text-bc-lavender hover:text-bc-offwhite hover:bg-bc-deep-navy transition-colors"
+            className="block px-4 py-2.5 text-[0.8125rem] text-[var(--glass-text)] hover:text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors"
             onClick={() => setIsOpen(false)}
           >
             How it works
           </Link>
           <Link
             href="/about"
-            className="block px-4 py-2.5 text-sm text-bc-lavender hover:text-bc-offwhite hover:bg-bc-deep-navy transition-colors"
+            className="block px-4 py-2.5 text-[0.8125rem] text-[var(--glass-text)] hover:text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors"
             onClick={() => setIsOpen(false)}
           >
             About
+          </Link>
+          <Link
+            href="/principles"
+            className="block px-4 py-2.5 text-[0.8125rem] text-[var(--glass-text)] hover:text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors"
+            onClick={() => setIsOpen(false)}
+          >
+            Principles
           </Link>
         </div>
       )}

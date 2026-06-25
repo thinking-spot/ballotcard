@@ -56,16 +56,20 @@ export function SaveBallotButton({
     }
   }
 
+  // Frosted glass pill — lives in the chrome/digital world (Inter, blur).
   return (
     <button
       type="button"
       onClick={toggle}
       aria-pressed={saved}
-      className={
-        saved
-          ? "inline-flex items-center gap-1.5 rounded border border-bc-navy/20 bg-white text-bc-navy text-sm font-medium px-4 py-2 hover:bg-bc-light-lavender/40 transition-colors cursor-pointer"
-          : "inline-flex items-center gap-1.5 rounded bg-bc-navy text-bc-offwhite text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity cursor-pointer"
-      }
+      style={{
+        background: "var(--pill-bg)",
+        borderColor: "var(--pill-border)",
+        color: "var(--pill-text)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[9px] border px-[0.9375rem] py-2 text-[0.8125rem] font-medium tracking-[-0.01em] cursor-pointer transition-colors font-[family-name:var(--font-sans-ui)] hover:[background:var(--pill-bg-hover)] hover:[border-color:var(--pill-border-hover)] hover:[color:var(--pill-text-hover)]"
     >
       {saved ? (
         <>

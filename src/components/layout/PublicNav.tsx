@@ -1,37 +1,45 @@
 import Link from "next/link";
-import { WordMark } from "@/components/brand/WordMark";
 import { NavMobileMenu } from "@/components/layout/NavMobileMenu";
 import { MyBallotLink } from "@/components/MyBallotLink";
 
+// The nav lives in the chrome/digital world: a frosted glass bar that sticks
+// to the top. Inter throughout, glass tokens, backdrop blur. The wordmark is
+// part of the digital layer — no serif here.
+const linkClass =
+  "px-2.5 py-[0.3125rem] rounded-[7px] text-[0.8125rem] font-normal text-[var(--glass-text)] hover:text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors";
+
 export function PublicNav() {
   return (
-    <nav className="bg-bc-navy border-b border-bc-deep-navy">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        <WordMark color="offwhite" size="md" />
+    <nav
+      className="sticky top-0 z-20 h-[52px] px-5 sm:px-8 flex items-center justify-between border-b border-[var(--glass-border)] font-[family-name:var(--font-sans-ui)]"
+      style={{
+        background: "var(--glass-bg)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+      }}
+    >
+      <Link
+        href="/"
+        className="text-[0.9375rem] font-semibold tracking-[-0.025em] text-[var(--glass-active)]"
+      >
+        BallotCard
+      </Link>
 
-        <div className="flex items-center gap-4 sm:gap-6 text-sm">
-          <Link
-            href="/how-it-works"
-            className="text-bc-lavender hover:text-bc-offwhite transition-colors hidden sm:block"
-          >
-            How it works
-          </Link>
-          <Link
-            href="/about"
-            className="text-bc-lavender hover:text-bc-offwhite transition-colors hidden sm:block"
-          >
-            About
-          </Link>
-          <Link
-            href="/principles"
-            className="text-bc-lavender hover:text-bc-offwhite transition-colors hidden sm:block"
-          >
-            Principles
-          </Link>
-          <MyBallotLink className="text-bc-blush font-medium hover:text-bc-offwhite transition-colors" />
+      <div className="flex items-center gap-0.5">
+        <Link href="/how-it-works" className={`${linkClass} hidden sm:block`}>
+          How it works
+        </Link>
+        <Link href="/about" className={`${linkClass} hidden sm:block`}>
+          About
+        </Link>
+        <Link href="/principles" className={`${linkClass} hidden sm:block`}>
+          Principles
+        </Link>
+        <MyBallotLink
+          className={`${linkClass} font-medium !text-[var(--glass-active)] bg-[var(--glass-active-bg)]`}
+        />
 
-          <NavMobileMenu />
-        </div>
+        <NavMobileMenu />
       </div>
     </nav>
   );

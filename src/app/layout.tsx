@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Libre_Baskerville, Open_Sans } from "next/font/google";
+import { Libre_Baskerville, Open_Sans, Inter } from "next/font/google";
 import "./globals.css";
 
 const serif = Libre_Baskerville({
@@ -14,6 +14,15 @@ const sans = Open_Sans({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+// Inter powers the "chrome" layer (nav, page background, headers, footer) —
+// the 2026-iPad-OS world that the paper ballot card floats on top of.
+const sansUi = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans-ui",
   display: "swap",
 });
 
@@ -48,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${sans.variable} h-full antialiased`}
+      className={`${serif.variable} ${sans.variable} ${sansUi.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
