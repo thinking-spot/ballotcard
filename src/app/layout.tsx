@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Libre_Baskerville, Open_Sans, Inter } from "next/font/google";
+import {
+  Libre_Baskerville,
+  Open_Sans,
+  Inter,
+  IBM_Plex_Sans,
+} from "next/font/google";
 import "./globals.css";
 
 const serif = Libre_Baskerville({
@@ -23,6 +28,15 @@ const sansUi = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-sans-ui",
+  display: "swap",
+});
+
+// IBM Plex Sans is reserved for the wordmark alone — the brand mark in the nav
+// and footer (paired with the ballot-checkbox icon).
+const wordmark = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-wordmark",
   display: "swap",
 });
 
@@ -57,7 +71,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${sans.variable} ${sansUi.variable} h-full antialiased`}
+      className={`${serif.variable} ${sans.variable} ${sansUi.variable} ${wordmark.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 // Site footer — mirrors the nav's frosted glass chrome (border-top instead of
 // border-bottom). Inter throughout; part of the digital/chrome world.
@@ -18,11 +19,12 @@ export function Footer() {
       <div>
         <Link
           href="/"
-          className="block mb-1 text-[0.9375rem] font-semibold tracking-[-0.025em] text-[var(--glass-active)]"
+          className="inline-flex items-center mb-1"
+          aria-label="BallotCard home"
         >
-          BallotCard
+          <BrandMark />
         </Link>
-        <span className="text-[0.75rem] text-[var(--glass-text)]">
+        <span className="block text-[0.75rem] text-[var(--glass-text)]">
           open source ·{" "}
           <a
             href="https://github.com/thinking-spot/ballotcard"

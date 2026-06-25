@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NavMobileMenu } from "@/components/layout/NavMobileMenu";
 import { MyBallotLink } from "@/components/MyBallotLink";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 // The nav lives in the chrome/digital world: a frosted glass bar that sticks
 // to the top. Inter throughout, glass tokens, backdrop blur. The wordmark is
@@ -18,11 +19,8 @@ export function PublicNav() {
         WebkitBackdropFilter: "blur(24px) saturate(180%)",
       }}
     >
-      <Link
-        href="/"
-        className="text-[0.9375rem] font-semibold tracking-[-0.025em] text-[var(--glass-active)]"
-      >
-        BallotCard
+      <Link href="/" className="inline-flex items-center" aria-label="BallotCard home">
+        <BrandMark />
       </Link>
 
       <div className="flex items-center gap-0.5">
