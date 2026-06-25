@@ -7,7 +7,7 @@ import { BrandMark } from "@/components/brand/BrandMark";
 // to the top. Inter throughout, glass tokens, backdrop blur. The wordmark is
 // part of the digital layer — no serif here.
 const linkClass =
-  "px-2.5 py-[0.3125rem] rounded-[7px] text-[0.8125rem] font-normal text-[var(--glass-text)] hover:text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors";
+  "px-2.5 py-[0.3125rem] rounded-[7px] text-[0.8125rem] font-normal font-[family-name:var(--font-wordmark)] text-[var(--glass-active)] hover:bg-[var(--glass-hover-bg)] transition-colors";
 
 export function PublicNav() {
   return (

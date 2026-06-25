@@ -29,7 +29,7 @@
   --color-bc-navy: #232946;
   --color-bc-deep-navy: #121629;
   --color-bc-lavender: #b8c1ec;
-  --color-bc-blush: #eebbc3;
+  --color-bc-blush: #b3d4b8;
   --color-bc-offwhite: #fffffe;
   --color-bc-light-lavender: #d4d8f0;
 
@@ -74,7 +74,7 @@
   --muted-foreground: #5c6585;
 
   /* Accent = blush */
-  --accent: #eebbc3;
+  --accent: #b3d4b8;
   --accent-foreground: #232946;
 
   /* Destructive (keep red for critical errors) */
