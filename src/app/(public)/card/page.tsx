@@ -6,13 +6,20 @@ import { SaveBallotButton } from "@/components/SaveBallotButton";
 import { BallotCardRow } from "@/components/card/BallotCardRow";
 
 export const metadata = {
-  title: "Your ballot — BallotCard",
+  title: "My ballot — BallotCard",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
+}
+
+// Fixed dark-mode backdrop for the card page (transparent in light mode — the
+// body's light gradient shows through). Keeps the chrome header readable in
+// dark mode without flipping the global body, which would break legacy pages.
+function CardWallpaper() {
+  return <div className="ballot-wallpaper" aria-hidden="true" />;
 }
 
 // Chrome-world wrapper for the address-entry fallback states. Transparent so
@@ -25,12 +32,15 @@ function ChromeShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
-      <h1 className="font-serif text-[2rem] font-bold leading-[1.15] text-[var(--chrome-title)] mb-2">
-        {title}
-      </h1>
-      {children}
-    </div>
+    <>
+      <CardWallpaper />
+      <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
+        <h1 className="font-serif text-[2rem] font-bold leading-[1.15] text-[var(--chrome-title)] mb-2">
+          {title}
+        </h1>
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -96,7 +106,9 @@ export default async function CardPage({
     .join(" · ");
 
   return (
-    <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
+    <>
+      <CardWallpaper />
+      <div className="max-w-[760px] mx-auto px-5 pt-12 pb-20 font-[family-name:var(--font-sans-ui)]">
       {/* BALLOT HEADER — chrome world: dark text on the lit screen */}
       <div className="flex items-start justify-between gap-4 mb-7">
         <div>
@@ -143,23 +155,31 @@ export default async function CardPage({
         </span>
       </div>
 
-      {/* BALLOT CARD — the paper document */}
-      <div className="ballot-card" role="list">
-        {card.sections.map((section) => (
-          <div key={section.level}>
-            <div className="section-header">
-              <span className="section-label">{section.label}</span>
-              <span className="section-rule" />
-              <span className="section-count">
-                {section.offices.length}{" "}
-                {section.offices.length === 1 ? "office" : "offices"}
-              </span>
+      {/* BALLOT CARD — the paper document. Each section is a labelled group
+          whose offices form a proper ARIA list (rows are direct listitems). */}
+      <div className="ballot-card">
+        {card.sections.map((section) => {
+          const headingId = `section-${section.level}`;
+          return (
+            <div key={section.level} role="group" aria-labelledby={headingId}>
+              <div className="section-header">
+                <span className="section-label" id={headingId}>
+                  {section.label}
+                </span>
+                <span className="section-rule" />
+                <span className="section-count">
+                  {section.offices.length}{" "}
+                  {section.offices.length === 1 ? "office" : "offices"}
+                </span>
+              </div>
+              <div role="list">
+                {section.offices.map((office) => (
+                  <BallotCardRow key={office.id} office={office} />
+                ))}
+              </div>
             </div>
-            {section.offices.map((office) => (
-              <BallotCardRow key={office.id} office={office} />
-            ))}
-          </div>
-        ))}
+          );
+        })}
 
         {/* BALLOT FOOTER — inside the card (paper world) */}
         <div className="ballot-footer-inner">
@@ -171,8 +191,8 @@ export default async function CardPage({
             </p>
           )}
           <details className="mt-2">
-            <summary className="cursor-pointer">
-              <a>▶ Look up a different address</a>
+            <summary className="ballot-footer-toggle">
+              ▶ Look up a different address
             </summary>
             <div className="mt-3">
               <AddressEntry variant="plain" />
@@ -180,6 +200,7 @@ export default async function CardPage({
           </details>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

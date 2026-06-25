@@ -145,7 +145,7 @@
   /* ── Chrome layer (light mode) ── */
   --glass-bg: rgba(168, 188, 220, 0.52);
   --glass-border: rgba(0, 0, 0, 0.07);
-  --glass-text: rgba(0, 0, 0, 0.45);
+  --glass-text: rgba(0, 0, 0, 0.6);
   --glass-active: rgba(0, 0, 0, 0.88);
   --glass-hover-bg: rgba(0, 0, 0, 0.05);
   --glass-active-bg: rgba(0, 0, 0, 0.07);
@@ -182,7 +182,7 @@ body {
   :root {
     --glass-bg: rgba(12, 15, 22, 0.55);
     --glass-border: rgba(255, 255, 255, 0.07);
-    --glass-text: rgba(255, 255, 255, 0.55);
+    --glass-text: rgba(255, 255, 255, 0.66);
     --glass-active: #ffffff;
     --glass-hover-bg: rgba(255, 255, 255, 0.08);
     --glass-active-bg: rgba(255, 255, 255, 0.11);
@@ -200,13 +200,26 @@ body {
     --pill-text-hover: rgba(255, 255, 255, 0.95);
   }
 
-  body {
+  /* Dark wallpaper is scoped to the card page (.ballot-wallpaper), NOT the
+     global body — the legacy pages were designed for a light surface and
+     keep it in dark mode. Only the dark-aware card page paints dark. */
+  .ballot-wallpaper {
     background:
       radial-gradient(ellipse at 35% 0%, #1e3a5f 0%, transparent 55%),
       radial-gradient(ellipse at 80% 90%, #0f2240 0%, transparent 55%),
       radial-gradient(ellipse at 60% 50%, #0a1428 0%, transparent 70%),
       #070b12;
   }
+}
+
+/* Fixed full-viewport backdrop for the card page. Transparent in light mode
+   (the body's light gradient shows through); painted dark only in dark mode
+   so the chrome header text — which flips to light — stays readable. */
+.ballot-wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
 }
 
 /* ───────────────────────────────────────────────────────────────────
@@ -593,4 +606,39 @@ body {
 }
 .ballot-footer-inner a:hover {
   text-decoration: underline;
+}
+
+/* "Look up a different address" disclosure — the <summary> is the click
+   target, styled to read as a link. Hide the native marker (we draw ▶). */
+.ballot-footer-toggle {
+  color: var(--ink-mid);
+  cursor: pointer;
+  list-style: none;
+}
+.ballot-footer-toggle::-webkit-details-marker {
+  display: none;
+}
+.ballot-footer-toggle:hover {
+  text-decoration: underline;
+}
+
+/* Keyboard focus affordance for the two clickable row zones. Inset so the
+   ring sits inside the paper row; tinted to match each panel's accent. */
+.row-left:focus-visible {
+  outline: 2px solid var(--activity-head);
+  outline-offset: -2px;
+}
+.row-right:focus-visible {
+  outline: 2px solid var(--challenger-head);
+  outline-offset: -2px;
+}
+
+/* Respect reduced-motion: drop the expand-arrow rotation/animation. */
+@media (prefers-reduced-motion: reduce) {
+  .left-expand,
+  .right-expand,
+  .row-left,
+  .row-right {
+    transition: none;
+  }
 }

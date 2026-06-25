@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import type { CardOffice } from "@/lib/ballot-card";
 
@@ -80,6 +81,11 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
           className={`row-left${leftExpandable ? "" : " static"}${open === "act" ? " open" : ""}`}
           onClick={leftExpandable ? () => toggle("act") : undefined}
           aria-expanded={leftExpandable ? open === "act" : undefined}
+          aria-label={
+            leftExpandable
+              ? `${office.title}, ${office.officialName} — show recent activity`
+              : undefined
+          }
           disabled={!leftExpandable}
         >
           <span className="row-left-content">
@@ -114,6 +120,11 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
           }${open === "chal" ? " open" : ""}`}
           onClick={rightExpandable ? () => toggle("chal") : undefined}
           aria-expanded={rightExpandable ? open === "chal" : undefined}
+          aria-label={
+            rightExpandable && next
+              ? `${office.title} — show candidates for the ${shortDate(next)} election`
+              : undefined
+          }
           disabled={!rightExpandable}
         >
           <span className="election-label">Next election</span>
@@ -132,9 +143,9 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
           <div className="panel-header">
             <span>Recent activity — {office.officialName}</span>
             {office.href && (
-              <a className="panel-meta" href={office.href}>
+              <Link className="panel-meta" href={office.href}>
                 View all →
-              </a>
+              </Link>
             )}
           </div>
           <div className="activity-empty">
