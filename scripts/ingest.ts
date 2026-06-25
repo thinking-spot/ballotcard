@@ -39,6 +39,22 @@ import governors from "../seed-data/governors.json";
 import mayors from "../seed-data/mayors.json";
 import statewideExecs from "../seed-data/statewide-execs.json";
 import federalExecs from "../seed-data/federal-execs.json";
+import legislatureSchedule from "../seed-data/legislature-schedule.json";
+
+// Per-state legislative election schedule (term length + next general + whether
+// the chamber is a staggered estimate). Indexed by "STATE::chamber".
+type ChamberSchedule = {
+  termYears: number;
+  nextElection: string;
+  estimated: boolean;
+};
+const LEG_SCHEDULE = new Map<string, ChamberSchedule>();
+for (const row of legislatureSchedule.states) {
+  LEG_SCHEDULE.set(`${row.state}::house`, row.house);
+  LEG_SCHEDULE.set(`${row.state}::senate`, row.senate);
+}
+const legSchedule = (state: string, chamber: "house" | "senate") =>
+  LEG_SCHEDULE.get(`${state}::${chamber}`);
 
 const CONGRESS_URL =
   "https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml";
@@ -405,6 +421,10 @@ async function ingestOffices(sources: Sources) {
       if (seenSld.has(dedupe) || !isNew(districtId, slug)) continue;
       seenSld.add(dedupe);
       const chamberWord = p.current_chamber === "upper" ? "Senate" : "House";
+      const sched = legSchedule(
+        s.abbr,
+        p.current_chamber === "upper" ? "senate" : "house"
+      );
       toInsert.push({
         district_id: districtId,
         title: `${s.abbr} State ${chamberWord}, District ${normDistrict(p.current_district)}`,
@@ -413,8 +433,9 @@ async function ingestOffices(sources: Sources) {
         branch: "legislative",
         level: "state",
         selection_method: "elected_partisan",
-        term_years: p.current_chamber === "upper" ? 4 : 2,
-        next_election_at: "2026-11-03",
+        term_years: sched?.termYears ?? (p.current_chamber === "upper" ? 4 : 2),
+        next_election_at: sched?.nextElection ?? "2026-11-03",
+        next_election_estimated: sched?.estimated ?? false,
         is_seeded: true,
       });
     }
@@ -845,6 +866,45 @@ async function ingestPrimaryDates(): Promise<number> {
   return queued;
 }
 
+// ─── Phase 6: Legislature schedule (term + next election + staggered) ─────────
+// Idempotent: brings every state-house/state-senate office in line with the
+// curated per-state schedule. Most state senates are 4-year staggered, so the
+// flat "2026 for everything" default is wrong for off-cycle states (LA/MS/NJ/VA
+// → 2027, KS/NM/SC senate → 2028) and imprecise for staggered ones (estimated).
+async function applyLegislatureSchedule(): Promise<number> {
+  const offices = await selectAll<{ id: string; slug: string; district_id: string }>(
+    "Offices",
+    "id, slug, district_id"
+  );
+  const districts = await selectAll<{ id: string; state: string | null }>(
+    "Districts",
+    "id, state"
+  );
+  const stateByDistrict = new Map(districts.map((d) => [d.id, d.state]));
+
+  let updated = 0;
+  for (const o of offices) {
+    const chamber =
+      o.slug === "state-senate" ? "senate" : o.slug === "state-house" ? "house" : null;
+    if (!chamber) continue;
+    const state = stateByDistrict.get(o.district_id);
+    if (!state) continue;
+    const sched = legSchedule(state, chamber);
+    if (!sched) continue;
+    const { error } = await db
+      .from("Offices")
+      .update({
+        term_years: sched.termYears,
+        next_election_at: sched.nextElection,
+        next_election_estimated: sched.estimated,
+      })
+      .eq("id", o.id);
+    if (!error) updated++;
+  }
+  log("schedule", `Applied legislature schedule to ${updated} offices`);
+  return updated;
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -867,6 +927,8 @@ async function main() {
     await ingestOffices(sources);
     console.log();
     await ingestOfficials(sources);
+    console.log();
+    await applyLegislatureSchedule();
     console.log();
     const candidates = await ingestCandidates();
     console.log();

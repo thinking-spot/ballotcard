@@ -33,6 +33,8 @@ export type CardOffice = {
   level: string;
   selectionMethod: string;
   nextElectionAt?: string;
+  /** True for staggered chambers where the exact cycle isn't known per-seat. */
+  nextElectionEstimated?: boolean;
   primaryElectionAt?: string;
   officialName?: string;
   officialParty?: string;
@@ -104,7 +106,7 @@ export async function getBallotCard(
   const { data: officesRaw } = await db
     .from("Offices")
     .select(
-      "id, title, slug, branch, level, selection_method, next_election_at, primary_election_at, district_id"
+      "id, title, slug, branch, level, selection_method, next_election_at, next_election_estimated, primary_election_at, district_id"
     )
     .in("district_id", districtIds)
     .not("slug", "is", null)
@@ -186,6 +188,7 @@ export async function getBallotCard(
       level: o.level as string,
       selectionMethod: o.selection_method as string,
       nextElectionAt: nextAt,
+      nextElectionEstimated: (o.next_election_estimated as boolean) || undefined,
       primaryElectionAt: (o.primary_election_at as string) || undefined,
       officialName: (official?.name as string) || undefined,
       officialParty: (official?.party as string) || undefined,

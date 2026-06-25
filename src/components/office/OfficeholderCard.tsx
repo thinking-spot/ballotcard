@@ -6,6 +6,7 @@ import type { OfficialData } from "@/lib/office-data";
 interface OfficeholderCardProps {
   official: OfficialData;
   nextElectionAt?: string;
+  nextElectionEstimated?: boolean;
 }
 
 function fmt(date?: string): string | null {
@@ -17,6 +18,7 @@ function fmt(date?: string): string | null {
 export function OfficeholderCard({
   official,
   nextElectionAt,
+  nextElectionEstimated,
 }: OfficeholderCardProps) {
   const refs = official.externalRefs ?? {};
   const externalLinks: { label: string; href: string }[] = [
@@ -44,7 +46,12 @@ export function OfficeholderCard({
   const sinceLabel = fmt(official.firstTookOffice) ?? fmt(official.termStart);
   const termEndLabel = fmt(official.termEnd);
   const nextElectionLabel = nextElectionAt
-    ? format(new Date(nextElectionAt + "T12:00:00"), "MMM d, yyyy")
+    ? nextElectionEstimated
+      ? (() => {
+          const y = new Date(nextElectionAt + "T12:00:00").getFullYear();
+          return `${y} or ${y + 2}`;
+        })()
+      : format(new Date(nextElectionAt + "T12:00:00"), "MMM d, yyyy")
     : null;
 
   const meta = [

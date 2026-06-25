@@ -6,6 +6,7 @@ interface NextElectionProps {
     title: string;
     level: string;
     nextElectionAt?: string;
+    nextElectionEstimated?: boolean;
     primaryElectionAt?: string;
     selectionMethod: string;
   };
@@ -71,13 +72,23 @@ export function NextElection({
           </h2>
           {date && (
             <span className="text-xs text-muted-foreground">
-              {format(date, "MMMM d, yyyy")}
-              {upcoming && (
-                <> · in {formatDistanceToNow(date)}</>
+              {office.nextElectionEstimated ? (
+                `${date.getFullYear()} or ${date.getFullYear() + 2}`
+              ) : (
+                <>
+                  {format(date, "MMMM d, yyyy")}
+                  {upcoming && <> · in {formatDistanceToNow(date)}</>}
+                </>
               )}
             </span>
           )}
         </div>
+        {office.nextElectionEstimated && (
+          <p className="text-xs text-muted-foreground/80">
+            This chamber has staggered terms — about half its seats are up each
+            cycle, and our source doesn&rsquo;t identify which year this seat is on.
+          </p>
+        )}
         {office.primaryElectionAt && (() => {
           const pd = new Date(office.primaryElectionAt + "T12:00:00");
           const pUpcoming = isFuture(pd);

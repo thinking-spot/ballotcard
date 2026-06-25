@@ -67,6 +67,7 @@ export type OfficePageData = {
     selectionMethod: string;
     termYears?: number;
     nextElectionAt?: string;
+    nextElectionEstimated?: boolean;
     primaryElectionAt?: string;
   };
   official: OfficialData | null;
@@ -115,7 +116,7 @@ export async function getOfficePageData(
   const { data: officeRaw } = await db
     .from("Offices")
     .select(
-      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at, primary_election_at"
+      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at, next_election_estimated, primary_election_at"
     )
     .eq("district_id", districtRaw.id)
     .eq("slug", officeSlug)
@@ -194,6 +195,8 @@ export async function getOfficePageData(
       selectionMethod: officeRaw.selection_method as string,
       termYears: (officeRaw.term_years as number) || undefined,
       nextElectionAt: (officeRaw.next_election_at as string) || undefined,
+      nextElectionEstimated:
+        (officeRaw.next_election_estimated as boolean) || undefined,
       primaryElectionAt: (officeRaw.primary_election_at as string) || undefined,
     },
     official: officialRaw

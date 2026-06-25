@@ -27,6 +27,16 @@ function fmtMoney(n: number): string {
 
 const shortDate = (d: string) => format(new Date(d + "T12:00:00"), "MMM yyyy");
 const longDate = (d: string) => format(new Date(d + "T12:00:00"), "MMM d, yyyy");
+const yearOf = (d: string) => new Date(d + "T12:00:00").getFullYear();
+
+// Staggered chambers: ~half the seats are up each even year and we have no
+// per-seat class, so we name both candidate cycles instead of a false-precise
+// single date. Exact seats render the normal "Mon YYYY".
+function electionLabel(next?: string, estimated?: boolean): string {
+  if (!next) return "—";
+  if (estimated) return `${yearOf(next)} or ${yearOf(next) + 2}`;
+  return shortDate(next);
+}
 
 // Outbound "follow their work" links built from the officeholder's external
 // refs — the honest pre-articleOne state of the Activity panel.
@@ -122,13 +132,18 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
           aria-expanded={rightExpandable ? open === "chal" : undefined}
           aria-label={
             rightExpandable && next
-              ? `${office.title} — show candidates for the ${shortDate(next)} election`
+              ? `${office.title} — show candidates for the ${electionLabel(
+                  next,
+                  office.nextElectionEstimated
+                )} election`
               : undefined
           }
           disabled={!rightExpandable}
         >
           <span className="election-label">Next election</span>
-          <span className="election-date">{next ? shortDate(next) : "—"}</span>
+          <span className="election-date">
+            {electionLabel(next, office.nextElectionEstimated)}
+          </span>
           {rightExpandable && (
             <span className="right-expand" aria-hidden="true">
               ▼
@@ -173,11 +188,16 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
       {open === "chal" && (
         <div className="panel challenger">
           <div className="panel-header">
-            <span>Candidates{next ? ` — ${shortDate(next)}` : ""}</span>
+            <span>
+              Candidates
+              {next ? ` — ${electionLabel(next, office.nextElectionEstimated)}` : ""}
+            </span>
             <span className="panel-meta">
-              {office.primaryElectionAt
-                ? `Primary ${longDate(office.primaryElectionAt)}`
-                : "General election"}
+              {office.nextElectionEstimated
+                ? "Staggered — exact year varies by seat"
+                : office.primaryElectionAt
+                  ? `Primary ${longDate(office.primaryElectionAt)}`
+                  : "General election"}
             </span>
           </div>
 

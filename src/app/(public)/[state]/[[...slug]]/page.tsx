@@ -314,6 +314,7 @@ export default async function CatchallPage({
               <OfficeholderCard
                 official={data.official}
                 nextElectionAt={data.office.nextElectionAt}
+                nextElectionEstimated={data.office.nextElectionEstimated}
               />
             ) : (
               <div className="rounded-lg border border-bc-light-lavender bg-white p-4 text-sm text-muted-foreground">
