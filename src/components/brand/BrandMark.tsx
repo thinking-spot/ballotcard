@@ -1,7 +1,7 @@
 // The chrome-layer brand mark: "BallotCard" in IBM Plex Sans 500 followed by a
 // ballot-checkbox icon. Lives in the nav and footer. Spec is the drop-in
 // component from docs/design-brief.md — the checkbox sits 7px to the right at
-// 0.55 opacity so it reads as a mark, not a competing glyph.
+// 0.85 opacity so it reads as a mark, not a competing glyph.
 export function BrandMark() {
   return (
     <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
@@ -22,7 +22,7 @@ export function BrandMark() {
         viewBox="0 0 15 15"
         fill="none"
         aria-hidden="true"
-        style={{ flexShrink: 0, opacity: 0.55, color: "var(--glass-active)" }}
+        style={{ flexShrink: 0, opacity: 0.85, color: "var(--glass-active)" }}
       >
         <rect
           x="1"
