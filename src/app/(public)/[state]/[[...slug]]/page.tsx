@@ -13,6 +13,22 @@ import { NextElection } from "@/components/office/NextElection";
 
 type Params = { state: string; slug?: string[] };
 
+// District & office permalinks are permanent and change only on ingestion.
+// Serve them as ISR — generated on first request, then cached and revalidated
+// in the background (CLAUDE.md: "office/official pages are static, revalidated
+// on ingestion"). Six hours is a safe cadence between ingestion runs.
+export const revalidate = 21600;
+
+// Returning [] (with dynamicParams default true) prerenders nothing at build —
+// avoiding a 15k-page build and DB access — but opts the route into the Full
+// Route Cache, so each permalink is cached after its first render instead of
+// re-querying Supabase on every visit and every crawler hit.
+export async function generateStaticParams(): Promise<
+  { state: string; slug?: string[] }[]
+> {
+  return [];
+}
+
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({

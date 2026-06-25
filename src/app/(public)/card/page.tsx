@@ -7,6 +7,10 @@ import { BallotCardRow } from "@/components/card/BallotCardRow";
 
 export const metadata = {
   title: "My ballot — BallotCard",
+  // The address-lookup result spawns unbounded district-param combinations —
+  // keep it out of the index. The /[state]/… permalinks are the canonical,
+  // indexable content (and live in the sitemap).
+  robots: { index: false, follow: true },
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
