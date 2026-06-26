@@ -54,9 +54,19 @@ export async function fetchFecCandidateTotals(
     }
     page++;
   }
-  // De-dupe by candidate_id — keep the highest receipts row (most recent reporting).
+  return dedupeByHighestReceipts(out);
+}
+
+/**
+ * FEC paginates by reporting period, so the same candidate can appear multiple
+ * times across pages — once per filing covered. Keep the highest-receipts row
+ * (the most recent cumulative report). Exported for tests.
+ */
+export function dedupeByHighestReceipts(
+  rows: FecCandidateTotals[]
+): FecCandidateTotals[] {
   const byId = new Map<string, FecCandidateTotals>();
-  for (const r of out) {
+  for (const r of rows) {
     const existing = byId.get(r.candidateId);
     if (!existing || r.receipts > existing.receipts) byId.set(r.candidateId, r);
   }

@@ -15,7 +15,8 @@ export type FecCandidate = {
 const BASE = "https://api.open.fec.gov/v1/candidates/";
 
 // "ROUZER, DAVID" / "ABU-GHAZALAH, MAAD" → "David Rouzer" / "Maad Abu-Ghazalah".
-function normalizeName(raw: string): string {
+// Exported for tests.
+export function normalizeName(raw: string): string {
   const titleCase = (s: string) =>
     s
       .toLowerCase()
