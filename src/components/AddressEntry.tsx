@@ -30,7 +30,7 @@ function cardPath(g: ResolvedGeographies): string {
 
 export function AddressEntry({ variant = "hero" }: { variant?: "hero" | "plain" }) {
   const router = useRouter();
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState("1600 Pennsylvania Ave, Washington, DC");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
