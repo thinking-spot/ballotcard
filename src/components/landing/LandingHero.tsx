@@ -4,8 +4,8 @@ import { AddressEntry } from "@/components/AddressEntry";
 export function LandingHero() {
   return (
     <section className="bg-bc-navy text-bc-offwhite">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
-        <p className="font-serif text-lg text-bc-offwhite">Find my ballot</p>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-14 pb-20 sm:pt-20 sm:pb-28">
+        <p className="font-serif text-lg text-bc-lavender">Find my ballot</p>
 
         <h1 className="font-serif text-3xl sm:text-4xl leading-snug text-bc-offwhite mt-8 max-w-2xl">
           Your ballot, your politicians, 24/7.
