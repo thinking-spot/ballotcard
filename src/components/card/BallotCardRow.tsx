@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
 import type { CardOffice } from "@/lib/ballot-card";
 
 // Party → display abbreviation + the paper-world color class.
@@ -75,6 +75,18 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
   const next = office.nextElectionAt;
   const leftExpandable = !office.placeholder && !!office.officialName;
   const rightExpandable = !office.placeholder && !!next;
+  // Hide the right zone entirely when there's no date to show — a dangling
+  // "NEXT ELECTION —" on placeholder rows reads as broken, not honest.
+  const showRight = !!next;
+  // Past-primary check via date-fns (stable for the row's lifetime under
+  // memo; lets us re-label "Primary" → "Primary held" once the date has passed).
+  const primaryPast = useMemo(
+    () =>
+      office.primaryElectionAt
+        ? isPast(new Date(office.primaryElectionAt + "T12:00:00"))
+        : false,
+    [office.primaryElectionAt]
+  );
 
   const toggle = (which: "act" | "chal") =>
     setOpen((cur) => (cur === which ? null : which));
@@ -84,7 +96,7 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
 
   return (
     <div className={`ballot-row${office.placeholder ? " row-empty" : ""}`} role="listitem">
-      <div className="row-main">
+      <div className={`row-main${showRight ? "" : " row-main-solo"}`}>
         {/* LEFT ZONE — activity */}
         <button
           type="button"
@@ -122,34 +134,37 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
           )}
         </button>
 
-        {/* RIGHT ZONE — next election / challengers */}
-        <button
-          type="button"
-          className={`row-right${rightExpandable ? "" : " static"}${
-            office.placeholder ? " dim" : ""
-          }${open === "chal" ? " open" : ""}`}
-          onClick={rightExpandable ? () => toggle("chal") : undefined}
-          aria-expanded={rightExpandable ? open === "chal" : undefined}
-          aria-label={
-            rightExpandable && next
-              ? `${office.title} — show candidates for the ${electionLabel(
-                  next,
-                  office.nextElectionEstimated
-                )} election`
-              : undefined
-          }
-          disabled={!rightExpandable}
-        >
-          <span className="election-label">Next election</span>
-          <span className="election-date">
-            {electionLabel(next, office.nextElectionEstimated)}
-          </span>
-          {rightExpandable && (
-            <span className="right-expand" aria-hidden="true">
-              ▼
+        {/* RIGHT ZONE — next election / challengers. Suppressed when there's
+            no date so placeholder rows don't show a dangling em-dash. */}
+        {showRight && (
+          <button
+            type="button"
+            className={`row-right${rightExpandable ? "" : " static"}${
+              office.placeholder ? " dim" : ""
+            }${open === "chal" ? " open" : ""}`}
+            onClick={rightExpandable ? () => toggle("chal") : undefined}
+            aria-expanded={rightExpandable ? open === "chal" : undefined}
+            aria-label={
+              rightExpandable && next
+                ? `${office.title} — show candidates for the ${electionLabel(
+                    next,
+                    office.nextElectionEstimated
+                  )} election`
+                : undefined
+            }
+            disabled={!rightExpandable}
+          >
+            <span className="election-label">Next election</span>
+            <span className="election-date">
+              {electionLabel(next, office.nextElectionEstimated)}
             </span>
-          )}
-        </button>
+            {rightExpandable && (
+              <span className="right-expand" aria-hidden="true">
+                ▼
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ACTIVITY PANEL */}
@@ -196,7 +211,7 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
               {office.nextElectionEstimated
                 ? "Staggered — exact year varies by seat"
                 : office.primaryElectionAt
-                  ? `Primary ${longDate(office.primaryElectionAt)}`
+                  ? `${primaryPast ? "Primary held" : "Primary"} ${longDate(office.primaryElectionAt)}`
                   : "General election"}
             </span>
           </div>

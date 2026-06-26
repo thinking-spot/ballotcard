@@ -92,10 +92,13 @@ export function NextElection({
         {office.primaryElectionAt && (() => {
           const pd = new Date(office.primaryElectionAt + "T12:00:00");
           const pUpcoming = isFuture(pd);
+          // Past primaries get a "Primary held" label so voters don't read the
+          // date as still actionable — a March primary should not be presented
+          // the same in July as it was in February.
           return (
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground/80">
-                Primary
+                {pUpcoming ? "Primary" : "Primary held"}
               </span>
               <span className="text-xs text-muted-foreground/80">
                 {format(pd, "MMMM d, yyyy")}

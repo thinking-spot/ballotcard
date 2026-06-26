@@ -293,6 +293,15 @@ body {
   min-height: 54px;
 }
 
+/* Placeholder rows with no election date hide the right zone entirely — the
+   left zone fills the row and shouldn't show its right divider. */
+.row-main-solo {
+  grid-template-columns: 1fr;
+}
+.row-main-solo .row-left {
+  border-right: 0;
+}
+
 .row-left {
   appearance: none;
   -webkit-appearance: none;

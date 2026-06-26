@@ -42,11 +42,14 @@ const wordmark = IBM_Plex_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "BallotCard",
-    template: "%s — BallotCard",
+    // SEO templates: every per-page title sets the "[X] Sample Ballots / Ballot
+    // & Election Info" lead and the template appends the brand suffix. Pages
+    // that need a fully-controlled title (homepage, /card) set title.absolute.
+    default: "Find My Ballot | Sample Ballots & Election Info | BallotCard",
+    template: "%s | Find Your Ballot",
   },
   description:
-    "Enter your address, see everyone who represents you — a faithful recreation of your actual ballot, federal to local, on one permanent page. No account, no ads, no tracking.",
+    "Create an online version of your local ballot in seconds. From the senate to city hall, stay up to date on your representatives and your elections, 24/7.",
   metadataBase: new URL("https://ballot-card.com"),
   openGraph: {
     siteName: "BallotCard",

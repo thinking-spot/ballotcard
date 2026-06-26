@@ -6,7 +6,9 @@ import { SaveBallotButton } from "@/components/SaveBallotButton";
 import { BallotCardRow } from "@/components/card/BallotCardRow";
 
 export const metadata = {
-  title: "My ballot — BallotCard",
+  // Absolute title bypasses the root template — this page is noindex and the
+  // tab heading should just read "My ballot".
+  title: { absolute: "My ballot | BallotCard" },
   // The address-lookup result spawns unbounded district-param combinations —
   // keep it out of the index. The /[state]/… permalinks are the canonical,
   // indexable content (and live in the sitemap).
@@ -105,9 +107,10 @@ export default async function CardPage({
     );
   }
 
-  const eyebrow = [card.stateName, format(new Date(), "MMMM d, yyyy")]
-    .filter(Boolean)
-    .join(" · ");
+  // Eyebrow is just the state — the in-card footer carries the authoritative
+  // "Data as of" date, and having two different dates in one view invited
+  // "which is current?" confusion.
+  const eyebrow = card.stateName ?? "";
 
   return (
     <>

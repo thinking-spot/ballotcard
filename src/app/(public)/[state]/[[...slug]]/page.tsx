@@ -30,6 +30,21 @@ export async function generateStaticParams(): Promise<
 }
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
+// SEO templates: every per-page title sets the lead; the root layout's template
+// appends " | Find Your Ballot". State and district pages take the "Sample
+// Ballots & Election Info" lead; office pages take the "Ballot & Election Info"
+// lead.
+
+function formatElectionDate(d?: string): string | null {
+  if (!d) return null;
+  // Date-only string → render at local noon to avoid UTC drift.
+  const date = new Date(d + "T12:00:00");
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export async function generateMetadata({
   params,
@@ -38,12 +53,15 @@ export async function generateMetadata({
 }) {
   const { state, slug } = await params;
 
+  // District view (state root /nc, sub-district /nc/07, /nc/sldu-8, etc.)
   if (!slug || slug.length === 0) {
-    const districtData = await getDistrictPageData(state);
-    if (!districtData) return {};
+    const data = await getDistrictPageData(state);
+    if (!data) return {};
+    const name = data.district.name;
+    const code = (data.district.state || state).toUpperCase();
     return {
-      title: `${districtData.district.name} — BallotCard`,
-      description: `Everyone who represents ${districtData.district.name}: offices, officeholders, and next elections.`,
+      title: `${name} Sample Ballots & Election Info`,
+      description: `Stay up to date on your representatives and your elections in ${name}. Create an online version of your local ${code} ballot in seconds.`,
     };
   }
 
@@ -51,9 +69,14 @@ export async function generateMetadata({
   if (!resolved) return {};
 
   if (resolved.kind === "district") {
-    const districtData = await getDistrictPageData(resolved.geoSlug);
-    if (!districtData) return {};
-    return { title: `${districtData.district.name} — BallotCard` };
+    const data = await getDistrictPageData(resolved.geoSlug);
+    if (!data) return {};
+    const name = data.district.name;
+    const code = (data.district.state || state).toUpperCase();
+    return {
+      title: `${name} Sample Ballots & Election Info`,
+      description: `Stay up to date on your representatives and your elections in ${name}. Create an online version of your local ${code} ballot in seconds.`,
+    };
   }
 
   const data = await getOfficePageData(
@@ -62,10 +85,27 @@ export async function generateMetadata({
   );
   if (!data) return {};
 
-  const holder = data.official ? ` — ${data.official.name}` : "";
+  const officeTitle = data.office.title;
+  const heldBy = data.official?.name
+    ? `, currently held by ${data.official.name}`
+    : "";
+
+  // Election-date copy honors staggered chambers (rendered as a year range
+  // rather than a false-precise single date).
+  let electionCopy = "";
+  if (data.office.nextElectionAt) {
+    if (data.office.nextElectionEstimated) {
+      const y = new Date(data.office.nextElectionAt + "T12:00:00").getFullYear();
+      electionCopy = ` Next election ${y} or ${y + 2}.`;
+    } else {
+      const formatted = formatElectionDate(data.office.nextElectionAt);
+      if (formatted) electionCopy = ` Next election ${formatted}.`;
+    }
+  }
+
   return {
-    title: `${data.office.title}${holder} — BallotCard`,
-    description: data.office.description,
+    title: `${officeTitle} Ballot & Election Info`,
+    description: `Stay up to date on your representatives and your elections for ${officeTitle}${heldBy}.${electionCopy}`.trim(),
   };
 }
 
