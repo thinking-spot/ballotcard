@@ -156,6 +156,9 @@
   --chrome-subtitle: rgba(0, 0, 0, 0.62);
   --chrome-muted: rgba(0, 0, 0, 0.55);
 
+  /* Wordmark checkbox accent — green check on a muted outline box. */
+  --wordmark-check: #16a34a;
+
   /* Frosted pill button (Saved to My ballot) */
   --pill-bg: rgba(0, 0, 0, 0.06);
   --pill-border: rgba(0, 0, 0, 0.10);
@@ -191,6 +194,8 @@ body {
     --chrome-title: rgba(255, 255, 255, 0.90);
     --chrome-subtitle: rgba(255, 255, 255, 0.62);
     --chrome-muted: rgba(255, 255, 255, 0.55);
+
+    --wordmark-check: #4ade80;
 
     --pill-bg: rgba(255, 255, 255, 0.08);
     --pill-border: rgba(255, 255, 255, 0.12);

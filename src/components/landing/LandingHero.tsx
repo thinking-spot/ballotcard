@@ -5,16 +5,16 @@ export function LandingHero() {
   return (
     <section className="bg-bc-navy text-bc-offwhite">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
-        <p className="font-serif text-lg text-bc-offwhite">Find My Ballot</p>
+        <p className="font-serif text-lg text-bc-offwhite">Find my ballot</p>
 
         <h1 className="font-serif text-3xl sm:text-4xl leading-snug text-bc-offwhite mt-8 max-w-2xl">
-          Your ballot, your politicians.<br />Live tracking &amp; real-time updates.
+          Your ballot, your politicians, 24/7.
         </h1>
 
         <p className="mt-5 text-bc-lavender text-base sm:text-lg leading-relaxed max-w-xl">
-          Enter an address for a real-time recreation of your actual ballot.
-          From president to city hall: who holds each seat, and who&rsquo;s on
-          the ballot in the next election. No account, no ads, no tracking.
+          Create an online version of your local ballot in seconds. From the
+          senate to city hall, stay up to date on your representatives and your
+          elections.
         </p>
 
         <div className="mt-8">
