@@ -68,6 +68,19 @@ export function sldLowerSlug(state: string, num: string): string {
   return `${state.toLowerCase()}/sldl-${num}`;
 }
 
+// County slug derived from the geocoder's countyName — same kebab convention
+// as seed-data/counties.json. Keeping the rule here (not at the call site)
+// means a future bug fix lives in one place.
+export function countySlugFromName(state: string, name: string): string {
+  const tail = name
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/\./g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${state.toLowerCase()}/${tail}`;
+}
+
 /**
  * Build the ballot card for a set of resolved geographies. Collects every office
  * in the resident's districts (federal → municipal), each with its current
@@ -83,7 +96,14 @@ export async function getBallotCard(
   if (geo.cd) slugs.push(`${state}/${geo.cd}`);
   if (geo.su) slugs.push(sldUpperSlug(state, geo.su));
   if (geo.sl) slugs.push(sldLowerSlug(state, geo.sl));
-  if (geo.county) slugs.push(geo.county.includes("/") ? geo.county : `${state}/${geo.county}`);
+  // County slug: prefer an explicit slug-tail in `geo.county`; otherwise derive
+  // from the geocoder's countyName so address lookups link to the county
+  // district that backs the new sub-pages (e.g. nc/new-hanover-county).
+  if (geo.county) {
+    slugs.push(geo.county.includes("/") ? geo.county : `${state}/${geo.county}`);
+  } else if (geo.countyName) {
+    slugs.push(countySlugFromName(state, geo.countyName));
+  }
   if (geo.place) slugs.push(geo.place.includes("/") ? geo.place : `${state}/${geo.place}`);
 
   // 1. Resolve districts

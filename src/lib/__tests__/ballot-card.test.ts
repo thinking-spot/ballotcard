@@ -3,6 +3,7 @@ import { q } from "@/test-utils/helpers";
 import {
   sldUpperSlug,
   sldLowerSlug,
+  countySlugFromName,
   getBallotCard,
 } from "@/lib/ballot-card";
 
@@ -14,6 +15,23 @@ describe("state-legislative slug helpers", () => {
 
   it("normalizes case", () => {
     expect(sldUpperSlug("NC", "8")).toBe("nc/sldu-8");
+  });
+});
+
+describe("countySlugFromName", () => {
+  it("matches the seed-data kebab convention for typical counties", () => {
+    expect(countySlugFromName("nc", "New Hanover County")).toBe("nc/new-hanover-county");
+    expect(countySlugFromName("VA", "Fairfax County")).toBe("va/fairfax-county");
+  });
+
+  it("handles parishes (LA) and boroughs (AK)", () => {
+    expect(countySlugFromName("la", "Orleans Parish")).toBe("la/orleans-parish");
+    expect(countySlugFromName("ak", "Aleutians East Borough")).toBe("ak/aleutians-east-borough");
+  });
+
+  it("strips apostrophes and periods so St. and O'Brien collapse cleanly", () => {
+    expect(countySlugFromName("mo", "St. Louis County")).toBe("mo/st-louis-county");
+    expect(countySlugFromName("ia", "O'Brien County")).toBe("ia/obrien-county");
   });
 });
 

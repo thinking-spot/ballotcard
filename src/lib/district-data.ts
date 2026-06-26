@@ -36,6 +36,10 @@ export type DistrictPageData = {
   offices: DistrictOffice[];
   childDistricts: ChildDistrict[];
   parentDistrict?: { name: string; geoSlug: string };
+  // When set, indicates these offices were pulled in from an ancestor district
+  // (e.g. a county page showing federal + statewide offices). UI uses this to
+  // render the "enter your address for your exact districts" CTA honestly.
+  aggregatedFrom?: "state";
 };
 
 // ─── Layer classification ─────────────────────────────────────────────────────
@@ -99,12 +103,31 @@ export async function getDistrictPageData(
     districtRaw.name as string
   );
 
-  // 2. Offices directly in this district + child districts (parallel)
+  // 2. Offices directly in this district + child districts (parallel).
+  //
+  // County pages are a special case: they pull in federal + statewide offices
+  // from their ancestors so the page is useful even though no county-level
+  // offices are seeded yet. The country (`us`) row contributes the federal
+  // executives (President/VP); the parent state contributes governor, US
+  // senators, statewide execs. The page renders an "enter your address for
+  // your exact districts" CTA because we deliberately omit the address-bound
+  // layers (CD, SLDU, SLDL) from this view.
+  const aggregateForCounty = districtRaw.kind === "county" && parent;
+  const officeDistrictIds = aggregateForCounty
+    ? [
+        "00000000-0000-0000-0000-000000000001", // US country row
+        parent.id,
+        districtRaw.id,
+      ]
+    : [districtRaw.id];
+
   const [{ data: officesRaw }, { data: childrenRaw }] = await Promise.all([
     db
       .from("Offices")
-      .select("id, title, slug, branch, level, selection_method, next_election_at")
-      .eq("district_id", districtRaw.id)
+      .select(
+        "id, title, slug, branch, level, selection_method, next_election_at, district_id"
+      )
+      .in("district_id", officeDistrictIds)
       .not("slug", "is", null)
       .order("title"),
     db
@@ -150,10 +173,31 @@ export async function getDistrictPageData(
     childOfficeCounts.set(did, (childOfficeCounts.get(did) ?? 0) + 1);
   }
 
-  // 4. Assemble offices
+  // 4. Assemble offices. When aggregating for a county view, an office's
+  //    permalink lives under its own district, not under the county.
+  let districtGeoSlugById: Map<string, string> | null = null;
+  if (aggregateForCounty) {
+    const { data: rows } = await db
+      .from("Districts")
+      .select("id, geo_slug")
+      .in("id", officeDistrictIds);
+    districtGeoSlugById = new Map(
+      (rows ?? []).map((r) => [r.id as string, r.geo_slug as string])
+    );
+    // The country row has geo_slug "us" — make sure it's there even if the
+    // batch fetch didn't include it.
+    if (!districtGeoSlugById.has("00000000-0000-0000-0000-000000000001")) {
+      districtGeoSlugById.set("00000000-0000-0000-0000-000000000001", "us");
+    }
+  }
+
   const offices: DistrictOffice[] = (officesRaw ?? []).map((o) => {
     const oid = o.id as string;
     const official = officialsByOffice.get(oid);
+    const officeDistrictId = o.district_id as string;
+    const slugForOffice = districtGeoSlugById
+      ? (districtGeoSlugById.get(officeDistrictId) ?? geoSlug)
+      : geoSlug;
     return {
       id: oid,
       title: o.title as string,
@@ -161,7 +205,7 @@ export async function getDistrictPageData(
       branch: o.branch as string,
       level: o.level as string,
       selectionMethod: o.selection_method as string,
-      districtGeoSlug: geoSlug,
+      districtGeoSlug: slugForOffice,
       officialName: official?.name,
       officialParty: official?.party,
       nextElectionAt: (o.next_election_at as string) || undefined,
@@ -191,5 +235,6 @@ export async function getDistrictPageData(
     parentDistrict: parent
       ? { name: parent.name, geoSlug: parent.geo_slug }
       : undefined,
+    aggregatedFrom: aggregateForCounty ? "state" : undefined,
   };
 }

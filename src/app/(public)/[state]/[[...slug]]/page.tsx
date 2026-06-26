@@ -73,6 +73,13 @@ export async function generateMetadata({
     if (!data) return {};
     const name = data.district.name;
     const code = (data.district.state || state).toUpperCase();
+    // County pages target the "sample ballot in [X] county" SEO keyword.
+    if (data.district.kind === "county") {
+      return {
+        title: `${name} Sample Ballots & Election Info`,
+        description: `See your sample ballot in ${name}. Federal and ${code} statewide offices that appear on every ${name} ballot, plus a quick address lookup for your exact district seats.`,
+      };
+    }
     return {
       title: `${name} Sample Ballots & Election Info`,
       description: `Stay up to date on your representatives and your elections in ${name}. Create an online version of your local ${code} ballot in seconds.`,
@@ -194,6 +201,24 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
           <p className="mt-1 text-sm text-muted-foreground">
             {kindLabel(data.district.kind)}
           </p>
+          {data.aggregatedFrom === "state" && (
+            <div className="mt-4 rounded-lg border border-bc-light-lavender bg-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-bc-navy">
+                Federal and statewide offices that appear on every{" "}
+                {data.district.name} ballot.{" "}
+                <span className="text-muted-foreground">
+                  Your exact congressional and state-legislative district seats
+                  depend on your address.
+                </span>
+              </p>
+              <Link
+                href="/"
+                className="text-sm font-medium text-bc-navy underline decoration-bc-light-lavender hover:decoration-bc-navy whitespace-nowrap"
+              >
+                Look up your full ballot →
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">

@@ -40,6 +40,9 @@ import mayors from "../seed-data/mayors.json";
 import statewideExecs from "../seed-data/statewide-execs.json";
 import federalExecs from "../seed-data/federal-execs.json";
 import legislatureSchedule from "../seed-data/legislature-schedule.json";
+import counties from "../seed-data/counties.json";
+
+type CountyEntry = { state: string; fips: string; name: string; slug: string };
 
 // Per-state legislative election schedule (term length + next general + whether
 // the chamber is a staggered estimate). Indexed by "STATE::chamber".
@@ -232,6 +235,31 @@ async function ingestDistricts(sources: Sources) {
   if (sldDistricts.length > 0) {
     await insertChunked("Districts", sldDistricts);
     log("districts", `Inserted ${sldDistricts.length} state legislative districts`);
+  }
+
+  // 1c-bis. Counties (50 states + DC, from Census ANSI national_county2020).
+  // These power the per-county "sample ballot in [X] county" sub-pages. No
+  // county-level offices are seeded yet (no national source for sheriffs /
+  // commissioners / etc.); the district rows exist so the catchall route
+  // resolves the slug and the page renders federal + statewide offices
+  // aggregated upward plus an honest "address for exact districts" CTA.
+  const newCounties: Array<Record<string, unknown>> = [];
+  for (const c of counties as CountyEntry[]) {
+    if (existingSlugs.has(c.slug)) continue;
+    const stateId = slugToId.get(c.state.toLowerCase());
+    if (!stateId) continue;
+    newCounties.push({
+      name: c.name,
+      kind: "county",
+      state: c.state,
+      parent_id: stateId,
+      geo_slug: c.slug,
+      external_refs: { census_fips: c.fips },
+    });
+  }
+  if (newCounties.length > 0) {
+    await insertChunked("Districts", newCounties);
+    log("districts", `Inserted ${newCounties.length} county districts`);
   }
 
   // 1d. Municipalities for mayors
