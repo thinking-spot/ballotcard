@@ -1011,9 +1011,6 @@ async function main() {
         .eq("id", runId);
     }
 
-    // Flush the ISR cache so new data is visible immediately, not on the next
-    // 6h revalidate tick. Skipped silently when the webhook isn't configured.
-    await revalidateLiveSite();
   } catch (err) {
     console.error("\n❌ Ingestion failed:", err);
     if (runId) {
@@ -1026,8 +1023,16 @@ async function main() {
         })
         .eq("id", runId);
     }
+    // Partial-failure runs (e.g. FEC rate-limit on a late phase) still wrote
+    // useful data — flush the cache anyway, then re-throw so the exit code
+    // reflects the underlying failure.
+    await revalidateLiveSite();
     process.exit(1);
   }
+
+  // Happy-path flush — covered by the catch's flush too via the finally pattern
+  // would be cleaner, but exit(1) inside catch makes finally unreachable here.
+  await revalidateLiveSite();
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(1);
   console.log(`\n=== Done in ${elapsed}s ===`);
