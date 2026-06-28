@@ -8,9 +8,10 @@ export type ScrapedCandidate = {
   source: string;
   /** Two-letter state code, uppercase. */
   state: string;
-  /** "state-senate" | "state-house" — matches Offices.slug. */
-  officeSlug: "state-senate" | "state-house";
-  /** District number (string, no zero-padding). Matches our sldu-/sldl- slugs. */
+  /** Matches Offices.slug — extend as new chambers are wired up. */
+  officeSlug: "state-senate" | "state-house" | "us-house";
+  /** District number (string, no zero-padding). State-leg matches sldu-/sldl-
+   * slugs; US House matches the CD slug (e.g. "07", "al" for at-large). */
   district: string;
   /** Display name as the SoS publishes it. Normalization happens at render time. */
   name: string;

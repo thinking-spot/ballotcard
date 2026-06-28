@@ -13,6 +13,7 @@
 import { db } from "./lib/supabase-client";
 import { STATE_CANDIDATE_SOURCES, type ScrapedCandidate } from "./lib/candidate-sources";
 import { sldUpperSlug, sldLowerSlug } from "../src/lib/ballot-card";
+import { houseGeoSlug, US_STATES } from "./lib/us-states";
 
 const DEFAULT_CYCLES = [2026];
 
@@ -20,25 +21,36 @@ function log(state: string, msg: string) {
   console.log(`[scrape:${state.toLowerCase()}] ${msg}`);
 }
 
-// District slug for a state-leg seat — mirrors the ingestion convention so a
-// scraped (state, chamber, district) tuple resolves to the right Districts row.
+// District slug for a scraped (state, chamber, district) tuple. Mirrors the
+// slug conventions baked into ingest.ts so the lookup hits.
 function districtSlug(
   state: string,
-  officeSlug: "state-senate" | "state-house",
+  officeSlug: ScrapedCandidate["officeSlug"],
   district: string
 ): string {
-  return officeSlug === "state-senate"
-    ? sldUpperSlug(state.toLowerCase(), district)
-    : sldLowerSlug(state.toLowerCase(), district);
+  const lo = state.toLowerCase();
+  if (officeSlug === "state-senate") return sldUpperSlug(lo, district);
+  if (officeSlug === "state-house") return sldLowerSlug(lo, district);
+  if (officeSlug === "us-house") {
+    // CD slug: matches ingestDistricts' houseGeoSlug() — handles AL/AK-style
+    // single-district states ("al") and zero-pads two-digit district numbers.
+    const houseSeats =
+      US_STATES.find((s) => s.abbr === state.toUpperCase())?.houseSeats ?? 0;
+    const d = parseInt(district, 10);
+    if (!d || !houseSeats) return `${lo}/${district}`;
+    return houseGeoSlug(state.toUpperCase(), d, houseSeats);
+  }
+  throw new Error(`Unknown officeSlug: ${officeSlug}`);
 }
 
 async function loadDistrictAndOfficeMaps(state: string) {
-  // Districts for this state, keyed by geo_slug.
+  // Districts for this state — state-leg + US House so the same scraper run
+  // can resolve all three office slugs.
   const { data: districts, error: dErr } = await db
     .from("Districts")
     .select("id, geo_slug")
     .eq("state", state)
-    .in("kind", ["state_senate", "state_house"]);
+    .in("kind", ["state_senate", "state_house", "us_house"]);
   if (dErr) throw new Error(`Districts query failed: ${dErr.message}`);
   const districtIdBySlug = new Map(
     (districts ?? []).map((d) => [d.geo_slug as string, d.id as string])
@@ -48,13 +60,12 @@ async function loadDistrictAndOfficeMaps(state: string) {
   const districtIds = (districts ?? []).map((d) => d.id as string);
   const officeIdByKey = new Map<string, string>();
   if (districtIds.length > 0) {
-    // Paginate — Supabase caps single SELECT at 1000; some big states are over.
     for (let from = 0; ; from += 1000) {
       const { data: offices, error: oErr } = await db
         .from("Offices")
         .select("id, district_id, slug")
         .in("district_id", districtIds)
-        .in("slug", ["state-senate", "state-house"])
+        .in("slug", ["state-senate", "state-house", "us-house"])
         .range(from, from + 999);
       if (oErr) throw new Error(`Offices query failed: ${oErr.message}`);
       for (const o of offices ?? []) {
@@ -88,6 +99,15 @@ function normalizeName(s: string): string {
     .replace(/['’.,]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Looser match for cross-source dedup (e.g. FEC's "Eric Burlison" vs MO SoS's
+// "Eric W. Burlison"): drop middle name(s) so two names match when their first
+// and last tokens agree. Conservative: requires ≥2 tokens to even attempt.
+function firstLastKey(s: string): string {
+  const tokens = normalizeName(s).split(" ");
+  if (tokens.length < 2) return normalizeName(s);
+  return `${tokens[0]} ${tokens[tokens.length - 1]}`;
 }
 
 async function scrapeState(state: string, cycle: number) {
@@ -142,6 +162,7 @@ async function scrapeState(state: string, cycle: number) {
 
   // Build candidate rows.
   const rows: Array<Record<string, unknown>> = [];
+  const federalOfficeIds = new Set<string>();
   let unmatched = 0;
   for (const c of scraped) {
     const dSlug = districtSlug(state, c.officeSlug, c.district);
@@ -155,6 +176,7 @@ async function scrapeState(state: string, cycle: number) {
       unmatched++;
       continue;
     }
+    if (c.officeSlug === "us-house") federalOfficeIds.add(officeId);
     rows.push({
       office_id: officeId,
       name: c.name,
@@ -183,22 +205,57 @@ async function scrapeState(state: string, cycle: number) {
   }
   const finalRows = [...deduped.values()];
 
-  // Idempotent: clear this source/cycle, re-insert.
+  // Idempotent: clear this source/cycle, then dedupe against authoritative
+  // sources (FEC) before re-inserting. The Candidates UNIQUE constraint is
+  // (office_id, cycle, name) and is NOT scoped by source — so a state SoS
+  // run that hits a federal race would collide with the FEC row. FEC has
+  // money totals + better incumbency data, so we let FEC win and skip
+  // overlapping rows from the SoS feed.
   await db
     .from("Candidates")
     .delete()
     .eq("source", `${state.toLowerCase()}_sos`)
     .eq("cycle", cycle);
-  if (finalRows.length > 0) {
-    for (let i = 0; i < finalRows.length; i += 200) {
-      const chunk = finalRows.slice(i, i + 200);
+
+  let skipFedKeys = new Set<string>();
+  if (federalOfficeIds.size > 0) {
+    const { data: existing } = await db
+      .from("Candidates")
+      .select("office_id, name")
+      .eq("cycle", cycle)
+      .in("office_id", [...federalOfficeIds]);
+    // Index by both exact-normalized name AND first/last-only — covers the
+    // common "Eric Burlison" (FEC) vs "Eric W. Burlison" (state) divergence.
+    skipFedKeys = new Set();
+    for (const r of existing ?? []) {
+      const n = r.name as string;
+      skipFedKeys.add(`${r.office_id}::${normalizeName(n)}`);
+      skipFedKeys.add(`${r.office_id}::${firstLastKey(n)}`);
+    }
+  }
+  const filteredRows = finalRows.filter((r) => {
+    if (!federalOfficeIds.has(r.office_id as string)) return true;
+    const exact = `${r.office_id}::${normalizeName(r.name as string)}`;
+    const loose = `${r.office_id}::${firstLastKey(r.name as string)}`;
+    return !skipFedKeys.has(exact) && !skipFedKeys.has(loose);
+  });
+  const skippedFederal = finalRows.length - filteredRows.length;
+
+  if (filteredRows.length > 0) {
+    for (let i = 0; i < filteredRows.length; i += 200) {
+      const chunk = filteredRows.slice(i, i + 200);
       const { error } = await db.from("Candidates").insert(chunk);
       if (error) throw new Error(`${state} insert failed at ${i}: ${error.message}`);
     }
   }
-  log(state, `Wrote ${finalRows.length} candidates (${rows.length - finalRows.length} duplicates collapsed)`);
-  return { state, cycle, inserted: finalRows.length, skipped: 0 };
+  const dupes = rows.length - finalRows.length;
+  log(
+    state,
+    `Wrote ${filteredRows.length} candidates (${dupes} dupes collapsed, ${skippedFederal} federal skipped — FEC has them)`
+  );
+  return { state, cycle, inserted: filteredRows.length, skipped: skippedFederal };
 }
+
 
 async function revalidateLiveSite(): Promise<void> {
   const siteUrl = process.env.SITE_URL;
