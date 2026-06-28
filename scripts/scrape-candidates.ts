@@ -23,6 +23,10 @@ function log(state: string, msg: string) {
 
 // District slug for a scraped (state, chamber, district) tuple. Mirrors the
 // slug conventions baked into ingest.ts so the lookup hits.
+//
+// For US Senate, the office lives directly on the state district — no
+// per-district child — so we return the state slug itself; callers match the
+// office by (state district id, "us-senate-class-X" slug).
 function districtSlug(
   state: string,
   officeSlug: ScrapedCandidate["officeSlug"],
@@ -40,17 +44,18 @@ function districtSlug(
     if (!d || !houseSeats) return `${lo}/${district}`;
     return houseGeoSlug(state.toUpperCase(), d, houseSeats);
   }
+  if (officeSlug.startsWith("us-senate-class-")) return lo;
   throw new Error(`Unknown officeSlug: ${officeSlug}`);
 }
 
 async function loadDistrictAndOfficeMaps(state: string) {
-  // Districts for this state — state-leg + US House so the same scraper run
-  // can resolve all three office slugs.
+  // Districts for this state — state-leg + US House + the state row itself
+  // (the state row is the parent of US Senate offices).
   const { data: districts, error: dErr } = await db
     .from("Districts")
     .select("id, geo_slug")
     .eq("state", state)
-    .in("kind", ["state_senate", "state_house", "us_house"]);
+    .in("kind", ["state_senate", "state_house", "us_house", "state"]);
   if (dErr) throw new Error(`Districts query failed: ${dErr.message}`);
   const districtIdBySlug = new Map(
     (districts ?? []).map((d) => [d.geo_slug as string, d.id as string])
@@ -65,7 +70,14 @@ async function loadDistrictAndOfficeMaps(state: string) {
         .from("Offices")
         .select("id, district_id, slug")
         .in("district_id", districtIds)
-        .in("slug", ["state-senate", "state-house", "us-house"])
+        .in("slug", [
+          "state-senate",
+          "state-house",
+          "us-house",
+          "us-senate-class-i",
+          "us-senate-class-ii",
+          "us-senate-class-iii",
+        ])
         .range(from, from + 999);
       if (oErr) throw new Error(`Offices query failed: ${oErr.message}`);
       for (const o of offices ?? []) {
@@ -176,7 +188,9 @@ async function scrapeState(state: string, cycle: number) {
       unmatched++;
       continue;
     }
-    if (c.officeSlug === "us-house") federalOfficeIds.add(officeId);
+    if (c.officeSlug === "us-house" || c.officeSlug.startsWith("us-senate-class-")) {
+      federalOfficeIds.add(officeId);
+    }
     rows.push({
       office_id: officeId,
       name: c.name,

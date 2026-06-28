@@ -5,12 +5,14 @@
 import type { ScrapedCandidate } from "./types";
 import { fetchFloridaStateLegCandidates } from "./fl";
 import { fetchMissouriCandidates } from "./mo";
+import { fetchNorthCarolinaCandidates } from "./nc";
 
 export type StateScraper = (cycle: number) => Promise<ScrapedCandidate[]>;
 
 export const STATE_CANDIDATE_SOURCES: Record<string, StateScraper> = {
   FL: fetchFloridaStateLegCandidates,
   MO: (cycle) => fetchMissouriCandidates(cycle), // SE + CN by default
+  NC: fetchNorthCarolinaCandidates,
 };
 
 export type { ScrapedCandidate };
