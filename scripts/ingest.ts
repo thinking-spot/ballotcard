@@ -933,6 +933,35 @@ async function applyLegislatureSchedule(): Promise<number> {
   return updated;
 }
 
+// ─── Cache revalidation hook ─────────────────────────────────────────────────
+// Tells the running Next app to flush its Full Route Cache for the catchall
+// permalink route + homepage + sitemap. Configure SITE_URL and REVALIDATE_SECRET
+// (both env vars) in production; both are optional locally.
+
+async function revalidateLiveSite(): Promise<void> {
+  const siteUrl = process.env.SITE_URL;
+  const secret = process.env.REVALIDATE_SECRET;
+  if (!siteUrl || !secret) {
+    log("revalidate", "Skipped (SITE_URL or REVALIDATE_SECRET not set)");
+    return;
+  }
+  try {
+    const res = await fetch(`${siteUrl.replace(/\/+$/, "")}/api/revalidate`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      log("revalidate", `Webhook returned ${res.status}`);
+      return;
+    }
+    log("revalidate", "Flushed ISR cache");
+  } catch (err) {
+    // Non-fatal: ingestion succeeded; pages will revalidate on their next tick.
+    log("revalidate", `Webhook failed: ${(err as Error).message}`);
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -981,6 +1010,10 @@ async function main() {
         })
         .eq("id", runId);
     }
+
+    // Flush the ISR cache so new data is visible immediately, not on the next
+    // 6h revalidate tick. Skipped silently when the webhook isn't configured.
+    await revalidateLiveSite();
   } catch (err) {
     console.error("\n❌ Ingestion failed:", err);
     if (runId) {
