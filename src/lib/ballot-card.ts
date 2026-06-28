@@ -1,6 +1,7 @@
 import { db } from "@/lib/supabase";
 import { LAYER_ORDER, LAYER_LABELS } from "@/lib/district-data";
 import { COUNTY_TEMPLATES, MUNICIPAL_TEMPLATES } from "@/lib/ballot-templates";
+import { isOnUpcomingBallot } from "@/lib/candidate-filters";
 
 // The set of district identifiers a ballot card is built from. These are facts
 // about *places*, never about a person — safe to put in a URL and localStorage.
@@ -148,7 +149,7 @@ export async function getBallotCard(
     officeIds.length > 0
       ? db
           .from("Candidates")
-          .select("office_id, name, party, is_incumbent, cycle, external_refs, fec_totals")
+          .select("office_id, name, party, is_incumbent, cycle, external_refs, fec_totals, status")
           .in("office_id", officeIds)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
     db
@@ -167,8 +168,11 @@ export async function getBallotCard(
 
   // Candidates grouped by office — the challengers panel shows the ones whose
   // cycle matches the office's next election year. Incumbents sort first.
+  // Dropouts / unqualified filers are filtered out so they don't appear "on
+  // the ballot" alongside qualified candidates.
   const candidatesByOffice = new Map<string, Record<string, unknown>[]>();
   for (const c of (candidatesResult.data ?? []) as Record<string, unknown>[]) {
+    if (!isOnUpcomingBallot(c as { status?: string })) continue;
     const oid = c.office_id as string;
     if (!candidatesByOffice.has(oid)) candidatesByOffice.set(oid, []);
     candidatesByOffice.get(oid)!.push(c);

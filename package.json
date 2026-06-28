@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest",
     "ingest": "npx tsx --env-file=.env.local scripts/ingest.ts",
+    "scrape": "npx tsx --env-file=.env.local scripts/scrape-candidates.ts",
     "verify": "npx tsx --env-file=.env.local scripts/verify.ts"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 import { db } from "@/lib/supabase";
+import { isOnUpcomingBallot } from "@/lib/candidate-filters";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,7 +152,7 @@ export async function getOfficePageData(
       nextElectionYear
         ? db
             .from("Candidates")
-            .select("id, name, party, is_incumbent, cycle, external_refs, fec_totals")
+            .select("id, name, party, is_incumbent, cycle, external_refs, fec_totals, status")
             .eq("office_id", officeRaw.id)
             .eq("cycle", nextElectionYear)
             .order("is_incumbent", { ascending: false })
@@ -213,7 +214,12 @@ export async function getOfficePageData(
             undefined,
         }
       : null,
-    candidates: (candidatesRaw ?? []).map((c) => {
+    // Surface only candidates who will actually appear on the ballot — exclude
+    // dropouts (Withdrew), unqualified filers (Did Not Qualify), defeated /
+    // disqualified entries, and rows transferred to local races. We keep these
+    // in the database for historical accuracy but they don't belong on a
+    // forward-looking ballot card.
+    candidates: (candidatesRaw ?? []).filter(isOnUpcomingBallot).map((c) => {
       const refs = (c.external_refs ?? {}) as Record<string, string>;
       const totals = c.fec_totals as CandidateData["fecTotals"] | null;
       return {
