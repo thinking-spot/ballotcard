@@ -29,6 +29,7 @@ import type {
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
 import { fetchFecCandidates, type FecCandidate } from "./lib/fec";
+import { deriveOcdId } from "./lib/ocd-id";
 import {
   fetchFecElectionDates,
   earliestPrimaryByStateOffice,
@@ -287,6 +288,61 @@ async function ingestDistricts(sources: Sources) {
     .from("Districts")
     .select("*", { count: "exact", head: true });
   log("districts", `Total districts: ${count}`);
+}
+
+// ─── Phase 1.5: OCD-ID enrichment ────────────────────────────────────────────
+// Derives canonical Open Civic Data identifiers for every District and merges
+// them into external_refs.ocd_id. Pure computation (no API calls) — the
+// OCD-ID format is fully determined by our district kind + state + name +
+// geo_slug. See scripts/lib/ocd-id.ts for the mapping rules and the
+// independently-verified Google Civic conventions for edge cases (DC, VA
+// independent cities, state at-large CDs).
+
+async function enrichOcdIds(): Promise<number> {
+  type Row = {
+    id: string;
+    kind: string;
+    state: string | null;
+    name: string;
+    geo_slug: string;
+    external_refs: Record<string, unknown> | null;
+  };
+  const districts = await selectAll<Row>(
+    "Districts",
+    "id, kind, state, name, geo_slug, external_refs"
+  );
+
+  let updated = 0;
+  let unchanged = 0;
+  let unmappable = 0;
+
+  for (const d of districts) {
+    const ocdId = deriveOcdId(d);
+    if (!ocdId) {
+      unmappable++;
+      continue;
+    }
+    const refs = (d.external_refs ?? {}) as Record<string, unknown>;
+    if (refs.ocd_id === ocdId) {
+      unchanged++;
+      continue;
+    }
+    const { error } = await db
+      .from("Districts")
+      .update({ external_refs: { ...refs, ocd_id: ocdId } })
+      .eq("id", d.id);
+    if (error) {
+      log("ocd", `Update failed for ${d.geo_slug}: ${error.message}`);
+      continue;
+    }
+    updated++;
+  }
+
+  log(
+    "ocd",
+    `OCD-IDs: ${updated} updated, ${unchanged} unchanged, ${unmappable} unmappable (out of ${districts.length})`
+  );
+  return updated;
 }
 
 // ─── Phase 2: Offices ────────────────────────────────────────────────────────
@@ -980,6 +1036,8 @@ async function main() {
     const sources = await fetchSources();
     console.log();
     await ingestDistricts(sources);
+    console.log();
+    await enrichOcdIds();
     console.log();
     await ingestOffices(sources);
     console.log();
