@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseBallotpediaCandidatePage,
+  parseNonpartisanCandidatePage,
   ballotpediaUrl,
 } from "../ballotpedia";
 
@@ -123,5 +124,145 @@ describe("parseBallotpediaCandidatePage — OH Senate 2026", () => {
     expect(
       parseBallotpediaCandidatePage("<html><body></body></html>", "OH", "state-senate", 2026)
     ).toEqual([]);
+  });
+});
+
+// ─── Compound district names (MA / VT / NH) ─────────────────────────────────
+// These states use named districts ("1st Plymouth", "Addison", "Belknap 1")
+// rather than pure numeric IDs. The parser derives the district key from
+// the office-cell anchor URL, kebab-casing the chamber-suffix tail.
+
+const MA_SENATE_HTML = `
+<html><body>
+<table class="wikitable sortable collapsible candidateListTablePartisan">
+<tbody>
+<tr><td colspan="4"><h4>Massachusetts State Senate general election 2026</h4></td></tr>
+<tr><td>Office</td><td>Democratic</td><td>Republican</td><td>Other</td></tr>
+<tr>
+<td><a href="https://ballotpedia.org/Massachusetts_State_Senate_2nd_Essex_and_Middlesex_District">2nd Essex and Middlesex District </a></td>
+<td><p><span class="candidate"><a href="/Some_Dem">Some Dem</a> (i)</span></p></td>
+<td><p><span class="candidate"><a href="/Some_Rep">Some Rep</a></span></p></td>
+<td></td>
+</tr>
+</tbody></table>
+</body></html>
+`;
+
+const VT_SENATE_HTML = `
+<html><body>
+<table class="wikitable sortable collapsible candidateListTablePartisan">
+<tbody>
+<tr><td colspan="4"><h4>Vermont State Senate general election 2026</h4></td></tr>
+<tr><td>Office</td><td>Democratic</td><td>Republican</td><td>Other</td></tr>
+<tr>
+<td><a href="https://ballotpedia.org/Vermont_State_Senate_Chittenden_North_District">Chittenden North District </a></td>
+<td><p><span class="candidate"><a href="/Tanya">Tanya Vyhovsky</a> (i)</span></p></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+</body></html>
+`;
+
+const NH_HOUSE_HTML = `
+<html><body>
+<table class="wikitable sortable collapsible candidateListTablePartisan">
+<tbody>
+<tr><td colspan="4"><h4>New Hampshire House of Representatives primary 2026</h4></td></tr>
+<tr><td>Office</td><td>Democratic</td><td>Republican</td><td>Other</td></tr>
+<tr>
+<td><a href="https://ballotpedia.org/New_Hampshire_House_of_Representatives_District_Belknap_1">District Belknap 1 </a></td>
+<td><p><span class="candidate"><a href="/Foo">Foo Bar</a></span></p></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+</body></html>
+`;
+
+describe("Compound district names (MA / VT / NH)", () => {
+  it("MA Senate: BP '2nd Essex and Middlesex' → 'second-essex-and-middlesex' (matches our OpenStates slug)", () => {
+    const out = parseBallotpediaCandidatePage(MA_SENATE_HTML, "MA", "state-senate", 2026);
+    expect(out).toHaveLength(2);
+    expect(out[0].district).toBe("second-essex-and-middlesex");
+    expect(out[1].district).toBe("second-essex-and-middlesex");
+  });
+
+  it("VT Senate: 'Chittenden North District' URL → 'chittenden-north'", () => {
+    const out = parseBallotpediaCandidatePage(VT_SENATE_HTML, "VT", "state-senate", 2026);
+    expect(out).toHaveLength(1);
+    expect(out[0].district).toBe("chittenden-north");
+  });
+
+  it("NH House: 'District Belknap 1' URL → 'belknap-1' (leading District_ stripped)", () => {
+    const out = parseBallotpediaCandidatePage(NH_HOUSE_HTML, "NH", "state-house", 2026);
+    expect(out).toHaveLength(1);
+    expect(out[0].district).toBe("belknap-1");
+  });
+
+  it("falls back to text 'District N' when no anchor on the office cell", () => {
+    const html = `
+<table class="wikitable sortable collapsible candidateListTablePartisan"><tbody>
+<tr><td colspan="4"><h4>Some State general election 2026</h4></td></tr>
+<tr><td>Office</td><td>Democratic</td><td>Republican</td><td>Other</td></tr>
+<tr>
+<td>District 5</td>
+<td><span class="candidate"><a href="/x">X Y</a></span></td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>`;
+    const out = parseBallotpediaCandidatePage(html, "OH", "state-senate", 2026);
+    expect(out[0]?.district).toBe("5");
+  });
+});
+
+// ─── Nebraska nonpartisan (Office | Candidates two-column table) ────────────
+
+const NE_HTML = `
+<html><body>
+<table class="wikitable sortable collapsible jquery-tablesorter">
+<tbody>
+<tr><td colspan="2"><h4>Nebraska State Senate general election 2026</h4></td></tr>
+<tr><td colspan="2"><ul><li>Incumbents are marked with an (i) after their name.</li></ul></td></tr>
+<tr><td>Office</td><td>Candidates</td></tr>
+<tr>
+<td>District 4</td>
+<td><a href="/R._Brad_von_Gillern">R. Brad von Gillern</a>&#160;(i)<br /><a href="/Cindy_Maxwell-Ostdiek">Cindy Maxwell-Ostdiek</a>&#160;<br /></td>
+</tr>
+<tr>
+<td>District 12</td>
+<td><a href="/Merv_Riepe">Merv Riepe</a>&#160;(i)<br /><a href="/Christy_Knorr">Christy Knorr</a>&#160;<br /></td>
+</tr>
+</tbody></table>
+</body></html>
+`;
+
+describe("parseNonpartisanCandidatePage — Nebraska", () => {
+  it("extracts candidates from Office|Candidates two-column table", () => {
+    const out = parseNonpartisanCandidatePage(NE_HTML, "NE", 2026);
+    expect(out).toHaveLength(4);
+  });
+
+  it("tags all candidates with party='Nonpartisan' (NE unicameral)", () => {
+    const out = parseNonpartisanCandidatePage(NE_HTML, "NE", 2026);
+    expect(out.every((c) => c.party === "Nonpartisan")).toBe(true);
+  });
+
+  it("flags (i) incumbents via bp_incumbent", () => {
+    const out = parseNonpartisanCandidatePage(NE_HTML, "NE", 2026);
+    const gillern = out.find((c) => c.name === "R. Brad von Gillern")!;
+    expect(gillern.extraRefs?.bp_incumbent).toBe("true");
+    const riepe = out.find((c) => c.name === "Merv Riepe")!;
+    expect(riepe.extraRefs?.bp_incumbent).toBe("true");
+  });
+
+  it("maps to state-senate (NE has no state-house)", () => {
+    const out = parseNonpartisanCandidatePage(NE_HTML, "NE", 2026);
+    expect(out.every((c) => c.officeSlug === "state-senate")).toBe(true);
+  });
+
+  it("returns empty array when no Office|Candidates table is present", () => {
+    expect(parseNonpartisanCandidatePage("<html></html>", "NE", 2026)).toEqual([]);
   });
 });

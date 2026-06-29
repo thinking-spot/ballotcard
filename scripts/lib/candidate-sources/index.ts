@@ -8,7 +8,11 @@ import { fetchMissouriCandidates } from "./mo";
 import { fetchNorthCarolinaCandidates } from "./nc";
 import { fetchPennsylvaniaCandidates } from "./pa";
 import { fetchMichiganCandidates } from "./mi";
-import { fetchBallotpediaState, BALLOTPEDIA_STATES } from "./ballotpedia";
+import {
+  fetchBallotpediaState,
+  fetchNebraskaCandidates,
+  BALLOTPEDIA_STATES,
+} from "./ballotpedia";
 
 export type StateScraper = (cycle: number) => Promise<ScrapedCandidate[]>;
 
@@ -29,7 +33,11 @@ function buildSourceRegistry(): Record<string, StateScraper> {
   const out: Record<string, StateScraper> = { ...PRIMARY_SOURCES };
   for (const state of Object.keys(BALLOTPEDIA_STATES)) {
     if (out[state]) continue; // primary source already registered
-    out[state] = (cycle) => fetchBallotpediaState(state, cycle);
+    // Nebraska is nonpartisan unicameral — needs the dedicated parser.
+    out[state] =
+      state === "NE"
+        ? (cycle) => fetchNebraskaCandidates(cycle)
+        : (cycle) => fetchBallotpediaState(state, cycle);
   }
   return out;
 }

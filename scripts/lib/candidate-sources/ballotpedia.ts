@@ -134,6 +134,72 @@ type ParsedCandidate = {
   altParty?: string;
 };
 
+// Number-ordinal → English-ordinal translator. MA Senate is the one state
+// whose district slugs in our DB (sourced from OpenStates) use English
+// ordinals while Ballotpedia uses numeric ordinals. Example: BP "2nd Essex
+// and Middlesex District" → URL slug "2nd_Essex_and_Middlesex" → our slug
+// needs to be "second-essex-and-middlesex". MA Senate has 40 seats.
+const NUM_TO_ENGLISH_ORDINAL: Record<string, string> = {
+  "1st": "first", "2nd": "second", "3rd": "third", "4th": "fourth",
+  "5th": "fifth", "6th": "sixth", "7th": "seventh", "8th": "eighth",
+  "9th": "ninth", "10th": "tenth", "11th": "eleventh", "12th": "twelfth",
+  "13th": "thirteenth", "14th": "fourteenth", "15th": "fifteenth",
+  "16th": "sixteenth", "17th": "seventeenth", "18th": "eighteenth",
+  "19th": "nineteenth", "20th": "twentieth",
+};
+
+function translateMaSenateOrdinal(districtKebab: string): string {
+  // districtKebab e.g. "2nd-essex-and-middlesex" → "second-essex-and-middlesex"
+  return districtKebab.replace(
+    /^(\d+(?:st|nd|rd|th))(?=-|$)/,
+    (m) => NUM_TO_ENGLISH_ORDINAL[m] ?? m
+  );
+}
+
+/**
+ * Extract the district identifier from an office-cell's anchor href.
+ *
+ * URLs look like:
+ *   /Ohio_State_Senate_District_3                          → "3"
+ *   /New_Hampshire_House_of_Representatives_District_Belknap_1 → "belknap-1"
+ *   /Massachusetts_State_Senate_2nd_Essex_and_Middlesex_District → "2nd-essex-and-middlesex"
+ *   /Vermont_State_Senate_Chittenden_North_District        → "chittenden-north"
+ *
+ * The remainder after the chamber prefix is the district name. We strip
+ * leading "District_" and trailing "_District" tokens, then kebab-case.
+ * Returns null when no district can be extracted.
+ */
+function districtFromUrl(
+  href: string,
+  state: string,
+  chamber: "state-senate" | "state-house"
+): string | null {
+  const cfg = STATE_NAMES[state.toUpperCase()];
+  if (!cfg) return null;
+  const stateSlug = cfg.displayName.replace(/\s+/g, "_");
+  const chamberPath =
+    chamber === "state-senate"
+      ? "State_Senate"
+      : cfg.houseFragment ?? "House_of_Representatives";
+  // Look for the prefix anywhere in the URL (absolute or relative).
+  const prefix = `${stateSlug}_${chamberPath}_`;
+  const i = href.indexOf(prefix);
+  if (i < 0) return null;
+  let tail = href.slice(i + prefix.length);
+  // Drop URL fragment + query
+  tail = tail.split(/[#?]/)[0];
+  // Strip leading "District_" and trailing "_District"
+  tail = tail.replace(/^District_/, "").replace(/_District$/, "");
+  if (!tail) return null;
+  // Kebab and lowercase
+  let district = tail.toLowerCase().replace(/_/g, "-");
+  // MA Senate special-case: BP's "2nd" → our DB's "second"
+  if (state.toUpperCase() === "MA" && chamber === "state-senate") {
+    district = translateMaSenateOrdinal(district);
+  }
+  return district;
+}
+
 /**
  * Extract candidates from one party-column cell. Each candidate is one
  * <span class="candidate"><a>Name</a></span> followed by optional " (i)"
@@ -238,11 +304,22 @@ export function parseBallotpediaCandidatePage(
       const cells = row.querySelectorAll("td");
       if (cells.length < 4) continue;
 
-      // Office cell: "District N "
-      const officeText = cells[0].text.trim();
-      const districtMatch = officeText.match(/^District\s+(\d+)/i);
-      if (!districtMatch) continue;
-      const district = districtMatch[1];
+      // District identifier — derived from the office-cell anchor href
+      // because BP cell text varies in format ("District 1", "1st Plymouth
+      // District", "District Belknap 1") but the URL slug is consistent.
+      // Fall back to text-pattern matching when the cell has no link.
+      const officeAnchor = cells[0].querySelector("a");
+      let district: string | null = null;
+      if (officeAnchor) {
+        const href = officeAnchor.getAttribute("href") ?? "";
+        district = districtFromUrl(href, state, chamber);
+      }
+      if (!district) {
+        const officeText = cells[0].text.trim();
+        const districtMatch = officeText.match(/^District\s+(\d+)/i);
+        if (districtMatch) district = districtMatch[1];
+      }
+      if (!district) continue;
 
       const partyCells: Array<{ partyLabel: string; html: string }> = [
         { partyLabel: "Democratic", html: cells[1].innerHTML },
@@ -369,3 +446,125 @@ export async function fetchBallotpediaState(
 
 /** Expose the registry so the orchestrator/index can iterate eligible states. */
 export const BALLOTPEDIA_STATES = STATE_NAMES;
+
+// ─── Nonpartisan parser (Nebraska) ───────────────────────────────────────────
+// Nebraska's unicameral legislature is officially nonpartisan, so the BP page
+// doesn't have the D/R/Other partisan columns. Instead the table is two
+// columns wide: Office | Candidates. Each candidate is a plain <a> link with
+// optional "(i)" suffix.
+
+/**
+ * Parse Nebraska's two-column (Office | Candidates) nonpartisan table.
+ * Pure — tests can pass captured HTML directly.
+ */
+export function parseNonpartisanCandidatePage(
+  html: string,
+  state: string,
+  cycle: number
+): ScrapedCandidate[] {
+  const root = parse(html);
+  // The nonpartisan table isn't candidateListTablePartisan — it's a plain
+  // wikitable that happens to have an "Office" + "Candidates" header.
+  const tables = root.querySelectorAll("table.wikitable");
+  const sourceLabel = `${state.toLowerCase()}_ballotpedia`;
+  const electionDate = GENERAL_DATE[cycle];
+  const out: ScrapedCandidate[] = [];
+  const seen = new Set<string>();
+
+  for (const table of tables) {
+    // Detect: header row has cells reading exactly "Office" + "Candidates"
+    const rows = table.querySelectorAll("tr");
+    let headerIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td, th");
+      if (cells.length === 2) {
+        const a = cells[0].text.trim().toLowerCase();
+        const b = cells[1].text.trim().toLowerCase();
+        if (a === "office" && b === "candidates") {
+          headerIdx = i;
+          break;
+        }
+      }
+    }
+    if (headerIdx < 0) continue;
+
+    // Prefer general-election captions, fall back to primary like the
+    // partisan parser does.
+    const caption = table.text.slice(0, 200).toLowerCase();
+    const isPrimary = !caption.includes("general election") && caption.includes("primary");
+
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td");
+      if (cells.length < 2) continue;
+
+      const officeText = cells[0].text.trim();
+      const districtMatch = officeText.match(/^District\s+(\d+)/i);
+      if (!districtMatch) continue;
+      const district = districtMatch[1];
+
+      // Extract one candidate per <a> link in the candidates cell.
+      const candCellHtml = cells[1].innerHTML;
+      // Match the candidate link + an optional (i) marker that immediately
+      // follows (allowing &#160; non-breaking-space entities and whitespace).
+      const linkRe =
+        /<a[^>]+href="[^"]+"[^>]*>([^<]+)<\/a>(?:&#160;|&nbsp;|\s)*(\(i\))?/g;
+      for (const m of candCellHtml.matchAll(linkRe)) {
+        const name = m[1].trim();
+        if (!name) continue;
+        // Skip the Candidate Connection survey icon link (img-only).
+        if (/^\s*$/.test(name) || /survey/i.test(name)) continue;
+
+        const dedupKey = `${district}::${name.toLowerCase()}`;
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
+
+        const extraRefs: Record<string, string> = {};
+        if (m[2]) extraRefs.bp_incumbent = "true";
+        if (isPrimary) extraRefs.bp_table = "primary";
+
+        out.push({
+          source: sourceLabel,
+          state: state.toUpperCase(),
+          officeSlug: "state-senate",
+          district,
+          name,
+          party: "Nonpartisan",
+          status: isPrimary ? "Primary filed" : "Filed",
+          cycle,
+          electionDate,
+          externalId: `state-senate-${district}-nonpartisan-${name
+            .toLowerCase()
+            .replace(/[^a-z]+/g, "-")}`,
+          extraRefs: Object.keys(extraRefs).length > 0 ? extraRefs : undefined,
+        });
+      }
+    }
+    if (out.length > 0) break; // first table that yielded data wins
+  }
+  return out;
+}
+
+/** Fetch + parse Nebraska's nonpartisan unicameral roster from Ballotpedia. */
+export async function fetchNebraskaCandidates(
+  cycle: number
+): Promise<ScrapedCandidate[]> {
+  const url = ballotpediaUrl("NE", "state-senate", cycle);
+  const MAX_ATTEMPTS = 4;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(url, {
+      headers: BROWSER_HEADERS,
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (res.status === 404) throw new Error(`Ballotpedia NE: HTTP 404`);
+    const html = await res.text();
+    const rateLimited =
+      res.status === 429 || (res.status === 202 && html.length < 100);
+    if (res.ok && !rateLimited && html.length > 1000) {
+      return parseNonpartisanCandidatePage(html, "NE", cycle);
+    }
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt - 1)));
+    }
+  }
+  throw new Error(`Ballotpedia NE: rate-limited after ${MAX_ATTEMPTS} attempts`);
+}
