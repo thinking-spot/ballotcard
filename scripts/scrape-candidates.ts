@@ -139,13 +139,18 @@ async function scrapeState(state: string, cycle: number) {
   }
   log(state, `Fetched ${scraped.length} rows`);
 
+  // Source label comes from the scraper (e.g. "fl_sos", "oh_ballotpedia").
+  // Falls back to the canonical "{state}_sos" so legacy scrapers without an
+  // explicit source field still resolve to the historical label.
+  const sourceLabel = scraped[0]?.source ?? `${state.toLowerCase()}_sos`;
+
   // Sanity floor: if we previously had a healthy number of rows and the
   // current run returns zero, refuse to wipe the prior data — that almost
   // certainly means the source changed format.
   const { count: prior } = await db
     .from("Candidates")
     .select("*", { count: "exact", head: true })
-    .eq("source", `${state.toLowerCase()}_sos`)
+    .eq("source", sourceLabel)
     .eq("cycle", cycle);
   if (scraped.length === 0 && (prior ?? 0) > 0) {
     log(state, `REJECTED: 0 rows scraped but ${prior} on file — keeping existing data`);
@@ -199,8 +204,13 @@ async function scrapeState(state: string, cycle: number) {
       election_date: c.electionDate ?? null,
       is_incumbent: isIncumbent(officeId, c.name),
       status: c.status,
-      source: `${state.toLowerCase()}_sos`,
-      external_refs: { [`${state.toLowerCase()}_acct_num`]: c.externalId, ...(c.extraRefs ?? {}) },
+      source: c.source ?? sourceLabel,
+      external_refs: {
+        // Use a source-specific external-ID key so two sources for the same
+        // state (e.g. nc_sos + a future nc_ballotpedia) don't collide.
+        [`${sourceLabel}_id`]: c.externalId,
+        ...(c.extraRefs ?? {}),
+      },
     });
   }
 
@@ -228,7 +238,7 @@ async function scrapeState(state: string, cycle: number) {
   await db
     .from("Candidates")
     .delete()
-    .eq("source", `${state.toLowerCase()}_sos`)
+    .eq("source", sourceLabel)
     .eq("cycle", cycle);
 
   let skipFedKeys = new Set<string>();
