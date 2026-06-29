@@ -8,21 +8,32 @@ import { fetchMissouriCandidates } from "./mo";
 import { fetchNorthCarolinaCandidates } from "./nc";
 import { fetchPennsylvaniaCandidates } from "./pa";
 import { fetchMichiganCandidates } from "./mi";
-import { fetchBallotpediaState } from "./ballotpedia";
+import { fetchBallotpediaState, BALLOTPEDIA_STATES } from "./ballotpedia";
 
 export type StateScraper = (cycle: number) => Promise<ScrapedCandidate[]>;
 
-export const STATE_CANDIDATE_SOURCES: Record<string, StateScraper> = {
+// Primary-source scrapers (direct SoS data, richer fields than Ballotpedia).
+// These take precedence over the Ballotpedia fallback when both exist.
+const PRIMARY_SOURCES: Record<string, StateScraper> = {
   FL: fetchFloridaStateLegCandidates,
   MO: (cycle) => fetchMissouriCandidates(cycle), // SE + CN by default
   NC: fetchNorthCarolinaCandidates,
   PA: fetchPennsylvaniaCandidates,
   MI: fetchMichiganCandidates,
-  // Fallback sources for states whose official SoS endpoints are
-  // Akamai-blocked from plain-fetch. Data sourced from Ballotpedia
-  // (CC-BY-SA underlying facts only; UI attributes via the source label).
-  OH: (cycle) => fetchBallotpediaState("OH", cycle),
-  GA: (cycle) => fetchBallotpediaState("GA", cycle),
 };
+
+// Auto-register a Ballotpedia fetcher for every state in the Ballotpedia
+// registry that doesn't already have a primary source. See
+// docs/ballotpedia-pipeline.md for the workflow.
+function buildSourceRegistry(): Record<string, StateScraper> {
+  const out: Record<string, StateScraper> = { ...PRIMARY_SOURCES };
+  for (const state of Object.keys(BALLOTPEDIA_STATES)) {
+    if (out[state]) continue; // primary source already registered
+    out[state] = (cycle) => fetchBallotpediaState(state, cycle);
+  }
+  return out;
+}
+
+export const STATE_CANDIDATE_SOURCES: Record<string, StateScraper> = buildSourceRegistry();
 
 export type { ScrapedCandidate };

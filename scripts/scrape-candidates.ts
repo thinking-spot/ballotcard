@@ -309,16 +309,37 @@ async function main() {
     (s) => s.toUpperCase()
   );
 
-  const results: Awaited<ReturnType<typeof scrapeState>>[] = [];
-  for (const state of targets) {
-    for (const cycle of DEFAULT_CYCLES) {
-      try {
-        results.push(await scrapeState(state, cycle));
-      } catch (err) {
-        console.error(`[${state}] failed:`, (err as Error).message);
+  // Run states with bounded concurrency. Ballotpedia rate-limits aggressively
+  // at >2 simultaneous requests (each state opens 2 chamber requests, so 2
+  // states = 4 concurrent HTTP requests against the same host). The per-state
+  // retry-with-backoff in fetchBallotpediaChamber handles short blips.
+  const CONC = 2;
+  type Result = Awaited<ReturnType<typeof scrapeState>>;
+  const results: Result[] = [];
+  const queue = [...targets];
+  let active = 0;
+  await new Promise<void>((resolve) => {
+    const launch = () => {
+      while (active < CONC && queue.length > 0) {
+        const state = queue.shift()!;
+        active++;
+        (async () => {
+          for (const cycle of DEFAULT_CYCLES) {
+            try {
+              results.push(await scrapeState(state, cycle));
+            } catch (err) {
+              console.error(`[${state}] failed:`, (err as Error).message);
+            }
+          }
+        })().finally(() => {
+          active--;
+          if (queue.length === 0 && active === 0) resolve();
+          else launch();
+        });
       }
-    }
-  }
+    };
+    launch();
+  });
 
   await revalidateLiveSite();
 
