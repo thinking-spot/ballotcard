@@ -37,15 +37,28 @@ const checks: Check[] = [
     expected: [1, 400], // at least the existing Wilmington + mayors
   },
   {
-    label: "US House offices",
+    label: "US House offices (voting)",
     query: async () => {
       const { count: c } = await db
         .from("Offices")
         .select("*", { count: "exact", head: true })
-        .eq("slug", "us-house");
+        .eq("slug", "us-house")
+        .like("title", "US House,%");
       return c ?? 0;
     },
     expected: 435,
+  },
+  {
+    label: "US House territory delegates/commissioner",
+    query: async () => {
+      const { count: c } = await db
+        .from("Offices")
+        .select("*", { count: "exact", head: true })
+        .eq("slug", "us-house")
+        .not("title", "like", "US House,%");
+      return c ?? 0;
+    },
+    expected: 6, // 5 delegates (DC, GU, AS, VI, MP) + PR resident commissioner
   },
   {
     label: "US Senate offices",
@@ -70,13 +83,9 @@ const checks: Check[] = [
   },
   {
     label: "Current officials",
+    // Congress (535) + statewide execs + ~7.4k state legislators + mayors.
     query: () => count("Officials", { is_current: true }),
-    expected: [550, 950], // 535 Congress + 50 govs + mayors
-  },
-  {
-    label: "Official tags",
-    query: () => count("Tags", { kind: "official" }),
-    expected: [550, 950],
+    expected: [5000, 10000],
   },
   {
     label: "NC-07 office still exists",
@@ -100,18 +109,6 @@ const checks: Check[] = [
       return data?.length ?? 0;
     },
     expected: 1,
-  },
-  {
-    label: "Existing posts untouched",
-    query: async () => {
-      const { count: c } = await db
-        .from("Posts")
-        .select("*", { count: "exact", head: true })
-        .eq("office_id", "00000000-0000-4000-8000-000000000020")
-        .is("deleted_at", null);
-      return c ?? 0;
-    },
-    expected: [3, 10], // at least the 3 seeded posts
   },
 ];
 

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { format } from "date-fns";
 import { resolveSlug } from "@/lib/slug-resolver";
 import { getOfficePageData } from "@/lib/office-data";
 import { getDistrictPageData } from "@/lib/district-data";
@@ -13,21 +14,14 @@ import { NextElection } from "@/components/office/NextElection";
 
 type Params = { state: string; slug?: string[] };
 
-// District & office permalinks are permanent and change only on ingestion.
-// Serve them as ISR — generated on first request, then cached and revalidated
-// in the background (CLAUDE.md: "office/official pages are static, revalidated
-// on ingestion"). Six hours is a safe cadence between ingestion runs.
-export const revalidate = 21600;
-
-// Returning [] (with dynamicParams default true) prerenders nothing at build —
-// avoiding a 15k-page build and DB access — but opts the route into the Full
-// Route Cache, so each permalink is cached after its first render instead of
-// re-querying Supabase on every visit and every crawler hit.
-export async function generateStaticParams(): Promise<
-  { state: string; slug?: string[] }[]
-> {
-  return [];
-}
+// Render per request — no ISR, no Full Route Cache. This catch-all matches every
+// /:state/* path, including ones that resolve to notFound(). Under ISR the Full
+// Route Cache persisted those 404 renders and re-served them as cached HTTP 200
+// ("x-nextjs-cache: HIT"), so unknown URLs returned 200 instead of 404 — wrong
+// for crawlers, link checkers, and SEO. force-dynamic re-resolves each request
+// against Supabase and lets notFound() emit a real 404. Per-request DB reads are
+// cheap for these lookups; add a data-layer cache later if traffic warrants it.
+export const dynamic = "force-dynamic";
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 // SEO templates: every per-page title sets the lead; the root layout's template
@@ -280,6 +274,12 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
                 </p>
               </div>
             )}
+
+            {data.dataAsOf && (
+              <p className="text-xs text-muted-foreground">
+                Data as of {format(new Date(data.dataAsOf), "MMMM d, yyyy")}.
+              </p>
+            )}
           </div>
 
           {/* Navigation sidebar */}
@@ -398,6 +398,12 @@ export default async function CatchallPage({
             {/* Activity — articleOne-ready section (see src/lib/feed) */}
             {data.official && (
               <OfficeActivity official={data.official} />
+            )}
+
+            {data.dataAsOf && (
+              <p className="text-xs text-muted-foreground">
+                Data as of {format(new Date(data.dataAsOf), "MMMM d, yyyy")}.
+              </p>
             )}
           </div>
 

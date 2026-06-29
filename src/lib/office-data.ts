@@ -74,6 +74,9 @@ export type OfficePageData = {
   official: OfficialData | null;
   candidates: CandidateData[];
   relatedOffices: RelatedOffice[];
+  // ISO timestamp of the most recent successful ingestion run — drives the
+  // "Data as of …" provenance line (CLAUDE.md: every page shows "data as of").
+  dataAsOf?: string;
 };
 
 // ─── Breadcrumb builder ───────────────────────────────────────────────────────
@@ -131,8 +134,12 @@ export async function getOfficePageData(
     : null;
 
   // 3. Current official + related offices + upcoming candidates (parallel)
-  const [{ data: officialRaw }, { data: relatedRaw }, { data: candidatesRaw }] =
-    await Promise.all([
+  const [
+    { data: officialRaw },
+    { data: relatedRaw },
+    { data: candidatesRaw },
+    { data: lastRunRaw },
+  ] = await Promise.all([
       db
         .from("Officials")
         .select(
@@ -158,6 +165,14 @@ export async function getOfficePageData(
             .order("is_incumbent", { ascending: false })
             .order("name")
         : Promise.resolve({ data: [] as Record<string, unknown>[] }),
+      // Provenance: timestamp of the latest successful ingestion run, sitewide.
+      db
+        .from("IngestionRuns")
+        .select("finished_at")
+        .eq("status", "succeeded")
+        .order("finished_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   // 4. Build breadcrumbs from parent chain
@@ -238,5 +253,8 @@ export async function getOfficePageData(
       slug: o.slug as string,
       geoSlug: `${districtRaw.geo_slug}/${o.slug}`,
     })),
+    dataAsOf:
+      ((lastRunRaw as { finished_at?: string } | null)?.finished_at) ||
+      undefined,
   };
 }

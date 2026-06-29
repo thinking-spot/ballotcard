@@ -1,4 +1,8 @@
-export const metadata = { title: "How it works" };
+export const metadata = {
+  title: "How it works",
+  description:
+    "Enter your address and BallotCard resolves it to your voting districts, then discards it. See your full ballot of offices and officeholders without creating an account.",
+};
 
 export default function HowItWorksPage() {
   return (

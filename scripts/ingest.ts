@@ -509,6 +509,10 @@ async function ingestOffices(sources: Sources) {
         s.abbr,
         p.current_chamber === "upper" ? "senate" : "house"
       );
+      // Nebraska's Legislature is unicameral and officially nonpartisan; every
+      // other state elects its legislators on partisan ballots.
+      const legSelection =
+        s.abbr === "NE" ? "elected_nonpartisan" : "elected_partisan";
       toInsert.push({
         district_id: districtId,
         title: `${s.abbr} State ${chamberWord}, District ${normDistrict(p.current_district)}`,
@@ -516,7 +520,7 @@ async function ingestOffices(sources: Sources) {
         kind: "legislative",
         branch: "legislative",
         level: "state",
-        selection_method: "elected_partisan",
+        selection_method: legSelection,
         term_years: sched?.termYears ?? (p.current_chamber === "upper" ? 4 : 2),
         next_election_at: sched?.nextElection ?? "2026-11-03",
         next_election_estimated: sched?.estimated ?? false,

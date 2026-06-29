@@ -1,6 +1,8 @@
 // FEC API candidate fetcher (api.open.fec.gov, free .gov, requires a DATA.gov key).
 // Federal candidates only — President (P), Senate (S), House (H).
 
+import { toDisplayCase } from "./name-case";
+
 export type FecCandidate = {
   candidateId: string;
   name: string; // normalized "First Last"
@@ -14,27 +16,56 @@ export type FecCandidate = {
 
 const BASE = "https://api.open.fec.gov/v1/candidates/";
 
-// "ROUZER, DAVID" / "ABU-GHAZALAH, MAAD" → "David Rouzer" / "Maad Abu-Ghazalah".
-// Exported for tests.
-export function normalizeName(raw: string): string {
-  const titleCase = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/\b([a-z])/g, (m) => m.toUpperCase())
-      .replace(/\bMc([a-z])/g, (_, c) => "Mc" + c.toUpperCase());
+// Normalize an FEC candidate name to "First [M.] Last [Suffix]".
+//   "ROUZER, DAVID"          → "David Rouzer"
+//   "ABU-GHAZALAH, MAAD"     → "Maad Abu-Ghazalah"
+//   "JACKSON, JEFFREY R"     → "Jeffrey R. Jackson"   (initials get a period)
+//   "CARTER, JOHN R REP."    → "John R. Carter"       (honorific stripped)
+//   "DOWELL, STEVEN CLAY JR" → "Steven Clay Dowell Jr." (suffix moved to end)
+//   "HAMDEN, RAYMOND H II"   → "Raymond H. Hamden II"
+// Casing (Mc/Mac, O', hyphens, particles) is delegated to toDisplayCase; this
+// function owns the FEC-specific structure: comma flip, honorific stripping,
+// suffix relocation, and single-letter initial dotting. Exported for tests.
+const HONORIFICS = new Set(["DR", "MR", "MRS", "MS", "MISS", "HON", "REP", "SEN", "REV"]);
+const SUFFIXES: Record<string, string> = {
+  JR: "Jr.", SR: "Sr.", II: "II", III: "III", IV: "IV", V: "V",
+};
+// Strip punctuation and upper-case a token for set/map lookups ("Rep." → "REP").
+const bare = (t: string) => t.replace(/[.,]/g, "").toUpperCase();
+// "R" → "R.", but leave real words and existing "R." untouched.
+const dotInitials = (s: string) =>
+  s
+    .split(" ")
+    .map((t) => (/^[A-Za-z]$/.test(t) ? `${t}.` : t))
+    .join(" ");
 
-  const HONORIFICS = new Set(["DR", "DR.", "MR", "MR.", "MRS", "MRS.", "MS", "MS."]);
+export function normalizeName(raw: string): string {
   const comma = raw.indexOf(",");
-  if (comma === -1) return titleCase(raw.trim());
+
+  if (comma === -1) {
+    const tokens = raw
+      .trim()
+      .split(/\s+/)
+      .filter((t) => t && !HONORIFICS.has(bare(t)));
+    return dotInitials(toDisplayCase(tokens.join(" ")));
+  }
 
   const last = raw.slice(0, comma).trim();
   const rest = raw
     .slice(comma + 1)
     .trim()
     .split(/\s+/)
-    .filter((t) => !HONORIFICS.has(t.toUpperCase()))
-    .join(" ");
-  return titleCase(`${rest} ${last}`.trim());
+    .filter((t) => t && !HONORIFICS.has(bare(t)));
+
+  // Peel trailing generational suffixes (keep at least one given-name token).
+  const suffixes: string[] = [];
+  while (rest.length > 1 && SUFFIXES[bare(rest[rest.length - 1])]) {
+    suffixes.unshift(SUFFIXES[bare(rest.pop()!)]);
+  }
+
+  const given = dotInitials(toDisplayCase(rest.join(" ")));
+  const surname = toDisplayCase(last);
+  return [given, surname, ...suffixes].filter(Boolean).join(" ").trim();
 }
 
 /**

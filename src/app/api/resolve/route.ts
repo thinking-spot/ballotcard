@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
  *
  * Privacy contract: the address is forwarded to the US Census Geocoder and used
  * only to derive district identifiers. It is never stored, never logged, and
- * never returned. Sentry address scrubbing covers the error path.
+ * never returned. Errors are caught and rethrown without the address; if an
+ * uncaught error ever reaches Sentry, the beforeSend hook in the sentry.*
+ * configs strips request data and drops any geocoder-host event (defense in
+ * depth — the address does not currently reach a Sentry capture boundary).
  */
 export async function POST(request: Request) {
   let address: string;

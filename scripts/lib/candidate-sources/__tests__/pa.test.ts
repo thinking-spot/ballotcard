@@ -35,7 +35,7 @@ describe("parsePaCandidateHtml", () => {
       state: "PA",
       officeSlug: "state-senate",
       district: "12",
-      name: "JANE DOE",
+      name: "Jane Doe",
       party: "Democratic",
       cycle: 2026,
       electionDate: "2026-11-03",
@@ -61,7 +61,7 @@ describe("parsePaCandidateHtml", () => {
     expect(out[0]).toMatchObject({
       officeSlug: "state-house",
       district: "203",
-      name: "JOHN SMITH",
+      name: "John Smith",
     });
   });
 
@@ -139,7 +139,7 @@ describe("parsePaCandidateHtml", () => {
     ].join("\n");
     const out = parsePaCandidateHtml(html, 2026);
     expect(out).toHaveLength(1);
-    expect(out[0].name).toBe("OK CAND");
+    expect(out[0].name).toBe("Ok Cand");
   });
 
   it("synthesizes a stable externalId when PA omits CandidateNumber", () => {

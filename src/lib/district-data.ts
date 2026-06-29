@@ -40,6 +40,9 @@ export type DistrictPageData = {
   // (e.g. a county page showing federal + statewide offices). UI uses this to
   // render the "enter your address for your exact districts" CTA honestly.
   aggregatedFrom?: "state";
+  // ISO timestamp of the most recent successful ingestion run — drives the
+  // "Data as of …" provenance line (CLAUDE.md: every page shows "data as of").
+  dataAsOf?: string;
 };
 
 // ─── Layer classification ─────────────────────────────────────────────────────
@@ -142,7 +145,7 @@ export async function getDistrictPageData(
 
   // 3. Current officials for these offices + office counts per child (parallel)
   type Row = Record<string, unknown>;
-  const [officialsResult, childOfficesResult] = await Promise.all([
+  const [officialsResult, childOfficesResult, lastRunResult] = await Promise.all([
     officeIds.length > 0
       ? db
           .from("Officials")
@@ -157,6 +160,14 @@ export async function getDistrictPageData(
           .in("district_id", childIds)
           .not("slug", "is", null)
       : Promise.resolve({ data: [] as Row[] }),
+    // Provenance: timestamp of the latest successful ingestion run, sitewide.
+    db
+      .from("IngestionRuns")
+      .select("finished_at")
+      .eq("status", "succeeded")
+      .order("finished_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const officialsByOffice = new Map<string, { name: string; party?: string }>();
@@ -236,5 +247,8 @@ export async function getDistrictPageData(
       ? { name: parent.name, geoSlug: parent.geo_slug }
       : undefined,
     aggregatedFrom: aggregateForCounty ? "state" : undefined,
+    dataAsOf:
+      ((lastRunResult.data as { finished_at?: string } | null)?.finished_at) ||
+      undefined,
   };
 }

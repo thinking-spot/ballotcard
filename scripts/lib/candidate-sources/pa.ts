@@ -23,6 +23,7 @@
 // Senatorial District", "203rd Legislative District") — strip the suffix.
 
 import type { ScrapedCandidate } from "./types";
+import { toDisplayCase } from "../name-case";
 
 const URL_TEMPLATE = (reportId: string) =>
   `https://www.pavoterservices.pa.gov/ElectionInfo/FooterLinkReport.aspx?ID=${reportId}`;
@@ -109,7 +110,9 @@ export function parsePaCandidateHtml(
       const district = districtNumberFrom(r.District ?? "");
       if (!district) continue;
 
-      const name = (r["Candidate Name"] ?? "").trim();
+      // PA publishes names in ALL CAPS; normalize to display case. The synthetic
+      // externalId below lowercases the name, so it is unaffected by this change.
+      const name = toDisplayCase((r["Candidate Name"] ?? "").trim());
       if (!name) continue;
 
       const externalId =

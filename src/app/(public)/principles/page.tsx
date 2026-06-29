@@ -1,4 +1,8 @@
-export const metadata = { title: "Principles" };
+export const metadata = {
+  title: "Principles",
+  description:
+    "The commitments behind BallotCard: public and anonymous, faithful to the booth, never monetized, and privacy as architecture rather than policy.",
+};
 
 export default function PrinciplesPage() {
   return (

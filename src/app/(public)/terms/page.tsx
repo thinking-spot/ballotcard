@@ -1,4 +1,8 @@
-export const metadata = { title: "Terms" };
+export const metadata = {
+  title: "Terms",
+  description:
+    "The terms of use for BallotCard, a free civic information utility provided as-is with no account and no warranty.",
+};
 
 export default function TermsPage() {
   return (

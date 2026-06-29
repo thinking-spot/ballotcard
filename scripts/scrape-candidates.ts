@@ -122,6 +122,83 @@ function firstLastKey(s: string): string {
   return `${tokens[0]} ${tokens[tokens.length - 1]}`;
 }
 
+// Common nicknames → legal first name, so a Secretary-of-State "Bob Harvie"
+// dedups against FEC's "Robert J Harvie". One-directional and deliberately
+// conservative — only well-known diminutives; anything unlisted is left as-is.
+// Ambiguous chains (e.g. John/Jonathan/Jack) are intentionally omitted to avoid
+// merging genuinely different candidates.
+const NICKNAMES: Record<string, string> = {
+  bob: "robert", rob: "robert", bobby: "robert", robbie: "robert",
+  bill: "william", will: "william", billy: "william", willie: "william",
+  dick: "richard", rick: "richard", ricky: "richard", rich: "richard", richie: "richard",
+  jim: "james", jimmy: "james", jamie: "james",
+  joe: "joseph", joey: "joseph",
+  mike: "michael", mikey: "michael",
+  tom: "thomas", tommy: "thomas",
+  tony: "anthony",
+  dave: "david", davey: "david",
+  dan: "daniel", danny: "daniel",
+  ed: "edward", eddie: "edward",
+  steve: "steven", stevie: "steven",
+  chris: "christopher",
+  chuck: "charles", charlie: "charles",
+  matt: "matthew",
+  greg: "gregory",
+  ken: "kenneth", kenny: "kenneth",
+  ron: "ronald", ronnie: "ronald",
+  don: "donald", donnie: "donald",
+  pat: "patrick",
+  pete: "peter",
+  sam: "samuel", sammy: "samuel",
+  ben: "benjamin", benny: "benjamin",
+  andy: "andrew", drew: "andrew",
+  fred: "frederick", freddie: "frederick",
+  gabe: "gabriel",
+  nate: "nathaniel",
+  nick: "nicholas",
+  phil: "philip",
+  ray: "raymond",
+  vince: "vincent",
+  walt: "walter",
+  kate: "katherine", katie: "katherine", kathy: "katherine",
+  cathy: "catherine",
+  beth: "elizabeth", liz: "elizabeth", lizzie: "elizabeth", betty: "elizabeth", betsy: "elizabeth",
+  sue: "susan", susie: "susan",
+  peg: "margaret", peggy: "margaret", meg: "margaret", maggie: "margaret",
+  patty: "patricia", patti: "patricia", trish: "patricia",
+  jen: "jennifer", jenny: "jennifer",
+  jess: "jessica",
+  abby: "abigail",
+  becky: "rebecca",
+  vicky: "victoria",
+  val: "valerie",
+};
+
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+
+function canonicalNickname(token: string): string {
+  return NICKNAMES[token] ?? token;
+}
+
+// First and last meaningful tokens of a name, with trailing generational
+// suffixes (Jr, III…) stripped so they don't masquerade as the surname.
+function firstAndLastToken(s: string): [string, string] | null {
+  const tokens = normalizeName(s).split(" ").filter(Boolean);
+  while (tokens.length > 1 && NAME_SUFFIXES.has(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+  if (tokens.length < 2) return null;
+  return [tokens[0], tokens[tokens.length - 1]];
+}
+
+// Nickname-tolerant cross-source key: canonical-first + last, so both
+// "Bob Harvie" and "Robert J Harvie" reduce to "robert harvie".
+function nicknameKey(s: string): string | null {
+  const fl = firstAndLastToken(s);
+  if (!fl) return null;
+  return `${canonicalNickname(fl[0])} ${fl[1]}`;
+}
+
 async function scrapeState(state: string, cycle: number) {
   const fetcher = STATE_CANDIDATE_SOURCES[state];
   if (!fetcher) {
@@ -255,13 +332,21 @@ async function scrapeState(state: string, cycle: number) {
       const n = r.name as string;
       skipFedKeys.add(`${r.office_id}::${normalizeName(n)}`);
       skipFedKeys.add(`${r.office_id}::${firstLastKey(n)}`);
+      const nk = nicknameKey(n);
+      if (nk) skipFedKeys.add(`${r.office_id}::nick::${nk}`);
     }
   }
   const filteredRows = finalRows.filter((r) => {
     if (!federalOfficeIds.has(r.office_id as string)) return true;
     const exact = `${r.office_id}::${normalizeName(r.name as string)}`;
     const loose = `${r.office_id}::${firstLastKey(r.name as string)}`;
-    return !skipFedKeys.has(exact) && !skipFedKeys.has(loose);
+    const nk = nicknameKey(r.name as string);
+    const nick = nk ? `${r.office_id}::nick::${nk}` : null;
+    return (
+      !skipFedKeys.has(exact) &&
+      !skipFedKeys.has(loose) &&
+      !(nick !== null && skipFedKeys.has(nick))
+    );
   });
   const skippedFederal = finalRows.length - filteredRows.length;
 

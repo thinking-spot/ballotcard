@@ -1,4 +1,8 @@
-export const metadata = { title: "Support" };
+export const metadata = {
+  title: "Support",
+  description:
+    "Get help with BallotCard, report a data correction, or learn how the project is funded and maintained.",
+};
 
 export default function SupportPage() {
   return (

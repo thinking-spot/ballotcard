@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 // Hamburger for the links that are hidden on xs screens (< sm).
-// Uses div+onClick, not <form>, per the (public) page pattern.
+// Native <button> so it is focusable and operable with Enter/Space (WCAG 2.1).
 export function NavMobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -22,12 +22,12 @@ export function NavMobileMenu() {
 
   return (
     <div ref={ref} className="relative sm:hidden font-[family-name:var(--font-sans-ui)]">
-      <div
-        role="button"
+      <button
+        type="button"
         aria-label="Open menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((o) => !o)}
-        className="flex items-center justify-center w-8 h-8 text-[var(--glass-text)] hover:text-[var(--glass-active)] transition-colors cursor-pointer select-none"
+        className="appearance-none border-0 bg-transparent p-0 flex items-center justify-center w-8 h-8 text-[var(--glass-text)] hover:text-[var(--glass-active)] transition-colors cursor-pointer select-none"
       >
         {isOpen ? (
           // ✕
@@ -40,7 +40,7 @@ export function NavMobileMenu() {
             <path d="M0 1h16M0 6h16M0 11h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         )}
-      </div>
+      </button>
 
       {isOpen && (
         <div

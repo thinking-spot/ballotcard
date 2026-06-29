@@ -1,4 +1,8 @@
-export const metadata = { title: "About" };
+export const metadata = {
+  title: "About",
+  description:
+    "What BallotCard is and why it exists: a free, anonymous way to see everyone who represents you, federal to local, on one permanent page. No account, no ads, no tracking.",
+};
 
 export default function AboutPage() {
   return (

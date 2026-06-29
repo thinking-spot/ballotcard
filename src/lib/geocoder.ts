@@ -64,9 +64,11 @@ async function fetchWithRetry(url: URL): Promise<Response> {
     try {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
-        // Census data is stable; cache the geocoder response edge-side by URL.
-        // (The URL contains the address, but it never reaches our logs/storage.)
-        next: { revalidate: 60 * 60 * 24 },
+        // Privacy: never cache this request. The URL carries ?address=... and the
+        // Census response echoes the address back, so the Next.js Data Cache would
+        // persist the plaintext address (URL + base64 body) for the revalidate
+        // window. "no-store" keeps the address out of any cache, log, or store.
+        cache: "no-store",
       });
       // 5xx is the geocoder's usual flaky failure mode — retry those.
       if (res.status >= 500) throw new Error(`Geocoder returned ${res.status}`);

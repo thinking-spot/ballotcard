@@ -1,4 +1,8 @@
-export const metadata = { title: "Privacy" };
+export const metadata = {
+  title: "Privacy",
+  description:
+    "How BallotCard protects you: your address is resolved to districts and immediately discarded, never stored or logged. No accounts, no analytics that identify you, no tracking.",
+};
 
 export default function PrivacyPage() {
   return (
