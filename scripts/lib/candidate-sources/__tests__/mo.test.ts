@@ -65,7 +65,8 @@ describe("parseMoOfficePage", () => {
       name: "Jon Patterson",
       party: "Republican",
       cycle: 2026,
-      electionDate: "2026-08-04",
+      // The November general — the August primary is provenance in extraRefs.
+      electionDate: "2026-11-03",
     });
 
     // Per-party tables are walked in DOM order — Republicans before Democrats.
@@ -81,10 +82,11 @@ describe("parseMoOfficePage", () => {
     ]);
   });
 
-  it("preserves the MO ballot-order Random Number in extraRefs", () => {
+  it("preserves the MO ballot-order Random Number and primary date in extraRefs", () => {
     const out = parseMoOfficePage(SE08_HTML, "20 SE 08", "state-senate", 2026);
     expect(out[0].extraRefs?.mo_random_number).toBe("195");
     expect(out[0].extraRefs?.filed_at).toBe("2/24/2026");
+    expect(out[0].extraRefs?.primary_date).toBe("2026-08-04");
   });
 
   it("synthesizes a stable externalId per (office, party, name)", () => {

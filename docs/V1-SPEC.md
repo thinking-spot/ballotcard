@@ -67,7 +67,7 @@ supreme courts) but only `elected_*` and `retention` rows render on the ballot c
 | State judges | [CourtListener judges API](https://www.courtlistener.com/help/api/rest/v3/judges/) (Free Law Project) | free | 16k+ state/federal judges, person-centric. Phase 2 ingestion. |
 | Sheriffs / county officials | none national | — | Schema-ready; per-state SoS rosters later. Ballot card renders honest empty states meanwhile. |
 | Mayors | curated seed (`seed-data/mayors.json`) | exists from v0.x | top-300 cities. |
-| Election dates / candidates | computed from term math + seed data now; FEC API / state SoS feeds later | — | v1 shows next election *date* per seat, not candidate lists. |
+| Election dates / candidates | chamber schedule seed (`seed-data/legislature-schedule.json`) + FEC API + state SoS / Ballotpedia scrapers (37+ states) | live | Shipped post-v1.0: candidate lists on office pages + the ballot card. Staggered senates: the per-seat election year is resolved from candidate filings (`scripts/lib/resolve-staggered.ts`); seats without filings stay an honest "2026 or 2028". |
 
 ## The articleOne feed (designed-for, not yet live)
 
@@ -105,9 +105,10 @@ articleOne becomes the first provider.
 
 ## Out of scope for v1.0
 
-Accounts, posts/forums, Witnesses (all removed), candidate lists, notifications,
-school boards, special districts, ranked-choice/multi-member edge-case rendering
-(single-winner assumption documented where it leaks).
+Accounts, posts/forums, Witnesses (all removed), notifications, school boards,
+special districts, ranked-choice/multi-member edge-case rendering
+(single-winner assumption documented where it leaks). Candidate lists were
+originally out of scope but shipped shortly after v1.0 (FEC + 37-state scrapers).
 
 ## Phasing
 
@@ -122,5 +123,5 @@ school boards, special districts, ranked-choice/multi-member edge-case rendering
 7. **Quality gate** — tests, types, lint, build.
 8. **Deploy** — production on Vercel.
 
-Later: county/municipal expansion, judges via CourtListener, candidate lists +
-election-forward mode, articleOne integration.
+Later: county/municipal expansion, judges via CourtListener, election-forward
+mode, articleOne integration. (Candidate lists: done.)

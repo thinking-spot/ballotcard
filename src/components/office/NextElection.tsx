@@ -9,6 +9,7 @@ interface NextElectionProps {
     nextElectionEstimated?: boolean;
     primaryElectionAt?: string;
     selectionMethod: string;
+    hasCandidateSource: boolean;
   };
   official: OfficialData | null;
   candidates: CandidateData[];
@@ -51,10 +52,15 @@ export function NextElection({
   const isFederal = office.level === "federal";
 
   // Show the incumbent as a ballot entry even when no candidate filings exist
-  // yet — but avoid duplicating them if FEC already lists them as a candidate.
+  // yet — but avoid duplicating them if FEC already lists them as a candidate,
+  // and never for a staggered seat without filings: it may not be on the
+  // upcoming ballot at all, and the incumbent may not be running.
   const hasIncumbentRow = candidates.some((c) => c.isIncumbent);
   const showIncumbentFallback =
-    official && !hasIncumbentRow && candidates.length === 0;
+    official &&
+    !hasIncumbentRow &&
+    candidates.length === 0 &&
+    !office.nextElectionEstimated;
 
   const ballotpediaSearch = `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(
     office.title
@@ -86,10 +92,16 @@ export function NextElection({
         {office.nextElectionEstimated && (
           <p className="text-xs text-muted-foreground/80">
             This chamber has staggered terms — about half its seats are up each
-            cycle, and our source doesn&rsquo;t identify which year this seat is on.
+            cycle.
+            {candidates.length === 0 &&
+              date &&
+              ` No qualifying ${date.getFullYear()} candidate filings are on record for this seat.`}
           </p>
         )}
-        {office.primaryElectionAt && (() => {
+        {/* Estimated seats never show a precise primary date — a "Primary
+            March 3, 2026" line under a "2026 or 2028" header reads as if the
+            year were known. */}
+        {office.primaryElectionAt && !office.nextElectionEstimated && (() => {
           const pd = new Date(office.primaryElectionAt + "T12:00:00");
           const pUpcoming = isFuture(pd);
           // Past primaries get a "Primary held" label so voters don't read the
@@ -169,15 +181,17 @@ export function NextElection({
             </ul>
             {showIncumbentFallback && !isFederal && (
               <p className="text-xs text-muted-foreground mt-2">
-                Challenger filings for state and local races aren’t tracked here yet.
+                {office.hasCandidateSource
+                  ? "No qualifying challenger filings on record for this race yet."
+                  : "BallotCard doesn't have a candidate data source for this office yet."}
               </p>
             )}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            {isFederal
-              ? "No candidate filings on record for this race yet."
-              : "Candidate filings for this race aren’t published here yet."}
+            {office.hasCandidateSource
+              ? "No qualifying candidate filings on record for this race yet."
+              : "BallotCard doesn't have a candidate data source for this office yet."}
           </p>
         )}
       </div>

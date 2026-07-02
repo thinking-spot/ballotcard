@@ -1,5 +1,5 @@
 import { db } from "@/lib/supabase";
-import { isOnUpcomingBallot } from "@/lib/candidate-filters";
+import { isOnUpcomingBallot, hasCandidateSource } from "@/lib/candidate-filters";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +70,7 @@ export type OfficePageData = {
     nextElectionAt?: string;
     nextElectionEstimated?: boolean;
     primaryElectionAt?: string;
+    hasCandidateSource: boolean;
   };
   official: OfficialData | null;
   candidates: CandidateData[];
@@ -214,6 +215,10 @@ export async function getOfficePageData(
       nextElectionEstimated:
         (officeRaw.next_election_estimated as boolean) || undefined,
       primaryElectionAt: (officeRaw.primary_election_at as string) || undefined,
+      hasCandidateSource: hasCandidateSource({
+        slug: officeRaw.slug as string,
+        level: officeRaw.level as string,
+      }),
     },
     official: officialRaw
       ? {

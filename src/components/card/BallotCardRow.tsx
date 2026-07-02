@@ -226,14 +226,18 @@ export function BallotCardRow({ office }: { office: CardOffice }) {
             <div className="challenger-item">
               <div>
                 <div className="challenger-name" style={{ fontStyle: "italic", fontWeight: 400 }}>
-                  {office.level === "federal"
-                    ? "No declared candidates on record yet"
-                    : "Candidate filings aren’t published here yet"}
+                  {office.hasCandidateSource
+                    ? "No qualifying candidate filings on record yet"
+                    : "No candidate data source for this office yet"}
                 </div>
                 <div className="challenger-meta">
-                  {office.level === "federal"
-                    ? "Check back as the cycle develops"
-                    : "State & local candidate data is coming"}
+                  {!office.hasCandidateSource
+                    ? "Schema-ready — checking back as sources become available"
+                    : office.nextElectionEstimated && next
+                      ? `Staggered seat — may not be on the ballot until ${
+                          Number(next.slice(0, 4)) + 2
+                        }`
+                      : "Check back as the cycle develops"}
                 </div>
               </div>
             </div>

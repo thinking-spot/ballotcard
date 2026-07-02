@@ -21,3 +21,16 @@ export function isOnUpcomingBallot(row: { status?: string | null }): boolean {
   if (!s) return true; // missing status → assume on the ballot (FEC + seed rows)
   return !NOT_ON_BALLOT.has(s);
 }
+
+// Office slugs that scripts/lib/candidate-sources ever writes rows for (state
+// chambers) plus federal, which FEC covers directly. Everything else —
+// governor, statewide execs, mayor, county, judicial, etc. — has no candidate
+// data source anywhere in the ingestion pipeline; an empty candidate list
+// there means "we don't track this office type" rather than "no one has
+// filed yet." Used to pick between those two honest empty-state messages.
+const STATE_LEG_SLUGS = new Set(["state-senate", "state-house"]);
+
+/** True when BallotCard has (or could have) a candidate feed for this office. */
+export function hasCandidateSource(office: { slug: string; level: string }): boolean {
+  return office.level === "federal" || STATE_LEG_SLUGS.has(office.slug);
+}

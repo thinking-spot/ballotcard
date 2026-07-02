@@ -1,7 +1,7 @@
 import { db } from "@/lib/supabase";
 import { LAYER_ORDER, LAYER_LABELS } from "@/lib/district-data";
 import { COUNTY_TEMPLATES, MUNICIPAL_TEMPLATES } from "@/lib/ballot-templates";
-import { isOnUpcomingBallot } from "@/lib/candidate-filters";
+import { isOnUpcomingBallot, hasCandidateSource } from "@/lib/candidate-filters";
 
 // The set of district identifiers a ballot card is built from. These are facts
 // about *places*, never about a person — safe to put in a URL and localStorage.
@@ -37,6 +37,10 @@ export type CardOffice = {
   /** True for staggered chambers where the exact cycle isn't known per-seat. */
   nextElectionEstimated?: boolean;
   primaryElectionAt?: string;
+  /** False when BallotCard has no candidate feed for this office type at all
+   *  (governor, mayor, county, judicial, …) — distinguishes "no one has filed
+   *  yet" from "we don't track this office's candidates." */
+  hasCandidateSource?: boolean;
   officialName?: string;
   officialParty?: string;
   officialPhotoUrl?: string;
@@ -214,6 +218,10 @@ export async function getBallotCard(
       nextElectionAt: nextAt,
       nextElectionEstimated: (o.next_election_estimated as boolean) || undefined,
       primaryElectionAt: (o.primary_election_at as string) || undefined,
+      hasCandidateSource: hasCandidateSource({
+        slug: o.slug as string,
+        level: o.level as string,
+      }),
       officialName: (official?.name as string) || undefined,
       officialParty: (official?.party as string) || undefined,
       officialPhotoUrl: (official?.photo_url as string) || undefined,

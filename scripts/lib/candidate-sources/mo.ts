@@ -39,6 +39,13 @@ const PRIMARY_DATE: Record<number, string> = {
   2026: "2026-08-04",
 };
 
+// election_date carries the November general like every other source (see the
+// ScrapedCandidate contract in types.ts); the August primary that this filing
+// list feeds is provenance, preserved in extraRefs.primary_date.
+const GENERAL_DATE: Record<number, string> = {
+  2026: "2026-11-03",
+};
+
 // Map MO's chamber prefix → BallotCard office slug.
 type MoChamber = { prefix: "SE" | "LE" | "CN"; officeSlug: ScrapedCandidate["officeSlug"] };
 const CHAMBERS: MoChamber[] = [
@@ -155,6 +162,7 @@ export function parseMoOfficePage(
       if (random) extraRefs.mo_random_number = random;
       if (dateFiled) extraRefs.filed_at = dateFiled;
       if (city) extraRefs.city = city;
+      if (PRIMARY_DATE[cycle]) extraRefs.primary_date = PRIMARY_DATE[cycle];
 
       // MO doesn't ship a stable per-candidate ID. Synthesize: officeCode +
       // party + name is unique within an election (no two filers in the same
@@ -174,7 +182,7 @@ export function parseMoOfficePage(
         party: caption,
         status: "Filed", // MO only shows certified filers on this view
         cycle,
-        electionDate: PRIMARY_DATE[cycle], // primary date — general is the same Nov 3 across states
+        electionDate: GENERAL_DATE[cycle],
         externalId,
         extraRefs: Object.keys(extraRefs).length > 0 ? extraRefs : undefined,
       });
@@ -203,14 +211,13 @@ async function mapLimit<T, R>(
 }
 
 /**
- * Fetch all MO state-Senate + US-House (Congressional) candidates for one
- * cycle. State House (LE) is wired but excluded here — the user-facing ask is
- * "State Senate and Congressional"; flip CHAMBERS or expose a parameter to
- * include it.
+ * Fetch all MO state-Senate + state-House + US-House candidates for one
+ * cycle. The office codes are enumerated from the SoS listing page, so
+ * off-cycle Senate seats simply don't appear.
  */
 export async function fetchMissouriCandidates(
   cycle: number,
-  chamberPrefixes: Array<"SE" | "LE" | "CN"> = ["SE", "CN"]
+  chamberPrefixes: Array<"SE" | "LE" | "CN"> = ["SE", "LE", "CN"]
 ): Promise<ScrapedCandidate[]> {
   const electionCode = ELECTION_CODE[cycle];
   if (!electionCode) throw new Error(`MO: no ElectionCode for cycle ${cycle}`);

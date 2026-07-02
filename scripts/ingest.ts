@@ -42,6 +42,7 @@ import statewideExecs from "../seed-data/statewide-execs.json";
 import federalExecs from "../seed-data/federal-execs.json";
 import legislatureSchedule from "../seed-data/legislature-schedule.json";
 import counties from "../seed-data/counties.json";
+import { resolveStaggeredSeats } from "./lib/resolve-staggered";
 
 type CountyEntry = { state: string; fips: string; name: string; slug: string };
 
@@ -99,7 +100,10 @@ async function selectAll<T = Record<string, unknown>>(
   for (let from = 0; ; from += PAGE) {
     let query = db.from(table).select(columns);
     if (eq) query = query.eq(eq[0], eq[1]);
-    const { data, error } = await query.range(from, from + PAGE - 1);
+    // Postgres gives no row-order guarantee without ORDER BY; without it,
+    // concurrent writes between pages can shift the scan and skip/duplicate
+    // rows across page boundaries. Every table has a UUID id PK (convention).
+    const { data, error } = await query.order("id").range(from, from + PAGE - 1);
     if (error) throw new Error(`${table} select failed: ${error.message}`);
     const rows = (data ?? []) as T[];
     out.push(...rows);
@@ -921,7 +925,8 @@ async function ingestPrimaryDates(): Promise<number> {
     slug: string;
     district_id: string;
     next_election_at: string | null;
-  }>("Offices", "id, slug, district_id, next_election_at");
+    primary_election_at: string | null;
+  }>("Offices", "id, slug, district_id, next_election_at, primary_election_at");
   const districts = await selectAll<{ id: string; geo_slug: string; state: string | null }>(
     "Districts",
     "id, geo_slug, state"
@@ -944,6 +949,7 @@ async function ingestPrimaryDates(): Promise<number> {
     if (!primary) continue;
 
     // Update only when changed (avoids no-op writes).
+    if (o.primary_election_at === primary) continue;
     const { error } = await db
       .from("Offices")
       .update({ primary_election_at: primary })
@@ -959,10 +965,24 @@ async function ingestPrimaryDates(): Promise<number> {
 // curated per-state schedule. Most state senates are 4-year staggered, so the
 // flat "2026 for everything" default is wrong for off-cycle states (LA/MS/NJ/VA
 // → 2027, KS/NM/SC senate → 2028) and imprecise for staggered ones (estimated).
+//
+// Field ownership: the chamber schedule owns term_years + next_election_at for
+// every state-leg office, and next_election_estimated for exact chambers only.
+// In staggered (estimated) chambers the flag is per-seat — candidate filings
+// prove which seats are on the upcoming ballot — so it is owned by
+// resolveStaggeredSeats (Phase 7) and deliberately not written here, where a
+// chamber-wide stamp would clobber the per-seat resolution.
 async function applyLegislatureSchedule(): Promise<number> {
-  const offices = await selectAll<{ id: string; slug: string; district_id: string }>(
+  const offices = await selectAll<{
+    id: string;
+    slug: string;
+    district_id: string;
+    term_years: number | null;
+    next_election_at: string | null;
+    next_election_estimated: boolean;
+  }>(
     "Offices",
-    "id, slug, district_id"
+    "id, slug, district_id, term_years, next_election_at, next_election_estimated"
   );
   const districts = await selectAll<{ id: string; state: string | null }>(
     "Districts",
@@ -979,17 +999,27 @@ async function applyLegislatureSchedule(): Promise<number> {
     if (!state) continue;
     const sched = legSchedule(state, chamber);
     if (!sched) continue;
-    const { error } = await db
-      .from("Offices")
-      .update({
-        term_years: sched.termYears,
-        next_election_at: sched.nextElection,
-        next_election_estimated: sched.estimated,
-      })
-      .eq("id", o.id);
+
+    // Diff before writing — a steady-state run should issue ~0 UPDATEs here,
+    // not one per office (~6,800 round trips).
+    const patch: {
+      term_years?: number;
+      next_election_at?: string;
+      next_election_estimated?: boolean;
+    } = {};
+    if (o.term_years !== sched.termYears) patch.term_years = sched.termYears;
+    if (o.next_election_at !== sched.nextElection) {
+      patch.next_election_at = sched.nextElection;
+    }
+    if (!sched.estimated && o.next_election_estimated) {
+      patch.next_election_estimated = false;
+    }
+    if (Object.keys(patch).length === 0) continue;
+
+    const { error } = await db.from("Offices").update(patch).eq("id", o.id);
     if (!error) updated++;
   }
-  log("schedule", `Applied legislature schedule to ${updated} offices`);
+  log("schedule", `Applied legislature schedule to ${updated} offices (diffed)`);
   return updated;
 }
 
@@ -1052,6 +1082,19 @@ async function main() {
     const candidates = await ingestCandidates();
     console.log();
     await ingestPrimaryDates();
+    console.log();
+    // Phase 7: derive per-seat estimated flags for staggered chambers from
+    // candidate filings (also re-run after every scrape-candidates.ts run).
+    // Non-fatal: it's a derived, idempotent, self-healing pass over data that
+    // Phases 1-6 already committed successfully — a transient failure here
+    // shouldn't mark the whole run (and its "data as of" stamp) as failed.
+    try {
+      const staggeredResult = await resolveStaggeredSeats();
+      if (staggeredResult.guardTripped) process.exitCode = 1;
+    } catch (err) {
+      log("staggered", `Resolution failed (non-fatal): ${(err as Error).message}`);
+      process.exitCode = 1;
+    }
 
     if (runId) {
       const [{ count: districts }, { count: offices }, { count: officials }] =

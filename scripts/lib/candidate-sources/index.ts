@@ -20,7 +20,7 @@ export type StateScraper = (cycle: number) => Promise<ScrapedCandidate[]>;
 // These take precedence over the Ballotpedia fallback when both exist.
 const PRIMARY_SOURCES: Record<string, StateScraper> = {
   FL: fetchFloridaStateLegCandidates,
-  MO: (cycle) => fetchMissouriCandidates(cycle), // SE + CN by default
+  MO: (cycle) => fetchMissouriCandidates(cycle), // SE + LE + CN by default
   NC: fetchNorthCarolinaCandidates,
   PA: fetchPennsylvaniaCandidates,
   MI: fetchMichiganCandidates,

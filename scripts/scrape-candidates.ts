@@ -12,6 +12,7 @@
 
 import { db } from "./lib/supabase-client";
 import { STATE_CANDIDATE_SOURCES, type ScrapedCandidate } from "./lib/candidate-sources";
+import { resolveStaggeredSeats } from "./lib/resolve-staggered";
 import { sldUpperSlug, sldLowerSlug } from "../src/lib/ballot-card";
 import { houseGeoSlug, US_STATES } from "./lib/us-states";
 
@@ -425,6 +426,21 @@ async function main() {
     };
     launch();
   });
+
+  // Filings are seat-level election evidence — re-derive the staggered-chamber
+  // estimated flags before flushing the cache so a seat resolved by this scrape
+  // renders an exact date immediately. Non-fatal to the run — the scrape
+  // itself succeeded and revalidate should still happen — but a persistent
+  // resolver failure (or a tripped mass-revert guard, which usually means a
+  // prior scrape lost data) should not go unnoticed forever on the weekly
+  // cron: mark the process exit code without aborting.
+  try {
+    const result = await resolveStaggeredSeats();
+    if (result.guardTripped) process.exitCode = 1;
+  } catch (err) {
+    console.error(`[staggered] resolution failed: ${(err as Error).message}`);
+    process.exitCode = 1;
+  }
 
   await revalidateLiveSite();
 
