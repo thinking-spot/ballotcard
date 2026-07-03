@@ -69,6 +69,29 @@ export function normalizeName(raw: string): string {
 }
 
 /**
+ * Whether an FEC candidate is actually on the ballot for `cycle`.
+ *
+ * FEC's `cycle` query param is broad: it returns everyone with committee
+ * activity in that two-year reporting period, including senators mid-term
+ * (6-year terms span three "cycles") and anyone who filed for a different
+ * office this cycle. `election_years` is the candidate's real ballot years;
+ * `inactive_election_years` flags years they've since dropped out of (a
+ * resignation, or — as with Tuberville running for AL governor in 2026
+ * instead of re-election — a jump to a different race). Both must be
+ * checked: `election_years` alone still let Tuberville through, since 2026
+ * is a real past filing year for his Senate seat.
+ */
+export function isCandidateActiveForCycle(
+  electionYears: number[] | undefined,
+  inactiveElectionYears: number[] | undefined | null,
+  cycle: number
+): boolean {
+  if (!electionYears?.includes(cycle)) return false;
+  if (inactiveElectionYears?.includes(cycle)) return false;
+  return true;
+}
+
+/**
  * Fetch every candidate for an office + cycle, following pagination.
  * `candidate_status=C` limits to statutory candidates (filed for this race).
  */
@@ -102,6 +125,10 @@ export async function fetchFecCandidates(
     pages = data.pagination?.pages ?? 1;
 
     for (const r of data.results ?? []) {
+      const electionYears = r.election_years as number[] | undefined;
+      const inactiveElectionYears = r.inactive_election_years as number[] | null | undefined;
+      if (!isCandidateActiveForCycle(electionYears, inactiveElectionYears, cycle)) continue;
+
       const district = r.district as string | undefined;
       out.push({
         candidateId: r.candidate_id as string,

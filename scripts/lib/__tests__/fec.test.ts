@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeName } from "../fec";
+import { normalizeName, isCandidateActiveForCycle } from "../fec";
 
 describe("normalizeName (FEC LAST, FIRST → First Last)", () => {
   it("flips the canonical FEC shape", () => {
@@ -46,5 +46,42 @@ describe("normalizeName (FEC LAST, FIRST → First Last)", () => {
 
   it("title-cases a single token (no comma)", () => {
     expect(normalizeName("MADONNA")).toBe("Madonna");
+  });
+});
+
+describe("isCandidateActiveForCycle", () => {
+  it("excludes a senator whose seat isn't up this cycle (Murkowski, AK Class III, 2026 query)", () => {
+    expect(isCandidateActiveForCycle([2004, 2010, 2016, 2022, 2028], null, 2026)).toBe(false);
+  });
+
+  it("includes a senator whose seat is up this cycle (Sullivan, AK Class II)", () => {
+    expect(isCandidateActiveForCycle([2014, 2020, 2026], null, 2026)).toBe(true);
+  });
+
+  it("excludes a candidate who filed for a different race this cycle (Tuberville running for AL governor, not re-election)", () => {
+    expect(isCandidateActiveForCycle([2020, 2026], [2026], 2026)).toBe(false);
+  });
+
+  it("excludes a candidate who resigned mid-cycle (Greene, GA-14, resigned before the 2026 general)", () => {
+    expect(isCandidateActiveForCycle([2020, 2022, 2024, 2026], [2026], 2026)).toBe(false);
+  });
+
+  it("includes a candidate with no inactive years recorded", () => {
+    expect(isCandidateActiveForCycle([2026], undefined, 2026)).toBe(true);
+  });
+
+  it("excludes a candidate with no election_years at all", () => {
+    expect(isCandidateActiveForCycle(undefined, null, 2026)).toBe(false);
+  });
+
+  it("allows two legitimate incumbents in the same race after redistricting (Kim + Calvert, CA-40)", () => {
+    expect(isCandidateActiveForCycle([2018, 2020, 2022, 2024, 2026], null, 2026)).toBe(true);
+    expect(
+      isCandidateActiveForCycle(
+        [1982, 1992, 1994, 1996, 1998, 2000, 2002, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018, 2020, 2022, 2024, 2026],
+        null,
+        2026
+      )
+    ).toBe(true);
   });
 });

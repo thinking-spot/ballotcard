@@ -320,10 +320,11 @@ async function scrapeState(state: string, cycle: number) {
     .eq("cycle", cycle);
 
   let skipFedKeys = new Set<string>();
+  const incumbentFedOfficeIds = new Set<string>();
   if (federalOfficeIds.size > 0) {
     const { data: existing } = await db
       .from("Candidates")
-      .select("office_id, name")
+      .select("office_id, name, is_incumbent")
       .eq("cycle", cycle)
       .in("office_id", [...federalOfficeIds]);
     // Index by both exact-normalized name AND first/last-only — covers the
@@ -335,14 +336,25 @@ async function scrapeState(state: string, cycle: number) {
       skipFedKeys.add(`${r.office_id}::${firstLastKey(n)}`);
       const nk = nicknameKey(n);
       if (nk) skipFedKeys.add(`${r.office_id}::nick::${nk}`);
+      if (r.is_incumbent) incumbentFedOfficeIds.add(r.office_id as string);
     }
   }
   const filteredRows = finalRows.filter((r) => {
     if (!federalOfficeIds.has(r.office_id as string)) return true;
-    const exact = `${r.office_id}::${normalizeName(r.name as string)}`;
-    const loose = `${r.office_id}::${firstLastKey(r.name as string)}`;
+    const officeId = r.office_id as string;
+    // A seat has exactly one incumbent. If FEC already contributed an
+    // incumbent-flagged row for this office and our own matcher also thinks
+    // this scraped candidate is the incumbent (matched against Officials —
+    // the source of truth), they're the same person even when the name
+    // strings don't overlap at all (FEC's legal "George J. Kelly Jr." vs the
+    // PA SoS's "Mike Kelly"; a nickname chain we deliberately don't guess at,
+    // like "Jack" for "John"). This invariant catches those without growing
+    // the nickname map — see the flagged-incumbent audit that found them.
+    if (r.is_incumbent && incumbentFedOfficeIds.has(officeId)) return false;
+    const exact = `${officeId}::${normalizeName(r.name as string)}`;
+    const loose = `${officeId}::${firstLastKey(r.name as string)}`;
     const nk = nicknameKey(r.name as string);
-    const nick = nk ? `${r.office_id}::nick::${nk}` : null;
+    const nick = nk ? `${officeId}::nick::${nk}` : null;
     return (
       !skipFedKeys.has(exact) &&
       !skipFedKeys.has(loose) &&
