@@ -127,6 +127,72 @@ describe("parseBallotpediaCandidatePage — OH Senate 2026", () => {
   });
 });
 
+// ─── Certified-candidate checkmark icon (Maryland-style multi-member) ───────
+// Ballotpedia prefixes some candidates with a green-checkmark <img> INSIDE
+// the <span class="candidate">, before the <a> — most visible on multi-
+// member districts (Maryland's 3-delegate House districts) where several
+// incumbents in one cell each carry the badge. A regex expecting <a> to be
+// the immediate child of the span silently drops every badged candidate.
+
+const MD_HOUSE_MULTIMEMBER_HTML = `
+<html><body>
+<table class="wikitable sortable collapsible candidateListTablePartisan">
+<tbody>
+<tr><td colspan="4"><h4>Maryland House of Delegates general election 2026</h4></td></tr>
+<tr><td>Office</td><td>Democratic</td><td>Republican</td><td>Other</td></tr>
+<tr>
+<td><a href="https://ballotpedia.org/Maryland_House_of_Delegates_District_18">District 18 </a>&#160;(3 seats)</td>
+<td>
+  <p>
+    <span class="candidate"><img alt="check" src="/check.png" /><a href="/Aaron_Kaufman">Aaron Kaufman</a>&#160;(i)<br /></span>
+    <span class="candidate"><img alt="check" src="/check.png" /><a href="/Emily_Shetty">Emily Shetty</a>&#160;(i)<br /></span>
+    <span class="candidate"><img alt="check" src="/check.png" /><a href="/Jared_Solomon">Jared Solomon</a>&#160;(i)<br /></span>
+    <span class="candidate"><a href="/Kate_Stein">Kate Stein</a>&#160;<a href="/Kate_Stein#Campaign_themes"><img alt="cc" src="/x.png" /></a><br /></span>
+  </p>
+</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
+</body></html>
+`;
+
+describe("Certified-candidate checkmark icon (Maryland multi-member districts)", () => {
+  it("extracts every candidate even when a status icon precedes the anchor", () => {
+    const out = parseBallotpediaCandidatePage(
+      MD_HOUSE_MULTIMEMBER_HTML,
+      "MD",
+      "state-house",
+      2026
+    );
+    expect(out.map((c) => c.name).sort()).toEqual([
+      "Aaron Kaufman",
+      "Emily Shetty",
+      "Jared Solomon",
+      "Kate Stein",
+    ]);
+  });
+
+  it("still flags the badged candidates as incumbents", () => {
+    const out = parseBallotpediaCandidatePage(
+      MD_HOUSE_MULTIMEMBER_HTML,
+      "MD",
+      "state-house",
+      2026
+    );
+    expect(out.find((c) => c.name === "Aaron Kaufman")?.extraRefs?.bp_incumbent).toBe(
+      "true"
+    );
+    expect(out.find((c) => c.name === "Emily Shetty")?.extraRefs?.bp_incumbent).toBe(
+      "true"
+    );
+    expect(out.find((c) => c.name === "Jared Solomon")?.extraRefs?.bp_incumbent).toBe(
+      "true"
+    );
+    expect(out.find((c) => c.name === "Kate Stein")?.extraRefs?.bp_incumbent).toBeUndefined();
+  });
+});
+
 // ─── Compound district names (MA / VT / NH) ─────────────────────────────────
 // These states use named districts ("1st Plymouth", "Addison", "Belknap 1")
 // rather than pure numeric IDs. The parser derives the district key from

@@ -213,6 +213,12 @@ function parsePartyCell(cellHtml: string): ParsedCandidate[] {
   // the "(i)" marker away from the name in some cases. Working on the raw
   // HTML is more reliable.
   const out: ParsedCandidate[] = [];
+  // Before the candidate link Ballotpedia may insert a status icon — e.g. a
+  // green checkmark <img> on candidates who've secured/certified their spot
+  // — so the anchor isn't always the immediate child of the span. Allow any
+  // run of non-anchor tags in that gap; matching lazily keeps it from
+  // swallowing the "<a...>" itself.
+  //
   // After the candidate link Ballotpedia may insert:
   //   - "&#160;" (non-breaking space entity)
   //   - the Candidate Connection survey icon (an <a><img/></a>)
@@ -220,7 +226,7 @@ function parsePartyCell(cellHtml: string): ParsedCandidate[] {
   // ...before the optional "(i)" incumbent flag. We allow any non-tag,
   // non-"(" filler in that gap so the (i) marker is captured reliably.
   const re =
-    /<span class="candidate"><a[^>]*>([^<]+)<\/a>(?:<[^>]+>(?:<[^>]+>)*)*[^<(]*(\(i\))?/g;
+    /<span class="candidate">(?:<[^>]+>)*?<a[^>]*>([^<]+)<\/a>(?:<[^>]+>(?:<[^>]+>)*)*[^<(]*(\(i\))?/g;
   for (const m of cellHtml.matchAll(re)) {
     const name = m[1].trim();
     if (!name) continue;
