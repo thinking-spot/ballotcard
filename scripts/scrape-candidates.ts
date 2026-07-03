@@ -11,7 +11,11 @@
 // so the ISR cache flushes immediately.
 
 import { db } from "./lib/supabase-client";
-import { STATE_CANDIDATE_SOURCES, type ScrapedCandidate } from "./lib/candidate-sources";
+import {
+  STATE_CANDIDATE_SOURCES,
+  PRIMARY_SOURCE_STATES,
+  type ScrapedCandidate,
+} from "./lib/candidate-sources";
 import { resolveStaggeredSeats } from "./lib/resolve-staggered";
 import { sldUpperSlug, sldLowerSlug } from "../src/lib/ballot-card";
 import { houseGeoSlug, US_STATES } from "./lib/us-states";
@@ -62,9 +66,14 @@ async function loadDistrictAndOfficeMaps(state: string) {
     (districts ?? []).map((d) => [d.geo_slug as string, d.id as string])
   );
 
-  // Offices for those districts, keyed by (district_id, slug).
+  // Offices for those districts, keyed by (district_id, slug). Most keys
+  // resolve to one office; multi-member districts (migration 0011 — AZ/MD/
+  // NH/NJ/ND/SD/VT/WA House, VT/WV Senate) resolve to several, one per real
+  // seat. A scraped race is one shared at-large candidate pool per district
+  // — we don't get per-seat sub-division from the source — so every
+  // candidate row is attached to all sibling offices for that key.
   const districtIds = (districts ?? []).map((d) => d.id as string);
-  const officeIdByKey = new Map<string, string>();
+  const officeIdByKey = new Map<string, string[]>();
   if (districtIds.length > 0) {
     for (let from = 0; ; from += 1000) {
       const { data: offices, error: oErr } = await db
@@ -82,7 +91,9 @@ async function loadDistrictAndOfficeMaps(state: string) {
         .range(from, from + 999);
       if (oErr) throw new Error(`Offices query failed: ${oErr.message}`);
       for (const o of offices ?? []) {
-        officeIdByKey.set(`${o.district_id}::${o.slug}`, o.id as string);
+        const key = `${o.district_id}::${o.slug}`;
+        if (!officeIdByKey.has(key)) officeIdByKey.set(key, []);
+        officeIdByKey.get(key)!.push(o.id as string);
       }
       if (!offices || offices.length < 1000) break;
     }
@@ -218,9 +229,17 @@ async function scrapeState(state: string, cycle: number) {
   log(state, `Fetched ${scraped.length} rows`);
 
   // Source label comes from the scraper (e.g. "fl_sos", "oh_ballotpedia").
-  // Falls back to the canonical "{state}_sos" so legacy scrapers without an
-  // explicit source field still resolve to the historical label.
-  const sourceLabel = scraped[0]?.source ?? `${state.toLowerCase()}_sos`;
+  // A zero-row scrape has no row to read .source from, so fall back to the
+  // label this state's registered source actually uses — primary-source
+  // states ("{state}_sos") vs. the Ballotpedia fallback ("{state}_ballotpedia").
+  // Guessing "_sos" unconditionally here previously made the REJECTED
+  // safety-net check the wrong label for every Ballotpedia state, silently
+  // no-oping instead of protecting existing data on a failed fetch.
+  const sourceLabel =
+    scraped[0]?.source ??
+    (PRIMARY_SOURCE_STATES.has(state)
+      ? `${state.toLowerCase()}_sos`
+      : `${state.toLowerCase()}_ballotpedia`);
 
   // Sanity floor: if we previously had a healthy number of rows and the
   // current run returns zero, refuse to wipe the prior data — that almost
@@ -238,7 +257,7 @@ async function scrapeState(state: string, cycle: number) {
   const { districtIdBySlug, officeIdByKey } = await loadDistrictAndOfficeMaps(state);
 
   // Officials for incumbency detection.
-  const officeIds = [...officeIdByKey.values()];
+  const officeIds = [...officeIdByKey.values()].flat();
   const officials: Array<{ office_id: string; name: string }> = [];
   if (officeIds.length > 0) {
     for (let from = 0; ; from += 1000) {
@@ -266,30 +285,36 @@ async function scrapeState(state: string, cycle: number) {
       unmatched++;
       continue;
     }
-    const officeId = officeIdByKey.get(`${districtId}::${c.officeSlug}`);
-    if (!officeId) {
+    const officeIds = officeIdByKey.get(`${districtId}::${c.officeSlug}`);
+    if (!officeIds || officeIds.length === 0) {
       unmatched++;
       continue;
     }
-    if (c.officeSlug === "us-house" || c.officeSlug.startsWith("us-senate-class-")) {
-      federalOfficeIds.add(officeId);
+    // Multi-member districts share one at-large candidate pool across their
+    // seats (the source doesn't sub-divide by seat), so the same scraped
+    // candidate becomes one row per sibling office — but incumbency is
+    // still per-seat (matched against that specific office's officeholder).
+    for (const officeId of officeIds) {
+      if (c.officeSlug === "us-house" || c.officeSlug.startsWith("us-senate-class-")) {
+        federalOfficeIds.add(officeId);
+      }
+      rows.push({
+        office_id: officeId,
+        name: c.name,
+        party: c.party,
+        cycle: c.cycle,
+        election_date: c.electionDate ?? null,
+        is_incumbent: isIncumbent(officeId, c.name),
+        status: c.status,
+        source: c.source ?? sourceLabel,
+        external_refs: {
+          // Use a source-specific external-ID key so two sources for the same
+          // state (e.g. nc_sos + a future nc_ballotpedia) don't collide.
+          [`${sourceLabel}_id`]: c.externalId,
+          ...(c.extraRefs ?? {}),
+        },
+      });
     }
-    rows.push({
-      office_id: officeId,
-      name: c.name,
-      party: c.party,
-      cycle: c.cycle,
-      election_date: c.electionDate ?? null,
-      is_incumbent: isIncumbent(officeId, c.name),
-      status: c.status,
-      source: c.source ?? sourceLabel,
-      external_refs: {
-        // Use a source-specific external-ID key so two sources for the same
-        // state (e.g. nc_sos + a future nc_ballotpedia) don't collide.
-        [`${sourceLabel}_id`]: c.externalId,
-        ...(c.extraRefs ?? {}),
-      },
-    });
   }
 
   if (unmatched > 0) {

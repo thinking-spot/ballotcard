@@ -28,6 +28,7 @@ import type {
   OpenStatesPerson,
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
+import { assignLegislativeSeats } from "./lib/multimember-seats";
 import { fetchFecCandidates, type FecCandidate } from "./lib/fec";
 import { deriveOcdId } from "./lib/ocd-id";
 import {
@@ -358,12 +359,19 @@ async function ingestOffices(sources: Sources) {
   );
   const slugToId = new Map(districts.map((d) => [d.geo_slug, d.id]));
 
-  const existingOffices = await selectAll<{ district_id: string; slug: string }>(
-    "Offices",
-    "district_id, slug"
-  );
+  const existingOffices = await selectAll<{
+    district_id: string;
+    slug: string;
+    seat_label: string | null;
+  }>("Offices", "district_id, slug, seat_label");
   const existingSet = new Set(
     existingOffices.map((o) => `${o.district_id}::${o.slug}`)
+  );
+  // Multi-member state legislative districts (migration 0011) need seat_label
+  // in the existence check too, since several offices can now share a
+  // (district_id, slug) — see assignLegislativeSeats.
+  const seatExistingSet = new Set(
+    existingOffices.map((o) => `${o.district_id}::${o.slug}::${o.seat_label ?? ""}`)
   );
   const isNew = (districtId: string, slug: string) =>
     !existingSet.has(`${districtId}::${slug}`);
@@ -493,44 +501,44 @@ async function ingestOffices(sources: Sources) {
     });
   }
 
-  // 2f. State legislators (one office per district)
-  const seenSld = new Set<string>();
-  for (const s of US_STATES) {
-    for (const p of sources.openStatesByState.get(s.abbr) ?? []) {
-      if (!p.current_district) continue;
-      const slug = p.current_chamber === "upper" ? "state-senate" : "state-house";
-      const geoSlug =
-        p.current_chamber === "upper"
-          ? sldUpperSlug(s.abbr, p.current_district)
-          : sldLowerSlug(s.abbr, p.current_district);
-      const districtId = slugToId.get(geoSlug);
-      if (!districtId) continue;
-      const dedupe = `${districtId}::${slug}`;
-      if (seenSld.has(dedupe) || !isNew(districtId, slug)) continue;
-      seenSld.add(dedupe);
-      const chamberWord = p.current_chamber === "upper" ? "Senate" : "House";
-      const sched = legSchedule(
-        s.abbr,
-        p.current_chamber === "upper" ? "senate" : "house"
-      );
-      // Nebraska's Legislature is unicameral and officially nonpartisan; every
-      // other state elects its legislators on partisan ballots.
-      const legSelection =
-        s.abbr === "NE" ? "elected_nonpartisan" : "elected_partisan";
-      toInsert.push({
-        district_id: districtId,
-        title: `${s.abbr} State ${chamberWord}, District ${normDistrict(p.current_district)}`,
-        slug,
-        kind: "legislative",
-        branch: "legislative",
-        level: "state",
-        selection_method: legSelection,
-        term_years: sched?.termYears ?? (p.current_chamber === "upper" ? 4 : 2),
-        next_election_at: sched?.nextElection ?? "2026-11-03",
-        next_election_estimated: sched?.estimated ?? false,
-        is_seeded: true,
-      });
-    }
+  // 2f. State legislators — one office per real seat. Most districts elect
+  // one member (seat_label null); multi-member districts (see
+  // assignLegislativeSeats) get one office per seat via seat_label so a real,
+  // currently-serving legislator is never silently dropped.
+  const seenSeat = new Set<string>();
+  for (const { state, person: p, seatLabel } of assignLegislativeSeats(
+    US_STATES,
+    sources.openStatesByState
+  )) {
+    const slug = p.current_chamber === "upper" ? "state-senate" : "state-house";
+    const geoSlug =
+      p.current_chamber === "upper"
+        ? sldUpperSlug(state, p.current_district)
+        : sldLowerSlug(state, p.current_district);
+    const districtId = slugToId.get(geoSlug);
+    if (!districtId) continue;
+    const seatKey = `${districtId}::${slug}::${seatLabel ?? ""}`;
+    if (seenSeat.has(seatKey) || seatExistingSet.has(seatKey)) continue;
+    seenSeat.add(seatKey);
+    const chamberWord = p.current_chamber === "upper" ? "Senate" : "House";
+    const sched = legSchedule(state, p.current_chamber === "upper" ? "senate" : "house");
+    // Nebraska's Legislature is unicameral and officially nonpartisan; every
+    // other state elects its legislators on partisan ballots.
+    const legSelection = state === "NE" ? "elected_nonpartisan" : "elected_partisan";
+    toInsert.push({
+      district_id: districtId,
+      title: `${state} State ${chamberWord}, District ${normDistrict(p.current_district)}`,
+      slug,
+      seat_label: seatLabel,
+      kind: "legislative",
+      branch: "legislative",
+      level: "state",
+      selection_method: legSelection,
+      term_years: sched?.termYears ?? (p.current_chamber === "upper" ? 4 : 2),
+      next_election_at: sched?.nextElection ?? "2026-11-03",
+      next_election_estimated: sched?.estimated ?? false,
+      is_seeded: true,
+    });
   }
 
   // 2g. Mayors
@@ -565,10 +573,12 @@ async function ingestOffices(sources: Sources) {
 // ─── Phase 3: Officials ──────────────────────────────────────────────────────
 
 async function ingestOfficials(sources: Sources) {
-  const offices = await selectAll<{ id: string; slug: string; district_id: string }>(
-    "Offices",
-    "id, slug, district_id"
-  );
+  const offices = await selectAll<{
+    id: string;
+    slug: string;
+    district_id: string;
+    seat_label: string | null;
+  }>("Offices", "id, slug, district_id, seat_label");
   const districts = await selectAll<{ id: string; geo_slug: string }>(
     "Districts",
     "id, geo_slug"
@@ -580,6 +590,22 @@ async function ingestOfficials(sources: Sources) {
       key(districtIdToSlug.get(o.district_id) ?? "", o.slug),
       o.id,
     ])
+  );
+  // State legislature offices need seat_label in the lookup key too, since
+  // multi-member districts (migration 0011) can have several offices sharing
+  // a (district_id, slug). Kept separate from the general officeMap/key()
+  // above — US Senate already disambiguates its two seats via distinct
+  // class-slugs (us-senate-class-i/ii/iii), not seat_label, so every other
+  // office family is untouched by this.
+  const stateLegKey = (geoSlug: string, officeSlug: string, seatLabel: string | null) =>
+    `${geoSlug}::${officeSlug}::${seatLabel ?? ""}`;
+  const stateLegOfficeMap = new Map(
+    offices
+      .filter((o) => o.slug === "state-house" || o.slug === "state-senate")
+      .map((o) => [
+        stateLegKey(districtIdToSlug.get(o.district_id) ?? "", o.slug, o.seat_label),
+        o.id,
+      ])
   );
 
   // Existing current officials, keyed by office.
@@ -721,23 +747,23 @@ async function ingestOfficials(sources: Sources) {
     });
   }
 
-  // 3d. State legislators
-  for (const s of US_STATES) {
-    for (const p of sources.openStatesByState.get(s.abbr) ?? []) {
-      if (!p.current_district) continue;
-      const officeSlug = p.current_chamber === "upper" ? "state-senate" : "state-house";
-      const geoSlug =
-        p.current_chamber === "upper"
-          ? sldUpperSlug(s.abbr, p.current_district)
-          : sldLowerSlug(s.abbr, p.current_district);
-      const osId = p.id.replace("ocd-person/", "");
-      place(officeMap.get(key(geoSlug, officeSlug)), {
-        name: p.name,
-        party: p.current_party || undefined,
-        photo_url: p.image || undefined,
-        external_refs: { openstates: osId },
-      });
-    }
+  // 3d. State legislators — one seat per office (see migration 0011).
+  for (const { state, person: p, seatLabel } of assignLegislativeSeats(
+    US_STATES,
+    sources.openStatesByState
+  )) {
+    const officeSlug = p.current_chamber === "upper" ? "state-senate" : "state-house";
+    const geoSlug =
+      p.current_chamber === "upper"
+        ? sldUpperSlug(state, p.current_district)
+        : sldLowerSlug(state, p.current_district);
+    const osId = p.id.replace("ocd-person/", "");
+    place(stateLegOfficeMap.get(stateLegKey(geoSlug, officeSlug, seatLabel)), {
+      name: p.name,
+      party: p.current_party || undefined,
+      photo_url: p.image || undefined,
+      external_refs: { openstates: osId },
+    });
   }
 
   // 3e. Mayors

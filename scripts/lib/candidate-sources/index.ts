@@ -44,4 +44,10 @@ function buildSourceRegistry(): Record<string, StateScraper> {
 
 export const STATE_CANDIDATE_SOURCES: Record<string, StateScraper> = buildSourceRegistry();
 
+// Which states use the primary (`{state}_sos`) source vs. the Ballotpedia
+// fallback (`{state}_ballotpedia`) — the orchestrator needs this to compute
+// the correct source label for a state even when a scrape returns zero rows
+// (a scraped candidate's own .source field isn't available to fall back on).
+export const PRIMARY_SOURCE_STATES = new Set(Object.keys(PRIMARY_SOURCES));
+
 export type { ScrapedCandidate };
