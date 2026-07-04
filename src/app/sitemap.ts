@@ -24,15 +24,7 @@ async function selectAll<T>(table: string, columns: string): Promise<T[]> {
   return out;
 }
 
-const STATIC_PATHS = [
-  "/",
-  "/how-it-works",
-  "/about",
-  "/principles",
-  "/privacy",
-  "/terms",
-  "/support",
-];
+const STATIC_PATHS = ["/", "/privacy", "/terms"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((p) => ({

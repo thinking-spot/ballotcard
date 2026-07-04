@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { NavMobileMenu } from "@/components/layout/NavMobileMenu";
 import { MyBallotLink } from "@/components/MyBallotLink";
 import { BrandMark } from "@/components/brand/BrandMark";
 
@@ -24,20 +23,9 @@ export function PublicNav() {
       </Link>
 
       <div className="flex items-center gap-0.5">
-        <Link href="/how-it-works" className={`${linkClass} hidden sm:block`}>
-          How it works
-        </Link>
-        <Link href="/about" className={`${linkClass} hidden sm:block`}>
-          About
-        </Link>
-        <Link href="/principles" className={`${linkClass} hidden sm:block`}>
-          Principles
-        </Link>
         <MyBallotLink
           className={`${linkClass} font-medium !text-[var(--glass-active)] bg-[var(--glass-active-bg)]`}
         />
-
-        <NavMobileMenu />
       </div>
     </nav>
   );

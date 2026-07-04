@@ -1,4 +1,3 @@
-import { WordMark } from "@/components/brand/WordMark";
 import { AddressEntry } from "@/components/AddressEntry";
 
 export function LandingHero() {

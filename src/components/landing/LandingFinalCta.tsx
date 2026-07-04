@@ -8,8 +8,8 @@ export function LandingFinalCta() {
           See your ballot.
         </h2>
         <p className="mt-4 text-bc-lavender text-base max-w-md mx-auto leading-relaxed">
-          No account, no ads, no tracking. Enter your address and see everyone
-          who represents you, federal to local.
+          Ten seconds, free, no account. Know every race you vote in — and
+          everyone running — before election day.
         </p>
         <div className="mt-8 flex justify-center">
           <AddressEntry variant="hero" />

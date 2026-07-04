@@ -38,17 +38,11 @@ export function Footer() {
       </div>
 
       <nav className="flex flex-wrap items-center gap-x-6 gap-y-1">
-        <Link href="/principles" className={linkClass}>
-          Principles
-        </Link>
         <Link href="/privacy" className={linkClass}>
           Privacy
         </Link>
         <Link href="/terms" className={linkClass}>
           Terms
-        </Link>
-        <Link href="/support" className={linkClass}>
-          Support
         </Link>
       </nav>
     </footer>

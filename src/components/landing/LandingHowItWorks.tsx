@@ -1,19 +1,19 @@
 const cards = [
   {
     title: "Enter your address",
-    body: "We send it to the US Census Geocoder to find your voting districts, then discard it. Nothing about you is stored or logged — your address never touches our database.",
+    body: "The US Census Geocoder — a free public service — turns it into your voting districts, and then we discard it. Where you live is the only thing we ask, because it's the only thing your ballot depends on.",
   },
   {
     title: "See your full ballot",
     body: "Every office you vote for — federal, state, county, and municipal — stacked in ballot order on one page. Who holds each seat now, their party, and when the seat is next on the ballot.",
   },
   {
-    title: "Honest about the gaps",
-    body: "Where there's no data source yet for an office, the row is still shown — as an honest empty slot, not hidden. Your ballot is the complete one from the booth, not just the parts we've filled in.",
+    title: "Know your next election",
+    body: "Election dates for every seat, with the declared candidates as they file — party, incumbent or challenger, and for federal races, campaign fundraising from the FEC. Refreshed weekly through election season.",
   },
   {
-    title: "Permanent and shareable",
-    body: "Every office and officeholder has a permalink you can bookmark, share, and find again. No feed, no ranking, no engagement metrics. A civic reference that stays put.",
+    title: "Keep it, share it",
+    body: "Your card and every office on it have permanent links you can bookmark, text to a neighbor, and find again next cycle. A civic reference that stays put.",
   },
 ];
 
