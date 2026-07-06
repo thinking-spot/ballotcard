@@ -44,6 +44,7 @@ import federalExecs from "../seed-data/federal-execs.json";
 import legislatureSchedule from "../seed-data/legislature-schedule.json";
 import counties from "../seed-data/counties.json";
 import { resolveStaggeredSeats } from "./lib/resolve-staggered";
+import { mergeOfficialRefs } from "./lib/merge-official-refs";
 
 type CountyEntry = { state: string; fips: string; name: string; slug: string };
 
@@ -640,10 +641,12 @@ async function ingestOfficials(sources: Sources) {
       const sameName = existing.name === row.name;
       const sameParty = (existing.party ?? null) === ((row.party as string) ?? null);
       if (!sameName || !sameParty) {
-        const mergedRefs = {
-          ...(existing.external_refs ?? {}),
-          ...((row.external_refs as Record<string, string>) ?? {}),
-        };
+        const mergedRefs = mergeOfficialRefs(
+          existing.name,
+          row.name as string,
+          existing.external_refs,
+          row.external_refs as Record<string, string>
+        );
         toUpdate.push({ id: existing.id, row: { ...row, external_refs: mergedRefs } });
       } else {
         skipped++;
