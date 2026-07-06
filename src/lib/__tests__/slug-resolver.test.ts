@@ -30,13 +30,39 @@ describe("resolveSlug", () => {
   it("resolves an office from district + office slug", async () => {
     q(null); // exact district match for "nc/07/us-house" fails
     q({ id: "d-nc-07" }); // district lookup for "nc/07" succeeds
-    q({ id: "o-house", slug: "us-house" }); // office lookup succeeds
+    q([{ id: "o-house", slug: "us-house" }]); // office lookup succeeds (unambiguous: 1 row)
 
     const result = await resolveSlug("nc", ["07", "us-house"]);
     expect(result).toEqual({
       kind: "office",
       districtGeoSlug: "nc/07",
       officeSlug: "us-house",
+    });
+  });
+
+  it("resolves a multi-member seat via its trailing seat slug", async () => {
+    // Regression: a multi-member district (migration 0011) has several
+    // Offices rows sharing one slug, distinguished by seat_label — a bare
+    // district+slug URL is ambiguous there, so it needs a third /seat-n
+    // segment to resolve to a specific seat.
+    q(null); // exact district match for "vt/sldl-bennington-4/state-house/seat-2" fails
+    q(null); // district lookup for "vt/sldl-bennington-4/state-house" fails (not a real district)
+    q({ id: "d-bennington-4" }); // district lookup for "vt/sldl-bennington-4" succeeds
+    q([
+      { id: "o-seat-1", slug: "state-house", seat_label: "Seat 1" },
+      { id: "o-seat-2", slug: "state-house", seat_label: "Seat 2" },
+    ]); // both seats share the "state-house" slug
+
+    const result = await resolveSlug("vt", [
+      "sldl-bennington-4",
+      "state-house",
+      "seat-2",
+    ]);
+    expect(result).toEqual({
+      kind: "office",
+      districtGeoSlug: "vt/sldl-bennington-4",
+      officeSlug: "state-house",
+      seatSlug: "seat-2",
     });
   });
 

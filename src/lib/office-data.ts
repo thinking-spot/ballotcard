@@ -1,5 +1,6 @@
 import { db } from "@/lib/supabase";
 import { isOnUpcomingBallot, hasCandidateSource } from "@/lib/candidate-filters";
+import { seatLabelToSlug } from "@/lib/seat-slug";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,9 @@ export type OfficePageData = {
     nextElectionEstimated?: boolean;
     primaryElectionAt?: string;
     hasCandidateSource: boolean;
+    // Set only in multi-member districts, where several offices share one
+    // slug ("Seat 1", "Seat 2", ...) — see seat-slug.ts.
+    seatLabel?: string;
   };
   official: OfficialData | null;
   candidates: CandidateData[];
@@ -107,7 +111,8 @@ function buildBreadcrumbs(
 
 export async function getOfficePageData(
   districtGeoSlug: string,
-  officeSlug: string
+  officeSlug: string,
+  seatSlug?: string
 ): Promise<OfficePageData | null> {
   // 1. District (3 levels deep for breadcrumbs: grandparent > parent > district)
   const { data: districtRaw } = await db
@@ -124,15 +129,28 @@ export async function getOfficePageData(
 
   if (!districtRaw) return null;
 
-  // 2. Office
-  const { data: officeRaw } = await db
+  // 2. Office. A multi-member district (migration 0011) has several rows for
+  // this (district_id, slug) — the caller's seatSlug (from resolveSlug) picks
+  // the right one via seat_label; the ordinary case is exactly one row.
+  const { data: officesForSlug } = await db
     .from("Offices")
     .select(
-      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at, next_election_estimated, primary_election_at"
+      "id, title, slug, description, branch, level, selection_method, term_years, next_election_at, next_election_estimated, primary_election_at, seat_label"
     )
     .eq("district_id", districtRaw.id)
-    .eq("slug", officeSlug)
-    .maybeSingle();
+    .eq("slug", officeSlug);
+
+  if (!officesForSlug || officesForSlug.length === 0) return null;
+
+  const officeRaw =
+    officesForSlug.length === 1
+      ? officesForSlug[0]
+      : officesForSlug.find(
+          (o) =>
+            seatSlug &&
+            o.seat_label &&
+            seatLabelToSlug(o.seat_label as string) === seatSlug
+        );
 
   if (!officeRaw) return null;
 
@@ -159,7 +177,7 @@ export async function getOfficePageData(
         .maybeSingle(),
       db
         .from("Offices")
-        .select("id, title, slug")
+        .select("id, title, slug, seat_label")
         .eq("district_id", districtRaw.id)
         .neq("id", officeRaw.id)
         .not("slug", "is", null)
@@ -196,6 +214,25 @@ export async function getOfficePageData(
   // longer resolves to itself.
   const isPassthroughDistrict =
     (relatedRaw?.length ?? 0) === 0 && (childDistrictCount ?? 0) === 0;
+
+  // How many offices in this district share each slug — >1 means the slug
+  // alone is ambiguous and needs a /seat-n segment (see seat-slug.ts). This
+  // office's own slug count comes straight from officesForSlug; sibling slugs
+  // are counted from the (capped) related-offices fetch below.
+  const slugCounts = new Map<string, number>([
+    [officeRaw.slug as string, officesForSlug.length],
+  ]);
+  for (const o of relatedRaw ?? []) {
+    if (o.slug === officeRaw.slug) continue;
+    slugCounts.set(o.slug as string, (slugCounts.get(o.slug as string) ?? 0) + 1);
+  }
+  const districtGeoSlugStr = districtRaw.geo_slug as string;
+  function officePath(o: { slug: string; seat_label?: string | null }): string {
+    const needsSeat = (slugCounts.get(o.slug) ?? 1) > 1 && o.seat_label;
+    return needsSeat
+      ? `${districtGeoSlugStr}/${o.slug}/${seatLabelToSlug(o.seat_label as string)}`
+      : `${districtGeoSlugStr}/${o.slug}`;
+  }
 
   // 4. Build breadcrumbs from parent chain
   type ParentRow = { name: string; geo_slug: string };
@@ -241,6 +278,7 @@ export async function getOfficePageData(
         slug: officeRaw.slug as string,
         level: officeRaw.level as string,
       }),
+      seatLabel: (officeRaw.seat_label as string) || undefined,
     },
     official: officialRaw
       ? {
@@ -278,7 +316,10 @@ export async function getOfficePageData(
       id: o.id as string,
       title: o.title as string,
       slug: o.slug as string,
-      geoSlug: `${districtRaw.geo_slug}/${o.slug}`,
+      geoSlug: officePath({
+        slug: o.slug as string,
+        seat_label: (o.seat_label as string) || null,
+      }),
     })),
     dataAsOf:
       ((lastRunRaw as { finished_at?: string } | null)?.finished_at) ||

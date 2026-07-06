@@ -87,7 +87,8 @@ export async function generateMetadata({
 
   const data = await getOfficePageData(
     resolved.districtGeoSlug,
-    resolved.officeSlug
+    resolved.officeSlug,
+    resolved.seatSlug
   );
   if (!data) return {};
 
@@ -149,7 +150,9 @@ function partyAbbrev(party?: string): string | null {
 // ─── District page view ─────────────────────────────────────────────────────
 
 function DistrictOfficeRow({ office }: { office: DistrictOffice }) {
-  const href = `/${office.districtGeoSlug}/${office.slug}`;
+  const href = office.seatSlug
+    ? `/${office.districtGeoSlug}/${office.slug}/${office.seatSlug}`
+    : `/${office.districtGeoSlug}/${office.slug}`;
   const party = partyAbbrev(office.officialParty);
   return (
     <Link
@@ -339,7 +342,9 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
 function passthroughOfficeUrl(data: DistrictPageData): string | null {
   if (data.offices.length !== 1 || data.childDistricts.length !== 0) return null;
   const office = data.offices[0];
-  return `/${office.districtGeoSlug}/${office.slug}`;
+  return office.seatSlug
+    ? `/${office.districtGeoSlug}/${office.slug}/${office.seatSlug}`
+    : `/${office.districtGeoSlug}/${office.slug}`;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -374,9 +379,14 @@ export default async function CatchallPage({
   // Office page
   const data = await getOfficePageData(
     resolved.districtGeoSlug,
-    resolved.officeSlug
+    resolved.officeSlug,
+    resolved.seatSlug
   );
   if (!data) notFound();
+
+  const officeUrlPath = resolved.seatSlug
+    ? `${resolved.districtGeoSlug}/${resolved.officeSlug}/${resolved.seatSlug}`
+    : `${resolved.districtGeoSlug}/${resolved.officeSlug}`;
 
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
@@ -386,7 +396,7 @@ export default async function CatchallPage({
           data={officeholderSchema(
             data.official,
             data.office.title,
-            `https://ballot-card.com/${resolved.districtGeoSlug}/${resolved.officeSlug}`
+            `https://ballot-card.com/${officeUrlPath}`
           )}
         />
       )}

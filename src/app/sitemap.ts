@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/supabase";
+import { seatLabelToSlug } from "@/lib/seat-slug";
 
 // Indexability is a core principle ("permalinked, permanent, indexable"). This
 // sitemap exposes every district and office permalink so crawlers can discover
@@ -36,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Pull the place tree + offices. If the DB is unreachable at build/revalidate
   // time, fall back to the static entries rather than failing the whole route.
   let districts: { id: string; geo_slug: string; parent_id: string | null }[] = [];
-  let offices: { district_id: string; slug: string }[] = [];
+  let offices: { district_id: string; slug: string; seat_label: string | null }[] = [];
   let lastRun: string | undefined;
   try {
     [districts, offices] = await Promise.all([
@@ -44,9 +45,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         "Districts",
         "id, geo_slug, parent_id"
       ),
-      selectAll<{ district_id: string; slug: string }>(
+      selectAll<{ district_id: string; slug: string; seat_label: string | null }>(
         "Offices",
-        "district_id, slug"
+        "district_id, slug, seat_label"
       ),
     ]);
     const { data: run } = await db
@@ -68,12 +69,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // that office (see the catch-all page's passthroughOfficeUrl) — skip it
   // here so the sitemap doesn't submit URLs that just 308 elsewhere.
   const officeCountByDistrict = new Map<string, number>();
+  // A multi-member district (migration 0011) has several offices sharing one
+  // (district_id, slug) — that combo needs a /seat-n segment to be a distinct,
+  // resolvable URL (see seat-slug.ts and the catch-all page's resolveSlug).
+  const officeCountBySlug = new Map<string, number>();
   for (const o of offices) {
     if (!o.slug) continue;
     officeCountByDistrict.set(
       o.district_id,
       (officeCountByDistrict.get(o.district_id) ?? 0) + 1
     );
+    const slugKey = `${o.district_id}::${o.slug}`;
+    officeCountBySlug.set(slugKey, (officeCountBySlug.get(slugKey) ?? 0) + 1);
   }
   const childCountByParent = new Map<string, number>();
   for (const d of districts) {
@@ -101,8 +108,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (!o.slug) continue;
     const geo = slugById.get(o.district_id);
     if (!geo) continue;
+    const needsSeatSlug =
+      (officeCountBySlug.get(`${o.district_id}::${o.slug}`) ?? 1) > 1 &&
+      o.seat_label;
+    const path = needsSeatSlug
+      ? `${geo}/${o.slug}/${seatLabelToSlug(o.seat_label as string)}`
+      : `${geo}/${o.slug}`;
     officeEntries.push({
-      url: `${BASE}/${geo}/${o.slug}`,
+      url: `${BASE}/${path}`,
       lastModified,
       changeFrequency: "weekly",
       priority: 0.7,

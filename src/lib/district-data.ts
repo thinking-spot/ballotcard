@@ -1,5 +1,6 @@
 import { db } from "@/lib/supabase";
 import type { BreadcrumbItem } from "@/lib/office-data";
+import { seatLabelToSlug } from "@/lib/seat-slug";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,6 +15,9 @@ export type DistrictOffice = {
   officialName?: string;
   officialParty?: string;
   nextElectionAt?: string;
+  // Set only in multi-member districts, where several offices share one slug
+  // and this office's URL needs a trailing /seat-n segment — see seat-slug.ts.
+  seatSlug?: string;
 };
 
 export type ChildDistrict = {
@@ -128,7 +132,7 @@ export async function getDistrictPageData(
     db
       .from("Offices")
       .select(
-        "id, title, slug, branch, level, selection_method, next_election_at, district_id"
+        "id, title, slug, branch, level, selection_method, next_election_at, district_id, seat_label"
       )
       .in("district_id", officeDistrictIds)
       .not("slug", "is", null)
@@ -202,6 +206,16 @@ export async function getDistrictPageData(
     }
   }
 
+  // A multi-member district (migration 0011) has several offices sharing one
+  // (district_id, slug) — that combo needs a trailing /seat-n segment to link
+  // unambiguously (see seat-slug.ts). Keyed by district_id since a county's
+  // aggregated view mixes offices from several distinct districts.
+  const slugCounts = new Map<string, number>();
+  for (const o of officesRaw ?? []) {
+    const key = `${o.district_id}::${o.slug}`;
+    slugCounts.set(key, (slugCounts.get(key) ?? 0) + 1);
+  }
+
   const offices: DistrictOffice[] = (officesRaw ?? []).map((o) => {
     const oid = o.id as string;
     const official = officialsByOffice.get(oid);
@@ -209,6 +223,9 @@ export async function getDistrictPageData(
     const slugForOffice = districtGeoSlugById
       ? (districtGeoSlugById.get(officeDistrictId) ?? geoSlug)
       : geoSlug;
+    const seatLabel = (o.seat_label as string) || null;
+    const needsSeatSlug =
+      (slugCounts.get(`${officeDistrictId}::${o.slug}`) ?? 1) > 1 && seatLabel;
     return {
       id: oid,
       title: o.title as string,
@@ -220,6 +237,7 @@ export async function getDistrictPageData(
       officialName: official?.name,
       officialParty: official?.party,
       nextElectionAt: (o.next_election_at as string) || undefined,
+      seatSlug: needsSeatSlug ? seatLabelToSlug(seatLabel as string) : undefined,
     };
   });
 
