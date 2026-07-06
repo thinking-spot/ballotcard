@@ -85,13 +85,20 @@ export type OfficePageData = {
 function buildBreadcrumbs(
   ancestors: Array<{ name: string; geo_slug: string }>,
   district: { name: string; geo_slug: string },
-  officeTitle: string
+  officeTitle: string,
+  // True when this office is the district's only office and the district has
+  // no sub-districts — i.e. the district page would show nothing beyond this
+  // one row. That page redirects here (see getDistrictPageData's caller), so
+  // it isn't a real intermediate stop and shouldn't get its own crumb.
+  skipDistrictCrumb: boolean
 ): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [];
   for (const anc of ancestors) {
     items.push({ label: anc.name, href: `/${anc.geo_slug}` });
   }
-  items.push({ label: district.name, href: `/${district.geo_slug}` });
+  if (!skipDistrictCrumb) {
+    items.push({ label: district.name, href: `/${district.geo_slug}` });
+  }
   items.push({ label: officeTitle, href: "" }); // current page — no link
   return items;
 }
@@ -140,6 +147,7 @@ export async function getOfficePageData(
     { data: relatedRaw },
     { data: candidatesRaw },
     { data: lastRunRaw },
+    { count: childDistrictCount },
   ] = await Promise.all([
       db
         .from("Officials")
@@ -174,7 +182,20 @@ export async function getOfficePageData(
         .order("finished_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      db
+        .from("Districts")
+        .select("*", { count: "exact", head: true })
+        .eq("parent_id", districtRaw.id),
     ]);
+
+  // A district that holds exactly this one office and has no sub-districts
+  // (a single congressional/state-legislative seat, a single-mayor town) is a
+  // pure pass-through — its own page would be a near-duplicate of this one.
+  // getDistrictPageData's caller redirects that page here; drop its
+  // breadcrumb crumb too so the trail doesn't reference a page that no
+  // longer resolves to itself.
+  const isPassthroughDistrict =
+    (relatedRaw?.length ?? 0) === 0 && (childDistrictCount ?? 0) === 0;
 
   // 4. Build breadcrumbs from parent chain
   type ParentRow = { name: string; geo_slug: string };
@@ -190,7 +211,8 @@ export async function getOfficePageData(
   const breadcrumbs = buildBreadcrumbs(
     ancestors,
     { name: districtRaw.name as string, geo_slug: districtRaw.geo_slug as string },
-    officeRaw.title as string
+    officeRaw.title as string,
+    isPassthroughDistrict
   );
 
   return {

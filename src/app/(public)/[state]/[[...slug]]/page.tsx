@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { resolveSlug } from "@/lib/slug-resolver";
@@ -331,6 +331,17 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
   );
 }
 
+// A district holding exactly one office and no sub-districts (a single
+// congressional/state-legislative seat, a single-mayor town) has nothing to
+// show that the office page doesn't already show — its own page would be a
+// near-duplicate competing with the office page for the same search query,
+// and an extra breadcrumb hop for no reason. Send it straight to the office.
+function passthroughOfficeUrl(data: DistrictPageData): string | null {
+  if (data.offices.length !== 1 || data.childDistricts.length !== 0) return null;
+  const office = data.offices[0];
+  return `/${office.districtGeoSlug}/${office.slug}`;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function CatchallPage({
@@ -344,6 +355,8 @@ export default async function CatchallPage({
   if (!slug || slug.length === 0) {
     const districtData = await getDistrictPageData(state);
     if (!districtData) notFound();
+    const passthrough = passthroughOfficeUrl(districtData);
+    if (passthrough) permanentRedirect(passthrough);
     return <DistrictPageView data={districtData} />;
   }
 
@@ -353,6 +366,8 @@ export default async function CatchallPage({
   if (resolved.kind === "district") {
     const districtData = await getDistrictPageData(resolved.geoSlug);
     if (!districtData) notFound();
+    const passthrough = passthroughOfficeUrl(districtData);
+    if (passthrough) permanentRedirect(passthrough);
     return <DistrictPageView data={districtData} />;
   }
 

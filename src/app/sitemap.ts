@@ -35,12 +35,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Pull the place tree + offices. If the DB is unreachable at build/revalidate
   // time, fall back to the static entries rather than failing the whole route.
-  let districts: { id: string; geo_slug: string }[] = [];
+  let districts: { id: string; geo_slug: string; parent_id: string | null }[] = [];
   let offices: { district_id: string; slug: string }[] = [];
   let lastRun: string | undefined;
   try {
     [districts, offices] = await Promise.all([
-      selectAll<{ id: string; geo_slug: string }>("Districts", "id, geo_slug"),
+      selectAll<{ id: string; geo_slug: string; parent_id: string | null }>(
+        "Districts",
+        "id, geo_slug, parent_id"
+      ),
       selectAll<{ district_id: string; slug: string }>(
         "Offices",
         "district_id, slug"
@@ -61,12 +64,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = lastRun ? new Date(lastRun) : undefined;
   const slugById = new Map(districts.map((d) => [d.id, d.geo_slug]));
 
-  const districtEntries: MetadataRoute.Sitemap = districts.map((d) => ({
-    url: `${BASE}/${d.geo_slug}`,
-    lastModified,
-    changeFrequency: "weekly",
-    priority: 0.6,
-  }));
+  // A district holding exactly one office and no sub-districts redirects to
+  // that office (see the catch-all page's passthroughOfficeUrl) — skip it
+  // here so the sitemap doesn't submit URLs that just 308 elsewhere.
+  const officeCountByDistrict = new Map<string, number>();
+  for (const o of offices) {
+    if (!o.slug) continue;
+    officeCountByDistrict.set(
+      o.district_id,
+      (officeCountByDistrict.get(o.district_id) ?? 0) + 1
+    );
+  }
+  const childCountByParent = new Map<string, number>();
+  for (const d of districts) {
+    if (!d.parent_id) continue;
+    childCountByParent.set(
+      d.parent_id,
+      (childCountByParent.get(d.parent_id) ?? 0) + 1
+    );
+  }
+  const isPassthroughDistrict = (d: { id: string }) =>
+    (officeCountByDistrict.get(d.id) ?? 0) === 1 &&
+    (childCountByParent.get(d.id) ?? 0) === 0;
+
+  const districtEntries: MetadataRoute.Sitemap = districts
+    .filter((d) => !isPassthroughDistrict(d))
+    .map((d) => ({
+      url: `${BASE}/${d.geo_slug}`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
 
   const officeEntries: MetadataRoute.Sitemap = [];
   for (const o of offices) {
