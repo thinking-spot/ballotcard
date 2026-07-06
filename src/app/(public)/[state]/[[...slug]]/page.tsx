@@ -7,6 +7,11 @@ import { getDistrictPageData } from "@/lib/district-data";
 import type { DistrictPageData, DistrictOffice } from "@/lib/district-data";
 import { LAYER_ORDER, LAYER_LABELS } from "@/lib/district-data";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import {
+  JsonLd,
+  breadcrumbSchema,
+  officeholderSchema,
+} from "@/components/seo/JsonLd";
 import { OfficeholderCard } from "@/components/office/OfficeholderCard";
 import { OfficeSidebar } from "@/components/office/OfficeSidebar";
 import { OfficeActivity } from "@/components/office/OfficeActivity";
@@ -185,6 +190,7 @@ function DistrictPageView({ data }: { data: DistrictPageData }) {
 
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
+      <JsonLd data={breadcrumbSchema(data.breadcrumbs)} />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Breadcrumb items={data.breadcrumbs} />
 
@@ -359,6 +365,16 @@ export default async function CatchallPage({
 
   return (
     <div className="min-h-screen bg-bc-light-lavender/30">
+      <JsonLd data={breadcrumbSchema(data.breadcrumbs)} />
+      {data.official && (
+        <JsonLd
+          data={officeholderSchema(
+            data.official,
+            data.office.title,
+            `https://ballot-card.com/${resolved.districtGeoSlug}/${resolved.officeSlug}`
+          )}
+        />
+      )}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <Breadcrumb items={data.breadcrumbs} />
 

@@ -51,6 +51,11 @@ export const metadata: Metadata = {
   description:
     "Create an online version of your local ballot in seconds. From the senate to city hall, stay up to date on your representatives and your elections, 24/7.",
   metadataBase: new URL("https://ballot-card.com"),
+  // "./" resolves against metadataBase + the current route, so every page emits
+  // its own query-param-free canonical without per-page boilerplate.
+  alternates: {
+    canonical: "./",
+  },
   openGraph: {
     siteName: "BallotCard",
     type: "website",
@@ -59,6 +64,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  // Google Search Console ownership — set GOOGLE_SITE_VERIFICATION in Vercel
+  // (the content value of the meta-tag verification method).
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {

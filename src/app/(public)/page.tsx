@@ -3,6 +3,7 @@ import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { LandingCommitments } from "@/components/landing/LandingCommitments";
 import { LandingProspects } from "@/components/landing/LandingProspects";
 import { LandingFinalCta } from "@/components/landing/LandingFinalCta";
+import { JsonLd, webSiteSchema } from "@/components/seo/JsonLd";
 
 export const metadata = {
   // Absolute title so the root template's "| Find Your Ballot" suffix isn't
@@ -15,6 +16,7 @@ export const metadata = {
 export default function LandingPage() {
   return (
     <>
+      <JsonLd data={webSiteSchema()} />
       <LandingHero />
       <LandingHowItWorks />
       <LandingCommitments />
