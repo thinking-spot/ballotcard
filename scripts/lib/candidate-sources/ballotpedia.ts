@@ -315,13 +315,30 @@ export function parseBallotpediaCandidatePage(
       // District", "District Belknap 1") but the URL slug is consistent.
       // Fall back to text-pattern matching when the cell has no link.
       const officeAnchor = cells[0].querySelector("a");
+      const officeText = cells[0].text.trim();
       let district: string | null = null;
       if (officeAnchor) {
         const href = officeAnchor.getAttribute("href") ?? "";
         district = districtFromUrl(href, state, chamber);
       }
+      // Seat-lettered districts (Idaho House: "District 1A" / "District 1B"
+      // are separate seats, and separate district rows in our DB) link to
+      // the shared seatless district page, so the href loses the seat. When
+      // the cell text carries a strictly longer identifier that extends the
+      // href-derived one, the text is the more precise source. (WA-style
+      // "Position 1/2" labels don't match this shape — those chambers model
+      // positions as seats on one district, not separate districts.)
+      const seatLettered = officeText.match(/^District\s+(\d+[A-Za-z])$/i);
+      if (seatLettered) {
+        const fromText = seatLettered[1].toLowerCase();
+        if (
+          !district ||
+          (fromText.startsWith(district) && fromText.length > district.length)
+        ) {
+          district = fromText;
+        }
+      }
       if (!district) {
-        const officeText = cells[0].text.trim();
         const districtMatch = officeText.match(/^District\s+(\d+)/i);
         if (districtMatch) district = districtMatch[1];
       }

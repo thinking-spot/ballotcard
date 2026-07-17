@@ -304,6 +304,48 @@ const NE_HTML = `
 </body></html>
 `;
 
+// Idaho House: each numbered district elects Seat A and Seat B as separate
+// seats — and separate district rows in our DB (id/sldl-1a, id/sldl-1b).
+// Ballotpedia's office cells read "District 1A" / "District 1B" but LINK to
+// the shared seatless district page, so the href alone loses the seat.
+const ID_HOUSE_HTML = `
+<html><body>
+  <table class="wikitable sortable collapsible candidateListTablePartisan">
+    <tbody>
+      <tr><td colspan="4"><h4>Idaho House of Representatives general election 2026</h4></td></tr>
+      <tr>
+        <td style="font-weight: bold; width: 25%;">Office</td>
+        <td style="font-weight: bold">Democratic</td>
+        <td style="font-weight: bold; width: 25%;">Republican</td>
+        <td style="font-weight: bold; width: 25%;">Other</td>
+      </tr>
+      <tr>
+        <td><a href="https://ballotpedia.org/Idaho_House_of_Representatives_District_1">District 1A</a></td>
+        <td></td>
+        <td><p><span class="candidate"><a href="/Mark_Sauter">Mark Sauter</a>&#160;(i) <br /></span></p></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><a href="https://ballotpedia.org/Idaho_House_of_Representatives_District_1">District 1B</a></td>
+        <td><p><span class="candidate"><a href="/Kathryn_Larson">Kathryn Larson</a> <br /></span></p></td>
+        <td><p><span class="candidate"><a href="/Cornel_Rasor">Cornel Rasor</a>&#160;(i) <br /></span></p></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+</body></html>
+`;
+
+describe("Seat-lettered districts (Idaho House A/B)", () => {
+  it("prefers the seat-lettered cell text over the seatless href", () => {
+    const out = parseBallotpediaCandidatePage(ID_HOUSE_HTML, "ID", "state-house", 2026);
+    expect(out).toHaveLength(3);
+    expect(out.find((c) => c.name === "Mark Sauter")?.district).toBe("1a");
+    expect(out.find((c) => c.name === "Kathryn Larson")?.district).toBe("1b");
+    expect(out.find((c) => c.name === "Cornel Rasor")?.district).toBe("1b");
+  });
+});
+
 describe("parseNonpartisanCandidatePage — Nebraska", () => {
   it("extracts candidates from Office|Candidates two-column table", () => {
     const out = parseNonpartisanCandidatePage(NE_HTML, "NE", 2026);
