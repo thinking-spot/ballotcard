@@ -86,6 +86,47 @@ export function countySlugFromName(state: string, name: string): string {
   return `${state.toLowerCase()}/${tail}`;
 }
 
+// Census place names whose derived tail doesn't match the seed's geoSlug.
+// Keyed on the post-strip kebab tail; values are seed-data/mayors.json tails.
+// "New York city" is the one where the legal-type suffix is load-bearing;
+// the rest are consolidated city-county governments whose Census names carry
+// the merged county. ("urban-honolulu" is defensive: Hawaii has no
+// incorporated places today, so the geocoder never returns it — but if the
+// place layer ever grows CDPs, Honolulu should still land on hi/honolulu.)
+const PLACE_TAIL_ALIASES: Record<string, string> = {
+  "new-york": "new-york-city",
+  "nashville-davidson": "nashville",
+  "louisville-jefferson-county": "louisville",
+  "lexington-fayette": "lexington",
+  "boise-city": "boise",
+  "urban-honolulu": "honolulu",
+};
+
+// Municipality slug derived from the geocoder's placeName — the counterpart
+// of countySlugFromName for the "Incorporated Places" layer. Census place
+// NAMEs carry a legal-type suffix ("Los Angeles city", "Gilbert town",
+// "Anchorage municipality") and consolidated governments add a form suffix
+// plus "(balance)" ("Nashville-Davidson metropolitan government (balance)").
+// Strip those, kebab like the county rule, then apply the alias table so the
+// result matches seed-data/mayors.json geoSlugs. A name this rule can't map
+// simply misses the district lookup and falls back to the placeholder row.
+export function placeSlugFromName(state: string, name: string): string {
+  const stripped = name
+    .replace(/\s*\(balance\)\s*$/i, "")
+    .replace(
+      /\s+(metropolitan government|metro government|urban county(?: government)?|consolidated government|unified government)$/i,
+      ""
+    )
+    .replace(/\s+(city|town|village|borough|municipality|cdp)$/i, "");
+  const tail = stripped
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/\./g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${state.toLowerCase()}/${PLACE_TAIL_ALIASES[tail] ?? tail}`;
+}
+
 /**
  * Build the ballot card for a set of resolved geographies. Collects every office
  * in the resident's districts (federal → municipal), each with its current
@@ -109,7 +150,14 @@ export async function getBallotCard(
   } else if (geo.countyName) {
     slugs.push(countySlugFromName(state, geo.countyName));
   }
-  if (geo.place) slugs.push(geo.place.includes("/") ? geo.place : `${state}/${geo.place}`);
+  // Place slug: same shape as the county path — explicit slug-tail wins,
+  // otherwise derive from the geocoder's placeName so seeded mayors join the
+  // card instead of rendering as placeholder rows.
+  if (geo.place) {
+    slugs.push(geo.place.includes("/") ? geo.place : `${state}/${geo.place}`);
+  } else if (geo.placeName) {
+    slugs.push(placeSlugFromName(state, geo.placeName));
+  }
 
   // 1. Resolve districts
   const { data: districts } = await db
