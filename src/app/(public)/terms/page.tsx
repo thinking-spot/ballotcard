@@ -49,16 +49,8 @@ export default function TermsPage() {
         <h2 className="font-serif text-lg mt-3">Corrections</h2>
         <p>
           If you spot something wrong — a stale officeholder, a missing
-          candidate, a district mix-up — please report it on{" "}
-          <a
-            href="https://github.com/thinking-spot/ballotcard/issues"
-            className="underline underline-offset-2 hover:text-bc-lavender transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            GitHub
-          </a>
-          . Corrections are the one contribution we ask of our readers.
+          candidate, a district mix-up — we want to fix it. Corrections are
+          the one contribution we ask of our readers.
         </p>
       </div>
     </div>

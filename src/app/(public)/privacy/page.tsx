@@ -43,17 +43,9 @@ export default function PrivacyPage() {
 
         <h2 className="font-serif text-lg mt-3">Verify it yourself</h2>
         <p>
-          BallotCard is open source. You can read the code that does everything
-          described above at{" "}
-          <a
-            href="https://github.com/thinking-spot/ballotcard"
-            className="underline underline-offset-2 hover:text-bc-lavender transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            github.com/thinking-spot/ballotcard
-          </a>
-          .
+          BallotCard is open source. The code that does everything described
+          above is public, so these claims can be checked rather than taken on
+          faith.
         </p>
       </div>
     </div>

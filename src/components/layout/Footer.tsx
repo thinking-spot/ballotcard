@@ -25,15 +25,7 @@ export function Footer() {
           <BrandMark />
         </Link>
         <span className="block text-[0.75rem] text-[var(--glass-text)]">
-          open source ·{" "}
-          <a
-            href="https://github.com/thinking-spot/ballotcard"
-            className={linkClass}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            github
-          </a>
+          open source
         </span>
       </div>
 
