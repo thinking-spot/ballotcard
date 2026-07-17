@@ -5,11 +5,22 @@ election cycles; `npm run ingest` upserts them idempotently.
 
 | File | Coverage | Source | Last verified |
 |---|---|---|---|
-| `governors.json` | 50 governors | Wikipedia, List of current United States governors | 2026-06-11 |
-| `statewide-execs.json` | Lt. governors (45), attorneys general (50), secretaries of state (47), treasurers/equivalent (50) | Wikipedia current-officeholder tables | 2026-06-11 |
-| `mayors.json` | 29 large-city mayors | v0.x seed | 2026-04 |
+| `governors.json` | 50 governors | Wikipedia, List of current United States governors | 2026-07-16 |
+| `statewide-execs.json` | Lt. governors (45), attorneys general (50), secretaries of state (47), treasurers/equivalent (50) | Wikipedia current-officeholder tables | 2026-07-16 (delta check) |
+| `mayors.json` | 100 mayors: Ballotpedia's top-100 cities + DC, minus Santa Clarita (council-appointed mayor, not on any ballot) | Ballotpedia top-100 list + per-city Ballotpedia bios/election pages, cross-checked with city and news sources | 2026-07-16 |
 
 Notes and known gaps:
+
+- Mayors: `termEnd: null` (18 rows) means only the term-end *year* is public — the
+  successor is seated at a post-canvass or organizational meeting whose date isn't
+  fixed yet. `nextElection: null` (4 rows: OKC, Kansas City, Long Beach, Tulsa) means
+  the next cycle's date isn't published. A wrong date is worse than null.
+- Mayors: `party` is the officeholder's publicly identified affiliation (most big-city
+  mayoral *elections* are nonpartisan); "Nonpartisan" means the person has no public
+  affiliation (e.g. Guajardo, Treviño, Ross told Ballotpedia exactly that).
+- Pending: TX Secretary of State Jane Nelson's resignation is effective 2026-07-17
+  (the day after this verification); Gov. Abbott had named no successor as of 7/16.
+  Update `statewide-execs.json` when the appointee is sworn in.
 
 - `selection` is `elected_partisan` or `appointed` (appointed rows are kept for context
   but never render on ballot cards). Some "elected" rows are nonpartisan in practice —
