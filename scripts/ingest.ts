@@ -361,10 +361,13 @@ async function ingestOffices(sources: Sources) {
   const slugToId = new Map(districts.map((d) => [d.geo_slug, d.id]));
 
   const existingOffices = await selectAll<{
+    id: string;
     district_id: string;
     slug: string;
     seat_label: string | null;
-  }>("Offices", "district_id, slug, seat_label");
+    next_election_at: string | null;
+    term_years: number | null;
+  }>("Offices", "id, district_id, slug, seat_label, next_election_at, term_years");
   const existingSet = new Set(
     existingOffices.map((o) => `${o.district_id}::${o.slug}`)
   );
@@ -564,6 +567,63 @@ async function ingestOffices(sources: Sources) {
     await insertChunked("Offices", toInsert);
     log("offices", `Inserted ${toInsert.length} offices`);
   }
+
+  // Seed-driven exec offices are otherwise insert-only, so a seed refresh
+  // (a mayor re-elected, an election date corrected) never reached rows that
+  // already existed — the office kept showing the old next_election_at
+  // forever. Diff the four seed-backed groups and update what changed.
+  // (State-leg dates have their own diff pass in applyLegislatureSchedule;
+  // congressional dates roll forward at the post-election refresh.)
+  type SeedOfficeFields = {
+    next_election_at: string | null;
+    term_years?: number;
+  };
+  const seedExpected = new Map<string, SeedOfficeFields>();
+  for (const e of federalExecs as FederalExecEntry[]) {
+    seedExpected.set(`${US_COUNTRY_ID}::${e.office}`, {
+      next_election_at: e.nextElection,
+      term_years: e.termYears,
+    });
+  }
+  for (const g of governors as GovernorEntry[]) {
+    const stateId = slugToId.get(g.state.toLowerCase());
+    if (stateId)
+      seedExpected.set(`${stateId}::governor`, {
+        next_election_at: g.nextElection,
+        term_years: g.termYears,
+      });
+  }
+  for (const e of statewideExecs as StatewideExecEntry[]) {
+    const stateId = slugToId.get(e.state.toLowerCase());
+    if (stateId)
+      seedExpected.set(`${stateId}::${e.office.replace(/_/g, "-")}`, {
+        next_election_at: e.nextElection,
+      });
+  }
+  for (const m of mayors as MayorEntry[]) {
+    const districtId = slugToId.get(m.geoSlug);
+    if (districtId)
+      seedExpected.set(`${districtId}::mayor`, {
+        next_election_at: m.nextElection,
+        term_years: m.termYears,
+      });
+  }
+  let officesUpdated = 0;
+  for (const o of existingOffices) {
+    const want = seedExpected.get(`${o.district_id}::${o.slug}`);
+    if (!want) continue;
+    const patch: Record<string, unknown> = {};
+    if (o.next_election_at !== want.next_election_at)
+      patch.next_election_at = want.next_election_at;
+    if (want.term_years !== undefined && o.term_years !== want.term_years)
+      patch.term_years = want.term_years;
+    if (Object.keys(patch).length === 0) continue;
+    const { error } = await db.from("Offices").update(patch).eq("id", o.id);
+    if (error) throw new Error(`Office seed update failed: ${error.message}`);
+    officesUpdated++;
+  }
+  if (officesUpdated > 0)
+    log("offices", `Updated ${officesUpdated} seeded offices (diffed)`);
 
   const { count } = await db
     .from("Offices")
@@ -929,6 +989,46 @@ async function ingestCandidates(): Promise<number> {
   for (const cycle of cyclesTouched) {
     await db.from("Candidates").delete().eq("source", "fec").eq("cycle", cycle);
   }
+
+  // State SoS scrapes also cover federal races, and a candidate can register
+  // with the FEC *after* the scrape that filed their SoS row — leaving a
+  // non-FEC row on the exact (office_id, cycle, name) key we're about to
+  // insert. Precedence on federal seats is FEC (money totals + better
+  // incumbency data; scrape-candidates.ts skips its side of the overlap for
+  // the same reason), so replace those rows rather than tripping the unique
+  // key. Near-miss name variants ("Eric W. Burlison" vs "Eric Burlison") are
+  // reconciled by the next scrape run's federal-overlap filter, not here.
+  const incomingKeys = new Set(
+    finalRows.map((r) => `${r.office_id}::${r.cycle}::${r.name}`)
+  );
+  const collidingIds: string[] = [];
+  for (const cycle of cyclesTouched) {
+    const existing = await selectAll<{
+      id: string;
+      office_id: string;
+      cycle: number;
+      name: string;
+    }>("Candidates", "id, office_id, cycle, name", ["cycle", cycle]);
+    for (const r of existing) {
+      if (incomingKeys.has(`${r.office_id}::${r.cycle}::${r.name}`))
+        collidingIds.push(r.id);
+    }
+  }
+  for (let i = 0; i < collidingIds.length; i += 200) {
+    const { error } = await db
+      .from("Candidates")
+      .delete()
+      .in("id", collidingIds.slice(i, i + 200));
+    if (error)
+      throw new Error(`Candidates cross-source replace failed: ${error.message}`);
+  }
+  if (collidingIds.length > 0) {
+    log(
+      "candidates",
+      `Replaced ${collidingIds.length} state-filed rows that FEC now covers`
+    );
+  }
+
   if (finalRows.length > 0) await insertChunked("Candidates", finalRows);
   log("candidates", `Inserted ${finalRows.length} federal candidates`);
   return finalRows.length;

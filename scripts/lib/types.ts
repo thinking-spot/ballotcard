@@ -52,8 +52,10 @@ export type MayorEntry = {
   name: string;
   party: string;
   termStart: string;
-  termEnd: string;
-  nextElection: string;
+  // Null when only the term-end year is public (e.g. a seat filled by a
+  // late-seated runoff winner) — a wrong date is worse than null.
+  termEnd: string | null;
+  nextElection: string | null;
   termYears: number;
   ballotpedia?: string;
 };
