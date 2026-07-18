@@ -31,7 +31,18 @@ export async function fetchFecElectionDates(
     url.searchParams.set("election_year", String(cycle));
     url.searchParams.set("per_page", "100");
     url.searchParams.set("page", String(page));
-    const res = await fetch(url);
+    // Phase 5 runs right after the candidate phase has spent most of the
+    // hourly FEC budget, so the first call here is the one that tends to
+    // trip 429 — and without a retry it failed the whole run's stamp.
+    // Honor Retry-After when present; otherwise back off a minute.
+    let res = await fetch(url);
+    for (let attempt = 0; res.status === 429 && attempt < 4; attempt++) {
+      const retryAfter = Number(res.headers.get("retry-after"));
+      const waitMs = (Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 60) * 1000;
+      console.log(`[primaries] FEC 429 — waiting ${waitMs / 1000}s (attempt ${attempt + 1}/4)`);
+      await new Promise((r) => setTimeout(r, waitMs));
+      res = await fetch(url);
+    }
     if (!res.ok) throw new Error(`FEC election-dates failed: ${res.status}`);
     const json = (await res.json()) as {
       results: Array<Record<string, unknown>>;
