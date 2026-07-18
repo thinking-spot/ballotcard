@@ -93,6 +93,34 @@ export type FederalExecEntry = {
   ballotpedia?: string;
 };
 
+// Shape of seed-data/high-courts.json
+export type HighCourtJustice = {
+  name: string;
+  role: "chief" | "associate";
+  // YYYY-MM-DD when the swearing-in date is public; bare "YYYY" otherwise
+  // (stored as Jan 1 / Dec 31 of that year — see seed-data/README.md).
+  termStart: string;
+  termEnd: string | null;
+  party: string | null; // only for partisan-court justices with a public affiliation
+  ballotpedia?: string;
+};
+
+export type HighCourtEntry = {
+  state: string; // two-letter
+  court: "supreme-court" | "court-of-criminal-appeals"; // office slug
+  courtName: string; // proper name, e.g. "New York Court of Appeals"
+  seats: number; // total seats — offices are created for vacancies too
+  selectionMethod:
+    | "elected_partisan"
+    | "elected_nonpartisan"
+    | "retention"
+    | "appointed";
+  selectionDetail: string;
+  termYears: number;
+  ballotpediaCourt?: string;
+  justices: HighCourtJustice[];
+};
+
 // A person row from Open States bulk people CSV (data.openstates.org).
 export type OpenStatesPerson = {
   id: string; // ocd-person/...

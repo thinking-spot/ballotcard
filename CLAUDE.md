@@ -87,7 +87,8 @@ reintroduce auth, posting, or any user-generated-content mechanic.
 | Congress | `unitedstates/congress-legislators` YAML (+ `unitedstates/images` photos) |
 | State legislators | OpenStates bulk people data |
 | Governors / statewide execs / mayors | curated seeds in `seed-data/` |
-| State judges (later) | CourtListener judges API |
+| State courts of last resort | curated seed (`high-courts.json`, Ballotpedia-sourced — CourtListener's state rosters proved years stale; its IDs remain the plan for the activity feed) |
+| Lower state judges (later) | no fresh national source yet — schema-ready, honest empty states |
 | Sheriffs / county (later) | no national source yet — schema-ready, honest empty states |
 
 Ingestion lives in `scripts/` and `src/lib/ingestion/`; everything is an idempotent upsert

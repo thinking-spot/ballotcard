@@ -82,6 +82,18 @@ const checks: Check[] = [
     expected: [20, 400],
   },
   {
+    // 51 supreme courts (50 states + DC), one office per seat — ~350 seats.
+    // The TX/OK Courts of Criminal Appeals use their own slug and add 14.
+    label: "High court seat offices",
+    query: () => count("Offices", { slug: "supreme-court" }),
+    expected: [280, 400],
+  },
+  {
+    label: "Criminal-appeals seat offices (TX+OK)",
+    query: () => count("Offices", { slug: "court-of-criminal-appeals" }),
+    expected: 14,
+  },
+  {
     label: "Current officials",
     // Congress (535) + statewide execs + ~7.4k state legislators + mayors.
     query: () => count("Officials", { is_current: true }),

@@ -1,0 +1,3406 @@
+[
+  {
+    "state": "AK",
+    "court": "supreme-court",
+    "courtName": "Alaska Supreme Court",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from Alaska Judicial Council nominees, stand in a retention election at the first general election more than three years after appointment, then every ten years; the chief justice is chosen by peer vote for a three-year term (Susan Carney since 2025).",
+    "termYears": 10,
+    "ballotpediaCourt": "Alaska_Supreme_Court",
+    "justices": [
+      {
+        "name": "Susan Carney",
+        "role": "chief",
+        "termStart": "2016-05-12",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Susan_Carney_(Alaska)"
+      },
+      {
+        "name": "Dario Borghesan",
+        "role": "associate",
+        "termStart": "2020-07-01",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Dario_Borghesan"
+      },
+      {
+        "name": "Jennifer S. Henderson",
+        "role": "associate",
+        "termStart": "2021-07-21",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Jennifer_S._Henderson"
+      },
+      {
+        "name": "Aimee Oravec",
+        "role": "associate",
+        "termStart": "2025-01-31",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Aimee_Oravec"
+      },
+      {
+        "name": "Jude Pate",
+        "role": "associate",
+        "termStart": "2023-03-22",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Jude_Pate"
+      }
+    ]
+  },
+  {
+    "state": "AL",
+    "court": "supreme-court",
+    "courtName": "Alabama Supreme Court",
+    "seats": 9,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "All nine justices, including the chief justice, are chosen in statewide partisan elections to six-year terms; midterm vacancies are filled by gubernatorial appointment until the next election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Alabama_Supreme_Court",
+    "justices": [
+      {
+        "name": "Sarah Stewart",
+        "role": "chief",
+        "termStart": "2025-01-20",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Sarah_Stewart_(Alabama)"
+      },
+      {
+        "name": "Tommy Bryan",
+        "role": "associate",
+        "termStart": "2013",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Tommy_Bryan"
+      },
+      {
+        "name": "Greg Cook",
+        "role": "associate",
+        "termStart": "2023-01-16",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Greg_Cook_(Alabama)"
+      },
+      {
+        "name": "Chris McCool",
+        "role": "associate",
+        "termStart": "2025-01-20",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Chris_McCool"
+      },
+      {
+        "name": "Brad Mendheim",
+        "role": "associate",
+        "termStart": "2018-12-28",
+        "termEnd": "2027",
+        "party": "Republican",
+        "ballotpedia": "Brad_Mendheim"
+      },
+      {
+        "name": "Will Parker",
+        "role": "associate",
+        "termStart": "2025-11-10",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Will_Parker"
+      },
+      {
+        "name": "William Sellers",
+        "role": "associate",
+        "termStart": "2017-05-25",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "William_Sellers"
+      },
+      {
+        "name": "Greg Shaw",
+        "role": "associate",
+        "termStart": "2009",
+        "termEnd": "2027",
+        "party": "Republican",
+        "ballotpedia": "Greg_Shaw"
+      },
+      {
+        "name": "Kelli Wise",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Kelli_Wise"
+      }
+    ]
+  },
+  {
+    "state": "AR",
+    "court": "supreme-court",
+    "courtName": "Arkansas Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "All seven positions, including a separately elected chief justice, are chosen in statewide nonpartisan elections to eight-year terms; midterm vacancies are filled by gubernatorial appointment until the next election.",
+    "termYears": 8,
+    "ballotpediaCourt": "Arkansas_Supreme_Court",
+    "justices": [
+      {
+        "name": "Karen R. Baker",
+        "role": "chief",
+        "termStart": "2025-01-01",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Karen_R._Baker"
+      },
+      {
+        "name": "Courtney Rae Hudson",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Courtney_Rae_Hudson"
+      },
+      {
+        "name": "Cody Hiland",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Cody_Hiland"
+      },
+      {
+        "name": "Barbara Webb",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Barbara_Webb"
+      },
+      {
+        "name": "Shawn Womack",
+        "role": "associate",
+        "termStart": "2017-01-01",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Shawn_Womack"
+      },
+      {
+        "name": "Nicholas Bronni",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Nicholas_Bronni"
+      },
+      {
+        "name": "Rhonda Wood",
+        "role": "associate",
+        "termStart": "2015-01-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Rhonda_Wood"
+      }
+    ]
+  },
+  {
+    "state": "AZ",
+    "court": "supreme-court",
+    "courtName": "Arizona Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from Commission on Appellate Court Appointments nominees, serve an initial term of at least two years, then stand in retention elections every six years; the chief justice is selected by peer vote (Ann Timmer since July 2024).",
+    "termYears": 6,
+    "ballotpediaCourt": "Arizona_Supreme_Court",
+    "justices": [
+      {
+        "name": "Ann Timmer",
+        "role": "chief",
+        "termStart": "2012",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Ann_Timmer"
+      },
+      {
+        "name": "James P. Beene",
+        "role": "associate",
+        "termStart": "2019",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "James_Beene"
+      },
+      {
+        "name": "Clint Bolick",
+        "role": "associate",
+        "termStart": "2016-01-05",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Clint_Bolick"
+      },
+      {
+        "name": "Maria Elena Cruz",
+        "role": "associate",
+        "termStart": "2025-02-03",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Maria_Elena_Cruz"
+      },
+      {
+        "name": "Kathryn Hackett King",
+        "role": "associate",
+        "termStart": "2021-07-08",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Kathryn_Hackett_King"
+      },
+      {
+        "name": "John Lopez IV",
+        "role": "associate",
+        "termStart": "2017",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "John_Lopez_IV"
+      },
+      {
+        "name": "Bill Montgomery",
+        "role": "associate",
+        "termStart": "2019-09-09",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Bill_Montgomery"
+      }
+    ]
+  },
+  {
+    "state": "CA",
+    "court": "supreme-court",
+    "courtName": "California Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed by the governor with Commission on Judicial Appointments confirmation, then appear statewide in yes-no retention elections for 12-year terms; one seat vacant since Justice Jenkins retired October 31, 2025.",
+    "termYears": 12,
+    "ballotpediaCourt": "California_Supreme_Court",
+    "justices": [
+      {
+        "name": "Patricia Guerrero",
+        "role": "chief",
+        "termStart": "2023-01-02",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Patricia_Guerrero"
+      },
+      {
+        "name": "Carol Corrigan",
+        "role": "associate",
+        "termStart": "2006",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Carol_Corrigan"
+      },
+      {
+        "name": "Kelli M. Evans",
+        "role": "associate",
+        "termStart": "2023-01-02",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Kelli_M._Evans"
+      },
+      {
+        "name": "Joshua Groban",
+        "role": "associate",
+        "termStart": "2018-12-21",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Joshua_Groban"
+      },
+      {
+        "name": "Leondra Kruger",
+        "role": "associate",
+        "termStart": "2015",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Leondra_Kruger"
+      },
+      {
+        "name": "Goodwin Liu",
+        "role": "associate",
+        "termStart": "2011-09-01",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Goodwin_Liu"
+      }
+    ]
+  },
+  {
+    "state": "CO",
+    "court": "supreme-court",
+    "courtName": "Colorado Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from Supreme Court Nominating Commission nominees, serve a two-year provisional term, then stand in retention elections every ten years; the chief justice is chosen by peer vote (Monica M\u00e1rquez since July 2024).",
+    "termYears": 10,
+    "ballotpediaCourt": "Colorado_Supreme_Court",
+    "justices": [
+      {
+        "name": "Monica M\u00e1rquez",
+        "role": "chief",
+        "termStart": "2010",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Monica_M%C3%A1rquez"
+      },
+      {
+        "name": "Maria Berkenkotter",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Maria_Berkenkotter"
+      },
+      {
+        "name": "Susan Blanco",
+        "role": "associate",
+        "termStart": "2026-02-17",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Susan_Blanco"
+      },
+      {
+        "name": "Brian Boatright",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Brian_Boatright"
+      },
+      {
+        "name": "Richard Gabriel",
+        "role": "associate",
+        "termStart": "2015",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Richard_Gabriel"
+      },
+      {
+        "name": "William W. Hood",
+        "role": "associate",
+        "termStart": "2014-01-13",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "William_W._Hood"
+      },
+      {
+        "name": "Carlos Armando Samour Jr.",
+        "role": "associate",
+        "termStart": "2018",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Carlos_Armando_Samour_Jr."
+      }
+    ]
+  },
+  {
+    "state": "CT",
+    "court": "supreme-court",
+    "courtName": "Connecticut Supreme Court",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are nominated by the governor from Judicial Selection Commission candidates and confirmed by the General Assembly to eight-year terms; no statewide ballot (chief justice Raheem Mullins since January 2025).",
+    "termYears": 8,
+    "ballotpediaCourt": "Connecticut_Supreme_Court",
+    "justices": [
+      {
+        "name": "Raheem L. Mullins",
+        "role": "chief",
+        "termStart": "2025-01-28",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Raheem_L._Mullins"
+      },
+      {
+        "name": "Joan K. Alexander",
+        "role": "associate",
+        "termStart": "2022-04-30",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Joan_K._Alexander"
+      },
+      {
+        "name": "William H. Bright Jr.",
+        "role": "associate",
+        "termStart": "2025-03-06",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "William_H._Bright,_Jr."
+      },
+      {
+        "name": "Gregory D'Auria",
+        "role": "associate",
+        "termStart": "2017",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Gregory_D%27Auria"
+      },
+      {
+        "name": "Nora Dannehy",
+        "role": "associate",
+        "termStart": "2023-09-26",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Nora_Dannehy"
+      },
+      {
+        "name": "Steven D. Ecker",
+        "role": "associate",
+        "termStart": "2018-05-03",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Steven_D._Ecker"
+      },
+      {
+        "name": "Andrew J. McDonald",
+        "role": "associate",
+        "termStart": "2013-01-24",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Andrew_McDonald"
+      }
+    ]
+  },
+  {
+    "state": "DC",
+    "court": "supreme-court",
+    "courtName": "District of Columbia Court of Appeals",
+    "seats": 9,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Judges are appointed by the President from a D.C. Judicial Nomination Commission list with U.S. Senate confirmation to 15-year terms, never on any ballot; two of nine seats currently vacant.",
+    "termYears": 15,
+    "ballotpediaCourt": "District_of_Columbia_Court_of_Appeals",
+    "justices": [
+      {
+        "name": "Anna Blackburne-Rigsby",
+        "role": "chief",
+        "termStart": "2006",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Anna_Blackburne-Rigsby"
+      },
+      {
+        "name": "Corinne Ann Beckwith",
+        "role": "associate",
+        "termStart": "2012-02-03",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Corinne_Ann_Beckwith"
+      },
+      {
+        "name": "Joshua Deahl",
+        "role": "associate",
+        "termStart": "2020-01-06",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Joshua_Deahl"
+      },
+      {
+        "name": "Catharine Easterly",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Catharine_Easterly"
+      },
+      {
+        "name": "John P. Howard III",
+        "role": "associate",
+        "termStart": "2022-02-18",
+        "termEnd": "2037",
+        "party": null,
+        "ballotpedia": "John_Howard_(District_of_Columbia)"
+      },
+      {
+        "name": "Roy W. McLeese",
+        "role": "associate",
+        "termStart": "2012",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Roy_W._McLeese"
+      },
+      {
+        "name": "Vijay Shanker",
+        "role": "associate",
+        "termStart": "2022-12-21",
+        "termEnd": "2037",
+        "party": null,
+        "ballotpedia": "Vijay_Shanker"
+      }
+    ]
+  },
+  {
+    "state": "DE",
+    "court": "supreme-court",
+    "courtName": "Delaware Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are nominated from Judicial Nominating Commission candidates and confirmed by the state Senate to 12-year terms, with a constitutional party-balance requirement; no statewide ballot.",
+    "termYears": 12,
+    "ballotpediaCourt": "Delaware_Supreme_Court",
+    "justices": [
+      {
+        "name": "Collins Seitz Jr.",
+        "role": "chief",
+        "termStart": "2019-11-08",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Collins_Seitz_Jr."
+      },
+      {
+        "name": "N. Christopher Griffiths",
+        "role": "associate",
+        "termStart": "2023-05-22",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "N._Christopher_Griffiths"
+      },
+      {
+        "name": "Abigail LeGrow",
+        "role": "associate",
+        "termStart": "2023-05-11",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Abigail_LeGrow"
+      },
+      {
+        "name": "Gary Traynor",
+        "role": "associate",
+        "termStart": "2017-07-05",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Gary_Traynor"
+      },
+      {
+        "name": "Karen L. Valihura",
+        "role": "associate",
+        "termStart": "2014-07-25",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Karen_L._Valihura"
+      }
+    ]
+  },
+  {
+    "state": "FL",
+    "court": "supreme-court",
+    "courtName": "Florida Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a judicial nominating commission shortlist and thereafter appear statewide in yes-no retention elections for six-year terms.",
+    "termYears": 6,
+    "ballotpediaCourt": "Florida_Supreme_Court",
+    "justices": [
+      {
+        "name": "Carlos Mu\u00f1iz",
+        "role": "chief",
+        "termStart": "2019-01-22",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Carlos_Mu%C3%B1iz"
+      },
+      {
+        "name": "John Daniel Couriel",
+        "role": "associate",
+        "termStart": "2020-06-01",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "John_D._Couriel"
+      },
+      {
+        "name": "Renatha Francis",
+        "role": "associate",
+        "termStart": "2022-09-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Renatha_Francis"
+      },
+      {
+        "name": "Jamie Rutland Grosshans",
+        "role": "associate",
+        "termStart": "2020-09-14",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Jamie_Rutland_Grosshans"
+      },
+      {
+        "name": "Jorge Labarga",
+        "role": "associate",
+        "termStart": "2009-01-06",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Jorge_Labarga"
+      },
+      {
+        "name": "Meredith Sasso",
+        "role": "associate",
+        "termStart": "2023-05-23",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Meredith_Sasso"
+      },
+      {
+        "name": "Adam Tanenbaum",
+        "role": "associate",
+        "termStart": "2026-01-14",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Adam_Tanenbaum"
+      }
+    ]
+  },
+  {
+    "state": "GA",
+    "court": "supreme-court",
+    "courtName": "Supreme Court of Georgia",
+    "seats": 9,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Nine justices are chosen in statewide nonpartisan elections for six-year terms; midterm vacancies are filled by gubernatorial appointment, appointees then standing in the next nonpartisan election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Supreme_Court_of_Georgia",
+    "justices": [
+      {
+        "name": "Nels Peterson",
+        "role": "chief",
+        "termStart": "2017-01-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Nels_Peterson"
+      },
+      {
+        "name": "Charlie Bethel",
+        "role": "associate",
+        "termStart": "2018-10-02",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Charlie_Bethel"
+      },
+      {
+        "name": "Verda Colvin",
+        "role": "associate",
+        "termStart": "2021-07-29",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Verda_Colvin"
+      },
+      {
+        "name": "John Ellington",
+        "role": "associate",
+        "termStart": "2018-12-18",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "John_Ellington"
+      },
+      {
+        "name": "Sarah Hawkins Warren",
+        "role": "associate",
+        "termStart": "2018-09-17",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Sarah_Hawkins_Warren"
+      },
+      {
+        "name": "Shawn Ellen LaGrua",
+        "role": "associate",
+        "termStart": "2021-01-19",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Shawn_LaGrua"
+      },
+      {
+        "name": "Ben Land",
+        "role": "associate",
+        "termStart": "2025-07-24",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Ben_Land"
+      },
+      {
+        "name": "Carla W. McMillian",
+        "role": "associate",
+        "termStart": "2020-04-10",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Carla_W._McMillian"
+      },
+      {
+        "name": "Andrew Pinson",
+        "role": "associate",
+        "termStart": "2022-07-20",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Andrew_Pinson"
+      }
+    ]
+  },
+  {
+    "state": "HI",
+    "court": "supreme-court",
+    "courtName": "Hawaii Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed from a Judicial Selection Commission shortlist with Senate confirmation for 10-year terms; reappointment is decided by the commission, never a ballot. One associate seat vacant after Devens's elevation to chief in May 2026.",
+    "termYears": 10,
+    "ballotpediaCourt": "Hawaii_Supreme_Court",
+    "justices": [
+      {
+        "name": "Vladimir P. Devens",
+        "role": "chief",
+        "termStart": "2026-05-05",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Vladimir_P._Devens"
+      },
+      {
+        "name": "Todd Eddins",
+        "role": "associate",
+        "termStart": "2020-12-11",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Todd_Eddins"
+      },
+      {
+        "name": "Lisa M. Ginoza",
+        "role": "associate",
+        "termStart": "2024-01-12",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Lisa_M._Ginoza"
+      },
+      {
+        "name": "Sabrina S. McKenna",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Sabrina_S._McKenna"
+      }
+    ]
+  },
+  {
+    "state": "IA",
+    "court": "supreme-court",
+    "courtName": "Iowa Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a State Judicial Nominating Commission shortlist, stand in retention after one year, then every eight years.",
+    "termYears": 8,
+    "ballotpediaCourt": "Iowa_Supreme_Court",
+    "justices": [
+      {
+        "name": "Susan Christensen",
+        "role": "chief",
+        "termStart": "2018",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Susan_Christensen"
+      },
+      {
+        "name": "Edward Mansfield",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Edward_Mansfield"
+      },
+      {
+        "name": "David May",
+        "role": "associate",
+        "termStart": "2022-08-19",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "David_May"
+      },
+      {
+        "name": "Matthew McDermott",
+        "role": "associate",
+        "termStart": "2020-04-03",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Matthew_McDermott_(Iowa)"
+      },
+      {
+        "name": "Christopher McDonald",
+        "role": "associate",
+        "termStart": "2019-04-05",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Christopher_McDonald"
+      },
+      {
+        "name": "Dana Oxley",
+        "role": "associate",
+        "termStart": "2020-02-24",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Dana_Oxley"
+      },
+      {
+        "name": "Thomas Waterman",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Thomas_Waterman"
+      }
+    ]
+  },
+  {
+    "state": "ID",
+    "court": "supreme-court",
+    "courtName": "Idaho Supreme Court",
+    "seats": 5,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Five justices are elected statewide in nonpartisan elections to six-year terms; midterm vacancies are filled by gubernatorial appointment from a judicial council list.",
+    "termYears": 6,
+    "ballotpediaCourt": "Idaho_Supreme_Court",
+    "justices": [
+      {
+        "name": "G. Richard Bevan",
+        "role": "chief",
+        "termStart": "2017-09-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "G._Richard_Bevan"
+      },
+      {
+        "name": "Robyn Brody",
+        "role": "associate",
+        "termStart": "2017-01-02",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Robyn_Brody"
+      },
+      {
+        "name": "Cynthia Meyer",
+        "role": "associate",
+        "termStart": "2024-01-05",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Cynthia_Meyer"
+      },
+      {
+        "name": "Gregory W. Moeller",
+        "role": "associate",
+        "termStart": "2019",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Gregory_W._Moeller"
+      },
+      {
+        "name": "Colleen Zahn",
+        "role": "associate",
+        "termStart": "2021-07-01",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Colleen_Zahn"
+      }
+    ]
+  },
+  {
+    "state": "IL",
+    "court": "supreme-court",
+    "courtName": "Illinois Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Seven justices are initially elected in partisan elections from five districts to 10-year terms, then face uncontested yes-no retention elections; midterm vacancies are filled by supreme court appointment until the next election.",
+    "termYears": 10,
+    "ballotpediaCourt": "Illinois_Supreme_Court",
+    "justices": [
+      {
+        "name": "P. Scott Neville",
+        "role": "chief",
+        "termStart": "2018-06-15",
+        "termEnd": "2030",
+        "party": "Democratic",
+        "ballotpedia": "P._Scott_Neville"
+      },
+      {
+        "name": "Joy Cunningham",
+        "role": "associate",
+        "termStart": "2022-12-01",
+        "termEnd": "2034",
+        "party": "Democratic",
+        "ballotpedia": "Joy_Cunningham"
+      },
+      {
+        "name": "Sanjay Tailor",
+        "role": "associate",
+        "termStart": "2026-01-30",
+        "termEnd": "2028",
+        "party": "Democratic",
+        "ballotpedia": "Sanjay_Tailor"
+      },
+      {
+        "name": "Elizabeth M. Rochford",
+        "role": "associate",
+        "termStart": "2022-12-05",
+        "termEnd": "2032",
+        "party": "Democratic",
+        "ballotpedia": "Elizabeth_M._Rochford"
+      },
+      {
+        "name": "Mary Kay O'Brien",
+        "role": "associate",
+        "termStart": "2022-12-05",
+        "termEnd": "2032",
+        "party": "Democratic",
+        "ballotpedia": "Mary_Kay_O'Brien"
+      },
+      {
+        "name": "Lisa Holder White",
+        "role": "associate",
+        "termStart": "2022-07-08",
+        "termEnd": "2034",
+        "party": "Republican",
+        "ballotpedia": "Lisa_Holder_White"
+      },
+      {
+        "name": "David K. Overstreet",
+        "role": "associate",
+        "termStart": "2020-12-07",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "David_K._Overstreet"
+      }
+    ]
+  },
+  {
+    "state": "IN",
+    "court": "supreme-court",
+    "courtName": "Indiana Supreme Court",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a nominating-commission shortlist, stand in a statewide yes-no retention election after ~two years, then every 10 years.",
+    "termYears": 10,
+    "ballotpediaCourt": "Indiana_Supreme_Court",
+    "justices": [
+      {
+        "name": "Loretta H. Rush",
+        "role": "chief",
+        "termStart": "2012-11-07",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Loretta_H._Rush"
+      },
+      {
+        "name": "Christopher M. Goff",
+        "role": "associate",
+        "termStart": "2017-07-24",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Christopher_M._Goff"
+      },
+      {
+        "name": "Mark S. Massa",
+        "role": "associate",
+        "termStart": "2012-04-02",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Mark_S._Massa"
+      },
+      {
+        "name": "Derek Molter",
+        "role": "associate",
+        "termStart": "2022-09-01",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Derek_Molter"
+      },
+      {
+        "name": "Geoffrey Slaughter",
+        "role": "associate",
+        "termStart": "2016-06-13",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Geoffrey_Slaughter"
+      }
+    ]
+  },
+  {
+    "state": "KS",
+    "court": "supreme-court",
+    "courtName": "Kansas Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a Supreme Court Nominating Commission shortlist and face statewide retention every six years; one seat vacant after Chief Justice Luckert's retirement Jan 2, 2026 (Rosen became chief by seniority).",
+    "termYears": 6,
+    "ballotpediaCourt": "Kansas_Supreme_Court",
+    "justices": [
+      {
+        "name": "Eric Rosen",
+        "role": "chief",
+        "termStart": "2005",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Eric_Rosen"
+      },
+      {
+        "name": "Daniel Biles",
+        "role": "associate",
+        "termStart": "2009-01-07",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Daniel_Biles"
+      },
+      {
+        "name": "Melissa Standridge",
+        "role": "associate",
+        "termStart": "2020-12-14",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Melissa_Standridge"
+      },
+      {
+        "name": "Caleb Stegall",
+        "role": "associate",
+        "termStart": "2014-12-05",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Caleb_Stegall"
+      },
+      {
+        "name": "Keynen Wall",
+        "role": "associate",
+        "termStart": "2020-08-03",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Keynen_Wall"
+      },
+      {
+        "name": "Larkin Walsh",
+        "role": "associate",
+        "termStart": "2025-09-17",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Larkin_Walsh"
+      }
+    ]
+  },
+  {
+    "state": "KY",
+    "court": "supreme-court",
+    "courtName": "Kentucky Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are elected in nonpartisan elections from seven appellate districts to eight-year terms; the chief justice is chosen by peer vote for four years.",
+    "termYears": 8,
+    "ballotpediaCourt": "Kentucky_Supreme_Court",
+    "justices": [
+      {
+        "name": "Debra Hembree Lambert",
+        "role": "chief",
+        "termStart": "2019-01-07",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Debra_Hembree_Lambert"
+      },
+      {
+        "name": "Christopher Nickell",
+        "role": "associate",
+        "termStart": "2019-12-11",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Christopher_Nickell"
+      },
+      {
+        "name": "Kelly Thompson",
+        "role": "associate",
+        "termStart": "2023-01-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Kelly_Thompson_(Kentucky)"
+      },
+      {
+        "name": "Angela McCormick Bisig",
+        "role": "associate",
+        "termStart": "2023-01-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Angela_McCormick_Bisig"
+      },
+      {
+        "name": "Pamela R. Goodwine",
+        "role": "associate",
+        "termStart": "2025-01-06",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Pamela_R._Goodwine"
+      },
+      {
+        "name": "Michelle M. Keller",
+        "role": "associate",
+        "termStart": "2013-04-03",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Michelle_Keller"
+      },
+      {
+        "name": "Robert Conley",
+        "role": "associate",
+        "termStart": "2021-01-04",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Robert_Conley"
+      }
+    ]
+  },
+  {
+    "state": "LA",
+    "court": "supreme-court",
+    "courtName": "Louisiana Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Justices are elected in partisan elections from seven districts to ten-year terms; the most senior justice serves as chief, and midterm vacancies are filled by interim appointment pending a special election.",
+    "termYears": 10,
+    "ballotpediaCourt": "Louisiana_Supreme_Court",
+    "justices": [
+      {
+        "name": "John L. Weimer",
+        "role": "chief",
+        "termStart": "2001",
+        "termEnd": "2032",
+        "party": "Independent",
+        "ballotpedia": "John_L._Weimer"
+      },
+      {
+        "name": "William H. Burris",
+        "role": "associate",
+        "termStart": "2026-06-17",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "William_H._Burris"
+      },
+      {
+        "name": "John Guidry",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2034",
+        "party": "Democratic",
+        "ballotpedia": "John_Guidry"
+      },
+      {
+        "name": "Cade Cole",
+        "role": "associate",
+        "termStart": "2025-03-10",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Cade_Cole"
+      },
+      {
+        "name": "Jay B. McCallum",
+        "role": "associate",
+        "termStart": "2020-11-13",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Jay_B._McCallum"
+      },
+      {
+        "name": "Jefferson Hughes",
+        "role": "associate",
+        "termStart": "2013-02-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Jefferson_Hughes"
+      },
+      {
+        "name": "Piper Griffin",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2030",
+        "party": "Democratic",
+        "ballotpedia": "Piper_Griffin"
+      }
+    ]
+  },
+  {
+    "state": "MA",
+    "court": "supreme-court",
+    "courtName": "Massachusetts Supreme Judicial Court",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed by the governor with Governor's Council approval and serve until mandatory retirement at 70; never on a statewide ballot (term-end years are age-70 retirement dates).",
+    "termYears": 0,
+    "ballotpediaCourt": "Massachusetts_Supreme_Judicial_Court",
+    "justices": [
+      {
+        "name": "Kimberly S. Budd",
+        "role": "chief",
+        "termStart": "2020-12-01",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "Kimberly_S._Budd"
+      },
+      {
+        "name": "Elizabeth Dewar",
+        "role": "associate",
+        "termStart": "2024-01-12",
+        "termEnd": "2050",
+        "party": null,
+        "ballotpedia": "Elizabeth_Dewar"
+      },
+      {
+        "name": "Frank M. Gaziano",
+        "role": "associate",
+        "termStart": "2016-08-18",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Frank_M._Gaziano"
+      },
+      {
+        "name": "Serge Georges Jr.",
+        "role": "associate",
+        "termStart": "2020-12-16",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Serge_Georges_Jr."
+      },
+      {
+        "name": "Scott L. Kafker",
+        "role": "associate",
+        "termStart": "2017-08-21",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Scott_Kafker"
+      },
+      {
+        "name": "Dalila Wendlandt",
+        "role": "associate",
+        "termStart": "2020-12-04",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Dalila_Wendlandt"
+      },
+      {
+        "name": "Gabrielle R. Wolohojian",
+        "role": "associate",
+        "termStart": "2024-04-22",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Gabrielle_Wolohojian"
+      }
+    ]
+  },
+  {
+    "state": "MD",
+    "court": "supreme-court",
+    "courtName": "Supreme Court of Maryland",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a nominating-commission list with Senate confirmation, then stand in yes-no retention elections for ten-year terms; renamed from Maryland Court of Appeals in December 2022.",
+    "termYears": 10,
+    "ballotpediaCourt": "Maryland_Supreme_Court",
+    "justices": [
+      {
+        "name": "Matthew Fader",
+        "role": "chief",
+        "termStart": "2022-04-14",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Matthew_Fader"
+      },
+      {
+        "name": "Brynja McDivitt Booth",
+        "role": "associate",
+        "termStart": "2019-04-18",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Brynja_McDivitt_Booth"
+      },
+      {
+        "name": "Angela M. Eaves",
+        "role": "associate",
+        "termStart": "2022-04-12",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Angela_M._Eaves"
+      },
+      {
+        "name": "Peter K. Killough",
+        "role": "associate",
+        "termStart": "2024-07-31",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Peter_K._Killough"
+      },
+      {
+        "name": "Jonathan Biran",
+        "role": "associate",
+        "termStart": "2019-12-16",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Jonathan_Biran"
+      },
+      {
+        "name": "Shirley Marie Watts",
+        "role": "associate",
+        "termStart": "2013-07-31",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Shirley_Marie_Watts"
+      },
+      {
+        "name": "Steven Gould",
+        "role": "associate",
+        "termStart": "2021-09-11",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Steven_Gould"
+      }
+    ]
+  },
+  {
+    "state": "ME",
+    "court": "supreme-court",
+    "courtName": "Maine Supreme Judicial Court",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed by the governor and confirmed by the Maine Senate to seven-year terms; no statewide ballot.",
+    "termYears": 7,
+    "ballotpediaCourt": "Maine_Supreme_Judicial_Court",
+    "justices": [
+      {
+        "name": "Valerie Stanfill",
+        "role": "chief",
+        "termStart": "2021-06-08",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Valerie_Stanfill"
+      },
+      {
+        "name": "Catherine Connors",
+        "role": "associate",
+        "termStart": "2020",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Catherine_Connors"
+      },
+      {
+        "name": "Wayne R. Douglas",
+        "role": "associate",
+        "termStart": "2023-03-10",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Wayne_R._Douglas"
+      },
+      {
+        "name": "Rick E. Lawrence",
+        "role": "associate",
+        "termStart": "2022-05-04",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Rick_E._Lawrence"
+      },
+      {
+        "name": "Julia Lipez",
+        "role": "associate",
+        "termStart": "2025-03-28",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Julia_Lipez"
+      },
+      {
+        "name": "Andrew Mead",
+        "role": "associate",
+        "termStart": "2007",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Andrew_Mead"
+      },
+      {
+        "name": "Christopher Taub",
+        "role": "associate",
+        "termStart": "2026-04-06",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Christopher_Taub"
+      }
+    ]
+  },
+  {
+    "state": "MI",
+    "court": "supreme-court",
+    "courtName": "Michigan Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are nominated by parties but elected statewide on a nonpartisan ballot to eight-year terms; the chief justice is elected by the justices (Megan Cavanagh since 2025).",
+    "termYears": 8,
+    "ballotpediaCourt": "Michigan_Supreme_Court",
+    "justices": [
+      {
+        "name": "Megan Cavanagh",
+        "role": "chief",
+        "termStart": "2019-01-01",
+        "termEnd": "2027",
+        "party": "Democratic",
+        "ballotpedia": "Megan_Cavanagh"
+      },
+      {
+        "name": "Richard Bernstein",
+        "role": "associate",
+        "termStart": "2015-01-01",
+        "termEnd": "2031",
+        "party": "Democratic",
+        "ballotpedia": "Richard_Bernstein"
+      },
+      {
+        "name": "Kyra Harris Bolden",
+        "role": "associate",
+        "termStart": "2023-01-01",
+        "termEnd": "2033",
+        "party": "Democratic",
+        "ballotpedia": "Kyra_Harris_Bolden"
+      },
+      {
+        "name": "Noah Hood",
+        "role": "associate",
+        "termStart": "2025-05-21",
+        "termEnd": "2027",
+        "party": "Democratic",
+        "ballotpedia": "Noah_Hood"
+      },
+      {
+        "name": "Kimberly Thomas",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2033",
+        "party": "Democratic",
+        "ballotpedia": "Kimberly_Thomas_(Michigan)"
+      },
+      {
+        "name": "Elizabeth Welch",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2029",
+        "party": "Democratic",
+        "ballotpedia": "Elizabeth_Welch"
+      },
+      {
+        "name": "Brian Zahra",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Brian_Zahra"
+      }
+    ]
+  },
+  {
+    "state": "MN",
+    "court": "supreme-court",
+    "courtName": "Minnesota Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are elected statewide in nonpartisan elections to six-year terms (most first reach the court by appointment to an interim vacancy); the chief justice is a directly elected statewide seat.",
+    "termYears": 6,
+    "ballotpediaCourt": "Minnesota_Supreme_Court",
+    "justices": [
+      {
+        "name": "Natalie E. Hudson",
+        "role": "chief",
+        "termStart": "2023-10-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Natalie_Hudson"
+      },
+      {
+        "name": "Sarah E. Hennesy",
+        "role": "associate",
+        "termStart": "2024-05-13",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Sarah_E._Hennesy"
+      },
+      {
+        "name": "Theodora Ga\u00eftas",
+        "role": "associate",
+        "termStart": "2024-08-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Theodora_Ga%C3%AFtas"
+      },
+      {
+        "name": "Gordon Moore",
+        "role": "associate",
+        "termStart": "2020-08-03",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Gordon_Moore"
+      },
+      {
+        "name": "Paul Thissen",
+        "role": "associate",
+        "termStart": "2018",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Paul_Thissen"
+      },
+      {
+        "name": "Anne K. McKeig",
+        "role": "associate",
+        "termStart": "2016-09-15",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Anne_K._McKeig"
+      },
+      {
+        "name": "Karl Procaccini",
+        "role": "associate",
+        "termStart": "2023-10-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Karl_Procaccini"
+      }
+    ]
+  },
+  {
+    "state": "MO",
+    "court": "supreme-court",
+    "courtName": "Supreme Court of Missouri",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Judges are appointed from a nominating commission's list under the Missouri Plan, then stand in yes-no retention elections for 12-year terms; the chief justice is elected by peer vote to a two-year term.",
+    "termYears": 12,
+    "ballotpediaCourt": "Supreme_Court_of_Missouri",
+    "justices": [
+      {
+        "name": "Wesley Brent Powell",
+        "role": "chief",
+        "termStart": "2017",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Wesley_Brent_Powell"
+      },
+      {
+        "name": "Kelly C. Broniec",
+        "role": "associate",
+        "termStart": "2023-09-25",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "Kelly_C._Broniec"
+      },
+      {
+        "name": "Zel Fischer",
+        "role": "associate",
+        "termStart": "2008",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Zel_Fischer"
+      },
+      {
+        "name": "Ginger Gooch",
+        "role": "associate",
+        "termStart": "2023-11-01",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "Ginger_Gooch"
+      },
+      {
+        "name": "Robin Ransom",
+        "role": "associate",
+        "termStart": "2021-06-08",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Robin_Ransom"
+      },
+      {
+        "name": "Mary Rhodes Russell",
+        "role": "associate",
+        "termStart": "2004",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Mary_Rhodes_Russell_(Missouri)"
+      },
+      {
+        "name": "Paul C. Wilson",
+        "role": "associate",
+        "termStart": "2013",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Paul_C._Wilson_(Missouri)"
+      }
+    ]
+  },
+  {
+    "state": "MS",
+    "court": "supreme-court",
+    "courtName": "Mississippi Supreme Court",
+    "seats": 9,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Nine justices are elected in nonpartisan elections, three per district, to eight-year terms; the chief is the most senior justice. Two District 3 seats are vacant (Chamberlin and Maxwell resigned Dec 2025 for federal judgeships; special elections Nov 2026).",
+    "termYears": 8,
+    "ballotpediaCourt": "Mississippi_Supreme_Court",
+    "justices": [
+      {
+        "name": "Mike Randolph",
+        "role": "chief",
+        "termStart": "2004",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Mike_Randolph"
+      },
+      {
+        "name": "T. Kenneth Griffis",
+        "role": "associate",
+        "termStart": "2019-02-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "T._Kenneth_Griffis"
+      },
+      {
+        "name": "Leslie King",
+        "role": "associate",
+        "termStart": "2011",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Leslie_King"
+      },
+      {
+        "name": "Jenifer Branning",
+        "role": "associate",
+        "termStart": "2025-01-06",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Jenifer_B._Branning"
+      },
+      {
+        "name": "David Ishee",
+        "role": "associate",
+        "termStart": "2017-09-18",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "David_Ishee"
+      },
+      {
+        "name": "David Sullivan",
+        "role": "associate",
+        "termStart": "2025-01-06",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "David_Sullivan_(Mississippi)"
+      },
+      {
+        "name": "Josiah Coleman",
+        "role": "associate",
+        "termStart": "2013-01-07",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Josiah_Coleman"
+      }
+    ]
+  },
+  {
+    "state": "MT",
+    "court": "supreme-court",
+    "courtName": "Montana Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are chosen in statewide nonpartisan elections for eight-year terms; the chief justice is separately elected to that position; unopposed incumbents stand in retention-style yes-no votes.",
+    "termYears": 8,
+    "ballotpediaCourt": "Montana_Supreme_Court",
+    "justices": [
+      {
+        "name": "Cory Swanson",
+        "role": "chief",
+        "termStart": "2025-01-01",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Cory_Swanson"
+      },
+      {
+        "name": "Beth Baker",
+        "role": "associate",
+        "termStart": "2011-01-03",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Beth_Baker"
+      },
+      {
+        "name": "Katherine M. Bidegaray",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Katherine_M._Bidegaray"
+      },
+      {
+        "name": "Ingrid Gayle Gustafson",
+        "role": "associate",
+        "termStart": "2018-01-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Ingrid_Gustafson"
+      },
+      {
+        "name": "Laurie McKinnon",
+        "role": "associate",
+        "termStart": "2013",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Laurie_McKinnon"
+      },
+      {
+        "name": "James A. Rice",
+        "role": "associate",
+        "termStart": "2001",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "James_Rice_(Montana)"
+      },
+      {
+        "name": "Jim Shea",
+        "role": "associate",
+        "termStart": "2014-06-02",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Jim_Shea"
+      }
+    ]
+  },
+  {
+    "state": "NC",
+    "court": "supreme-court",
+    "courtName": "North Carolina Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Justices are chosen in statewide partisan elections for eight-year terms; the chief justice is elected by voters to that office, and midterm vacancies are filled by gubernatorial appointment until the next general election.",
+    "termYears": 8,
+    "ballotpediaCourt": "North_Carolina_Supreme_Court",
+    "justices": [
+      {
+        "name": "Paul Newby",
+        "role": "chief",
+        "termStart": "2021-01-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Paul_Martin_Newby"
+      },
+      {
+        "name": "Trey Allen",
+        "role": "associate",
+        "termStart": "2023-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Trey_Allen_(North_Carolina)"
+      },
+      {
+        "name": "Tamara Barringer",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Tamara_Barringer"
+      },
+      {
+        "name": "Phil Berger Jr.",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Phil_Berger_Jr."
+      },
+      {
+        "name": "Richard Dietz",
+        "role": "associate",
+        "termStart": "2023-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Richard_Dietz"
+      },
+      {
+        "name": "Anita Earls",
+        "role": "associate",
+        "termStart": "2019-01-01",
+        "termEnd": "2026",
+        "party": "Democratic",
+        "ballotpedia": "Anita_Earls"
+      },
+      {
+        "name": "Allison Riggs",
+        "role": "associate",
+        "termStart": "2023-09-11",
+        "termEnd": "2032",
+        "party": "Democratic",
+        "ballotpedia": "Allison_Riggs"
+      }
+    ]
+  },
+  {
+    "state": "ND",
+    "court": "supreme-court",
+    "courtName": "North Dakota Supreme Court",
+    "seats": 5,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are chosen in statewide nonpartisan elections for ten-year terms; the governor fills midterm vacancies, and the chief justice is chosen by vote of the supreme and district court judges (Lisa Fair McEvers became chief in 2026).",
+    "termYears": 10,
+    "ballotpediaCourt": "North_Dakota_Supreme_Court",
+    "justices": [
+      {
+        "name": "Lisa Fair McEvers",
+        "role": "chief",
+        "termStart": "2014-01-01",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Lisa_Fair_McEvers"
+      },
+      {
+        "name": "Douglas Bahr",
+        "role": "associate",
+        "termStart": "2023-02-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Douglas_Bahr"
+      },
+      {
+        "name": "Mark Friese",
+        "role": "associate",
+        "termStart": "2026-03-09",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Mark_Friese"
+      },
+      {
+        "name": "Jon Jay Jensen",
+        "role": "associate",
+        "termStart": "2017",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Jon_Jay_Jensen"
+      },
+      {
+        "name": "Jerod Tufte",
+        "role": "associate",
+        "termStart": "2017-01-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Jerod_Tufte"
+      }
+    ]
+  },
+  {
+    "state": "NE",
+    "court": "supreme-court",
+    "courtName": "Nebraska Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a judicial nominating commission's list, then face yes-no retention elections every six years; the chief justice runs statewide, associates by district.",
+    "termYears": 6,
+    "ballotpediaCourt": "Nebraska_Supreme_Court",
+    "justices": [
+      {
+        "name": "Jeffrey Funke",
+        "role": "chief",
+        "termStart": "2024-11-01",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Jeffrey_Funke"
+      },
+      {
+        "name": "Jason Bergevin",
+        "role": "associate",
+        "termStart": "2025-02-14",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Jason_Bergevin"
+      },
+      {
+        "name": "William Cassel",
+        "role": "associate",
+        "termStart": "2012-05-09",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "William_Cassel"
+      },
+      {
+        "name": "John Freudenberg",
+        "role": "associate",
+        "termStart": "2018-07-06",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "John_Freudenberg"
+      },
+      {
+        "name": "Jonathan Papik",
+        "role": "associate",
+        "termStart": "2018",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Jonathan_Papik"
+      },
+      {
+        "name": "Stephanie Stacy",
+        "role": "associate",
+        "termStart": "2015-09-28",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Stephanie_Stacy"
+      },
+      {
+        "name": "Derek Vaughn",
+        "role": "associate",
+        "termStart": "2026-01-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Derek_Vaughn"
+      }
+    ]
+  },
+  {
+    "state": "NH",
+    "court": "supreme-court",
+    "courtName": "New Hampshire Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are nominated by the governor and confirmed by the Executive Council, serving until mandatory retirement at 70 with no elections of any kind.",
+    "termYears": 0,
+    "ballotpediaCourt": "New_Hampshire_Supreme_Court",
+    "justices": [
+      {
+        "name": "Gordon MacDonald",
+        "role": "chief",
+        "termStart": "2021-03-04",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Gordon_MacDonald"
+      },
+      {
+        "name": "Melissa Beth Countway",
+        "role": "associate",
+        "termStart": "2024-01-02",
+        "termEnd": "2041",
+        "party": null,
+        "ballotpedia": "Melissa_Beth_Countway"
+      },
+      {
+        "name": "Patrick E. Donovan",
+        "role": "associate",
+        "termStart": "2018-05-08",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Patrick_Donovan_(New_Hampshire)"
+      },
+      {
+        "name": "Bryan Gould",
+        "role": "associate",
+        "termStart": "2025-09-18",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Bryan_Gould"
+      },
+      {
+        "name": "Daniel Will",
+        "role": "associate",
+        "termStart": "2026-03-04",
+        "termEnd": "2037",
+        "party": null,
+        "ballotpedia": "Daniel_Will_(New_Hampshire)"
+      }
+    ]
+  },
+  {
+    "state": "NJ",
+    "court": "supreme-court",
+    "courtName": "New Jersey Supreme Court",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed by the governor with senate consent for an initial seven-year term, then may be reappointed to serve until mandatory retirement at 70; never on a ballot.",
+    "termYears": 7,
+    "ballotpediaCourt": "New_Jersey_Supreme_Court",
+    "justices": [
+      {
+        "name": "Stuart Rabner",
+        "role": "chief",
+        "termStart": "2007-06-29",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Stuart_Rabner"
+      },
+      {
+        "name": "Douglas M. Fasciale",
+        "role": "associate",
+        "termStart": "2022-10-21",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Douglas_M._Fasciale"
+      },
+      {
+        "name": "John J. Hoffman",
+        "role": "associate",
+        "termStart": "2024-10-02",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "John_Hoffman_(New_Jersey)"
+      },
+      {
+        "name": "Michael Noriega",
+        "role": "associate",
+        "termStart": "2023-06-30",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Michael_Noriega"
+      },
+      {
+        "name": "Anne Patterson",
+        "role": "associate",
+        "termStart": "2011-09-01",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Anne_Patterson_(New_Jersey)"
+      },
+      {
+        "name": "Fabiana Pierre-Louis",
+        "role": "associate",
+        "termStart": "2020-09-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Fabiana_Pierre-Louis"
+      },
+      {
+        "name": "Rachel Wainer Apter",
+        "role": "associate",
+        "termStart": "2022-10-21",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Rachel_Wainer_Apter"
+      }
+    ]
+  },
+  {
+    "state": "NM",
+    "court": "supreme-court",
+    "courtName": "New Mexico Supreme Court",
+    "seats": 5,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Hybrid: vacancies are filled by gubernatorial appointment from a commission list, the appointee runs in a statewide partisan election at the next general, and thereafter stands in retention elections (57% yes) for eight-year terms.",
+    "termYears": 8,
+    "ballotpediaCourt": "New_Mexico_Supreme_Court",
+    "justices": [
+      {
+        "name": "Julie Vargas",
+        "role": "chief",
+        "termStart": "2021-01-25",
+        "termEnd": "2028",
+        "party": "Democratic",
+        "ballotpedia": "Julie_Vargas"
+      },
+      {
+        "name": "Shannon Bacon",
+        "role": "associate",
+        "termStart": "2019-02-04",
+        "termEnd": "2026",
+        "party": "Democratic",
+        "ballotpedia": "Shannon_Bacon"
+      },
+      {
+        "name": "David K. Thomson",
+        "role": "associate",
+        "termStart": "2019-02-04",
+        "termEnd": "2026",
+        "party": "Democratic",
+        "ballotpedia": "David_Thomson"
+      },
+      {
+        "name": "Michael E. Vigil",
+        "role": "associate",
+        "termStart": "2018-12-31",
+        "termEnd": "2030",
+        "party": "Democratic",
+        "ballotpedia": "Michael_Vigil_(New_Mexico_Supreme_Court)"
+      },
+      {
+        "name": "Briana H. Zamora",
+        "role": "associate",
+        "termStart": "2021-08-09",
+        "termEnd": "2032",
+        "party": "Democratic",
+        "ballotpedia": "Briana_H._Zamora"
+      }
+    ]
+  },
+  {
+    "state": "NV",
+    "court": "supreme-court",
+    "courtName": "Nevada Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are chosen in statewide nonpartisan elections for six-year terms (vacancies filled by gubernatorial appointment until the next election); the chief justice rotates by seniority.",
+    "termYears": 6,
+    "ballotpediaCourt": "Nevada_Supreme_Court",
+    "justices": [
+      {
+        "name": "Douglas Herndon",
+        "role": "chief",
+        "termStart": "2021-01-04",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Douglas_Herndon"
+      },
+      {
+        "name": "Linda M. Bell",
+        "role": "associate",
+        "termStart": "2023-01-02",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Linda_M._Bell"
+      },
+      {
+        "name": "Elissa Cadish",
+        "role": "associate",
+        "termStart": "2019-01-07",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Elissa_Cadish"
+      },
+      {
+        "name": "Patricia Lee",
+        "role": "associate",
+        "termStart": "2022-11-21",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Patricia_Lee"
+      },
+      {
+        "name": "Ron Parraguirre",
+        "role": "associate",
+        "termStart": "2005-01-03",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Ron_Parraguirre"
+      },
+      {
+        "name": "Kris Pickering",
+        "role": "associate",
+        "termStart": "2009",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Kris_Pickering"
+      },
+      {
+        "name": "Lidia Stiglich",
+        "role": "associate",
+        "termStart": "2016-12-05",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Lidia_Stiglich"
+      }
+    ]
+  },
+  {
+    "state": "NY",
+    "court": "supreme-court",
+    "courtName": "New York Court of Appeals",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "NY's court of last resort (its 'Supreme Court' is the trial court); judges are appointed from a Commission on Judicial Nomination shortlist with senate confirmation to 14-year terms and never appear on a ballot.",
+    "termYears": 14,
+    "ballotpediaCourt": "New_York_Court_of_Appeals",
+    "justices": [
+      {
+        "name": "Rowan Wilson",
+        "role": "chief",
+        "termStart": "2017-02-06",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Rowan_Wilson"
+      },
+      {
+        "name": "Anthony Cannataro",
+        "role": "associate",
+        "termStart": "2021-06-08",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Anthony_Cannataro"
+      },
+      {
+        "name": "Michael Garcia",
+        "role": "associate",
+        "termStart": "2016-02-08",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Michael_Garcia_(New_York)"
+      },
+      {
+        "name": "Caitlin J. Halligan",
+        "role": "associate",
+        "termStart": "2023-04-19",
+        "termEnd": "2037",
+        "party": null,
+        "ballotpedia": "Caitlin_J._Halligan"
+      },
+      {
+        "name": "Jenny Rivera",
+        "role": "associate",
+        "termStart": "2013-02-11",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Jenny_Rivera"
+      },
+      {
+        "name": "Madeline Singas",
+        "role": "associate",
+        "termStart": "2021-06-08",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Madeline_Singas"
+      },
+      {
+        "name": "Shirley Troutman",
+        "role": "associate",
+        "termStart": "2022-01-12",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "Shirley_Troutman"
+      }
+    ]
+  },
+  {
+    "state": "OH",
+    "court": "supreme-court",
+    "courtName": "Ohio Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Justices run statewide for six-year terms with party labels on the general-election ballot (2021 law); the chief justice is elected by voters to that office; gubernatorial appointees fill midterm vacancies until the next general election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Ohio_Supreme_Court",
+    "justices": [
+      {
+        "name": "Sharon Kennedy",
+        "role": "chief",
+        "termStart": "2023-01-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Sharon_L._Kennedy"
+      },
+      {
+        "name": "Jennifer Brunner",
+        "role": "associate",
+        "termStart": "2021-01-02",
+        "termEnd": "2027",
+        "party": "Democratic",
+        "ballotpedia": "Jennifer_L._Brunner"
+      },
+      {
+        "name": "Pat DeWine",
+        "role": "associate",
+        "termStart": "2017-01-02",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Pat_DeWine"
+      },
+      {
+        "name": "Joseph Deters",
+        "role": "associate",
+        "termStart": "2025-01-02",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Joseph_Deters"
+      },
+      {
+        "name": "Pat Fischer",
+        "role": "associate",
+        "termStart": "2017-01-01",
+        "termEnd": "2028",
+        "party": "Republican",
+        "ballotpedia": "Pat_Fischer"
+      },
+      {
+        "name": "Dan Hawkins",
+        "role": "associate",
+        "termStart": "2024-12-10",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Dan_Hawkins_(Ohio)"
+      },
+      {
+        "name": "Megan Shanahan",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Megan_Shanahan"
+      }
+    ]
+  },
+  {
+    "state": "OK",
+    "court": "court-of-criminal-appeals",
+    "courtName": "Oklahoma Court of Criminal Appeals",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Judges are appointed from a nominating-commission list and appear on yes-no retention ballots every six years; Presiding Judge Gary Lumpkin retires effective 2027-01-01.",
+    "termYears": 6,
+    "ballotpediaCourt": "Oklahoma_Court_of_Criminal_Appeals",
+    "justices": [
+      {
+        "name": "Gary Lumpkin",
+        "role": "chief",
+        "termStart": "1989",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Gary_Lumpkin"
+      },
+      {
+        "name": "Rob Hudson",
+        "role": "associate",
+        "termStart": "2015",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Rob_Hudson"
+      },
+      {
+        "name": "David Lewis",
+        "role": "associate",
+        "termStart": "2005",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "David_B._Lewis"
+      },
+      {
+        "name": "William Musseman",
+        "role": "associate",
+        "termStart": "2022-03-18",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "William_J._Musseman"
+      },
+      {
+        "name": "Scott Rowland",
+        "role": "associate",
+        "termStart": "2017",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Scott_Rowland"
+      }
+    ]
+  },
+  {
+    "state": "OK",
+    "court": "supreme-court",
+    "courtName": "Oklahoma Supreme Court",
+    "seats": 9,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a nominating-commission list and appear on yes-no retention ballots \u2014 first at the next general election after a year in office, then every six years (Kauger lost retention Nov 2024; successor Travis Jett faces retention 2026).",
+    "termYears": 6,
+    "ballotpediaCourt": "Oklahoma_Supreme_Court",
+    "justices": [
+      {
+        "name": "Dustin Rowe",
+        "role": "chief",
+        "termStart": "2020-02-24",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Dustin_Rowe"
+      },
+      {
+        "name": "Douglas Combs",
+        "role": "associate",
+        "termStart": "2010",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Douglas_L._Combs"
+      },
+      {
+        "name": "Richard Darby",
+        "role": "associate",
+        "termStart": "2018",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Richard_Darby"
+      },
+      {
+        "name": "James Edmondson",
+        "role": "associate",
+        "termStart": "2003",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "James_Edmondson"
+      },
+      {
+        "name": "Noma Gurich",
+        "role": "associate",
+        "termStart": "2011-02-15",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Noma_D._Gurich"
+      },
+      {
+        "name": "Travis Jett",
+        "role": "associate",
+        "termStart": "2025-04-14",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Travis_Jett"
+      },
+      {
+        "name": "M. John Kane IV",
+        "role": "associate",
+        "termStart": "2019",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "M._John_Kane_IV"
+      },
+      {
+        "name": "Dana Kuehn",
+        "role": "associate",
+        "termStart": "2021-08-02",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Dana_Kuehn"
+      },
+      {
+        "name": "James Winchester",
+        "role": "associate",
+        "termStart": "2000",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "James_R._Winchester"
+      }
+    ]
+  },
+  {
+    "state": "OR",
+    "court": "supreme-court",
+    "courtName": "Oregon Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Justices are chosen in statewide nonpartisan elections for six-year terms; the governor fills midterm vacancies with the appointee standing at the next general election; the chief justice is selected by peer vote.",
+    "termYears": 6,
+    "ballotpediaCourt": "Oregon_Supreme_Court",
+    "justices": [
+      {
+        "name": "Meagan Flynn",
+        "role": "chief",
+        "termStart": "2017-04-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Meagan_A._Flynn"
+      },
+      {
+        "name": "Stephen Bushong",
+        "role": "associate",
+        "termStart": "2023-01-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Stephen_K._Bushong"
+      },
+      {
+        "name": "Roger DeHoog",
+        "role": "associate",
+        "termStart": "2022-01-19",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Roger_J._DeHoog"
+      },
+      {
+        "name": "Rebecca Duncan",
+        "role": "associate",
+        "termStart": "2017",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Rebecca_Duncan"
+      },
+      {
+        "name": "Chris Garrett",
+        "role": "associate",
+        "termStart": "2019-01-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Chris_Garrett"
+      },
+      {
+        "name": "Bronson James",
+        "role": "associate",
+        "termStart": "2023-01-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Bronson_James"
+      },
+      {
+        "name": "Aruna Masih",
+        "role": "associate",
+        "termStart": "2023-09-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Aruna_Masih"
+      }
+    ]
+  },
+  {
+    "state": "PA",
+    "court": "supreme-court",
+    "courtName": "Pennsylvania Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Justices are first elected in statewide partisan elections, then keep seats via yes-no retention every ten years (Donohue, Dougherty, Wecht retained Nov 2025); the chief justice is the longest-serving justice.",
+    "termYears": 10,
+    "ballotpediaCourt": "Pennsylvania_Supreme_Court",
+    "justices": [
+      {
+        "name": "Debra Todd",
+        "role": "chief",
+        "termStart": "2008",
+        "termEnd": "2027",
+        "party": "Democratic",
+        "ballotpedia": "Debra_Todd"
+      },
+      {
+        "name": "Kevin Brobson",
+        "role": "associate",
+        "termStart": "2022-01-03",
+        "termEnd": "2031",
+        "party": "Republican",
+        "ballotpedia": "Kevin_Brobson"
+      },
+      {
+        "name": "Christine Donohue",
+        "role": "associate",
+        "termStart": "2016-01-08",
+        "termEnd": "2035",
+        "party": "Democratic",
+        "ballotpedia": "Christine_Donohue"
+      },
+      {
+        "name": "Kevin Dougherty",
+        "role": "associate",
+        "termStart": "2016-01-05",
+        "termEnd": "2035",
+        "party": "Democratic",
+        "ballotpedia": "Kevin_M._Dougherty"
+      },
+      {
+        "name": "Daniel McCaffery",
+        "role": "associate",
+        "termStart": "2024-01-02",
+        "termEnd": "2033",
+        "party": "Democratic",
+        "ballotpedia": "Daniel_D._McCaffery"
+      },
+      {
+        "name": "Sallie Mundy",
+        "role": "associate",
+        "termStart": "2016",
+        "termEnd": "2027",
+        "party": "Republican",
+        "ballotpedia": "Sallie_Mundy"
+      },
+      {
+        "name": "David Wecht",
+        "role": "associate",
+        "termStart": "2016-01-07",
+        "termEnd": "2035",
+        "party": "Unaffiliated",
+        "ballotpedia": "David_N._Wecht"
+      }
+    ]
+  },
+  {
+    "state": "RI",
+    "court": "supreme-court",
+    "courtName": "Rhode Island Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed by the governor from a nominating-commission list, confirmed by both chambers, and serve for life \u2014 never on any ballot; one seat is vacant as of July 2026.",
+    "termYears": 0,
+    "ballotpediaCourt": "Rhode_Island_Supreme_Court",
+    "justices": [
+      {
+        "name": "Paul Suttell",
+        "role": "chief",
+        "termStart": "2009-07-16",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Paul_Suttell"
+      },
+      {
+        "name": "Melissa Long",
+        "role": "associate",
+        "termStart": "2021-01-11",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Melissa_Long"
+      },
+      {
+        "name": "Erin Lynch Prata",
+        "role": "associate",
+        "termStart": "2021-01-04",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "Erin_Lynch_Prata"
+      },
+      {
+        "name": "William P. Robinson",
+        "role": "associate",
+        "termStart": "2004",
+        "termEnd": null,
+        "party": null,
+        "ballotpedia": "William_Robinson_(Rhode_Island)"
+      }
+    ]
+  },
+  {
+    "state": "SC",
+    "court": "supreme-court",
+    "courtName": "South Carolina Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are elected by the General Assembly to 10-year terms after Judicial Merit Selection Commission screening; there is no statewide ballot.",
+    "termYears": 10,
+    "ballotpediaCourt": "South_Carolina_Supreme_Court",
+    "justices": [
+      {
+        "name": "John Kittredge",
+        "role": "chief",
+        "termStart": "2024-07-30",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "John_Kittredge"
+      },
+      {
+        "name": "John C. Few",
+        "role": "associate",
+        "termStart": "2016-02-09",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "John_C._Few"
+      },
+      {
+        "name": "George C. James Jr.",
+        "role": "associate",
+        "termStart": "2017-02-07",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "George_C._James_Jr._(South_Carolina)"
+      },
+      {
+        "name": "D. Garrison Hill",
+        "role": "associate",
+        "termStart": "2023-02-08",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "D._Garrison_Hill"
+      },
+      {
+        "name": "Letitia H. Verdin",
+        "role": "associate",
+        "termStart": "2024-07-31",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Letitia_H._Verdin"
+      }
+    ]
+  },
+  {
+    "state": "SD",
+    "court": "supreme-court",
+    "courtName": "South Dakota Supreme Court",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed by the governor from nominating-commission recommendations, stand in a yes-no retention election after at least three years, then every eight years.",
+    "termYears": 8,
+    "ballotpediaCourt": "South_Dakota_Supreme_Court",
+    "justices": [
+      {
+        "name": "Steven Jensen",
+        "role": "chief",
+        "termStart": "2017-11-03",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Steven_Jensen"
+      },
+      {
+        "name": "Mark Salter",
+        "role": "associate",
+        "termStart": "2018-07-09",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Mark_Salter"
+      },
+      {
+        "name": "Patricia DeVaney",
+        "role": "associate",
+        "termStart": "2019-05-24",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Patricia_DeVaney"
+      },
+      {
+        "name": "Scott P. Myren",
+        "role": "associate",
+        "termStart": "2021-01-05",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Scott_P._Myren"
+      },
+      {
+        "name": "Robert Gusinsky",
+        "role": "associate",
+        "termStart": "2025-12-08",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Robert_Gusinsky"
+      }
+    ]
+  },
+  {
+    "state": "TN",
+    "court": "supreme-court",
+    "courtName": "Tennessee Supreme Court",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed by the governor with legislative confirmation, then stand in yes-no retention elections for eight-year terms; the justices select the chief from among themselves.",
+    "termYears": 8,
+    "ballotpediaCourt": "Tennessee_Supreme_Court",
+    "justices": [
+      {
+        "name": "Jeff Bivins",
+        "role": "chief",
+        "termStart": "2014-07-15",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Jeff_Bivins"
+      },
+      {
+        "name": "Sarah Campbell",
+        "role": "associate",
+        "termStart": "2022-02-10",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Sarah_Campbell"
+      },
+      {
+        "name": "Dwight Tarwater",
+        "role": "associate",
+        "termStart": "2023-09-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Dwight_Tarwater"
+      },
+      {
+        "name": "Mary L. Wagner",
+        "role": "associate",
+        "termStart": "2024-09-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Mary_L._Wagner_(Tennessee)"
+      },
+      {
+        "name": "Kyle Hixson",
+        "role": "associate",
+        "termStart": "2026-07-01",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Kyle_Hixson"
+      }
+    ]
+  },
+  {
+    "state": "TX",
+    "court": "court-of-criminal-appeals",
+    "courtName": "Texas Court of Criminal Appeals",
+    "seats": 9,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Judges of Texas's court of last resort for criminal cases are elected statewide in partisan elections to six-year staggered terms; midterm vacancies are filled by gubernatorial appointment until the next general election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Texas_Court_of_Criminal_Appeals",
+    "justices": [
+      {
+        "name": "David Schenck",
+        "role": "chief",
+        "termStart": "2025-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "David_Schenck"
+      },
+      {
+        "name": "Mary Lou Keel",
+        "role": "associate",
+        "termStart": "2017-01-01",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Mary_Lou_Keel"
+      },
+      {
+        "name": "Bert Richardson",
+        "role": "associate",
+        "termStart": "2015-01-01",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Bert_Richardson"
+      },
+      {
+        "name": "Kevin Patrick Yeary",
+        "role": "associate",
+        "termStart": "2015-01-01",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Kevin_Patrick_Yeary"
+      },
+      {
+        "name": "Scott Walker",
+        "role": "associate",
+        "termStart": "2017-01-01",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Scott_Walker_(Texas)"
+      },
+      {
+        "name": "Jesse McClure",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Jesse_McClure"
+      },
+      {
+        "name": "Gina Parker",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Gina_Parker"
+      },
+      {
+        "name": "Lee Finley",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Lee_Finley"
+      },
+      {
+        "name": "David Newell",
+        "role": "associate",
+        "termStart": "2015-01-01",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "David_Newell_(Texas)"
+      }
+    ]
+  },
+  {
+    "state": "TX",
+    "court": "supreme-court",
+    "courtName": "Texas Supreme Court",
+    "seats": 9,
+    "selectionMethod": "elected_partisan",
+    "selectionDetail": "Justices are elected statewide in partisan elections to six-year staggered terms; midterm vacancies are filled by gubernatorial appointment with Senate confirmation until the next general election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Texas_Supreme_Court",
+    "justices": [
+      {
+        "name": "Jimmy Blacklock",
+        "role": "chief",
+        "termStart": "2025-01-06",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Jimmy_Blacklock"
+      },
+      {
+        "name": "James Sullivan",
+        "role": "associate",
+        "termStart": "2025-01-06",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "James_Sullivan_(Texas)"
+      },
+      {
+        "name": "Debra Lehrmann",
+        "role": "associate",
+        "termStart": "2010-06-21",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Debra_Lehrmann"
+      },
+      {
+        "name": "John Devine",
+        "role": "associate",
+        "termStart": "2013-01-01",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "John_Devine_(Texas)"
+      },
+      {
+        "name": "Rebeca Huddle",
+        "role": "associate",
+        "termStart": "2020-10-30",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Rebeca_Huddle"
+      },
+      {
+        "name": "Jane Bland",
+        "role": "associate",
+        "termStart": "2019-08-26",
+        "termEnd": "2030",
+        "party": "Republican",
+        "ballotpedia": "Jane_Bland"
+      },
+      {
+        "name": "Kyle Hawkins",
+        "role": "associate",
+        "termStart": "2025-10-27",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Kyle_Hawkins"
+      },
+      {
+        "name": "Brett Busby",
+        "role": "associate",
+        "termStart": "2019-03-20",
+        "termEnd": "2026",
+        "party": "Republican",
+        "ballotpedia": "Brett_Busby"
+      },
+      {
+        "name": "Evan Young",
+        "role": "associate",
+        "termStart": "2021-11-09",
+        "termEnd": "2029",
+        "party": "Republican",
+        "ballotpedia": "Evan_Young"
+      }
+    ]
+  },
+  {
+    "state": "UT",
+    "court": "supreme-court",
+    "courtName": "Utah Supreme Court",
+    "seats": 7,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed by the governor with Senate confirmation and stand in yes-no retention elections (first after at least three years, then every ten years); the court expanded from five to seven seats in 2026 and one seat remains vacant as of July 2026.",
+    "termYears": 10,
+    "ballotpediaCourt": "Utah_Supreme_Court",
+    "justices": [
+      {
+        "name": "Matthew Durrant",
+        "role": "chief",
+        "termStart": "2000",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Matthew_Durrant_(Utah_Supreme_Court_justice)"
+      },
+      {
+        "name": "Paige Petersen",
+        "role": "associate",
+        "termStart": "2018-01-19",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Paige_Petersen"
+      },
+      {
+        "name": "Jill Pohlman",
+        "role": "associate",
+        "termStart": "2022-08-17",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Jill_Pohlman"
+      },
+      {
+        "name": "John Nielsen",
+        "role": "associate",
+        "termStart": "2025-12-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "John_Nielsen"
+      },
+      {
+        "name": "Stephen Dent",
+        "role": "associate",
+        "termStart": "2026-06-22",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Stephen_Dent"
+      },
+      {
+        "name": "Jay Jorgensen",
+        "role": "associate",
+        "termStart": "2026-06-22",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Jay_Jorgensen"
+      }
+    ]
+  },
+  {
+    "state": "VA",
+    "court": "supreme-court",
+    "courtName": "Supreme Court of Virginia",
+    "seats": 7,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are elected by majority vote of both houses of the General Assembly to 12-year terms and never appear on a voter's ballot; the chief justice is chosen by peer vote.",
+    "termYears": 12,
+    "ballotpediaCourt": "Supreme_Court_of_Virginia",
+    "justices": [
+      {
+        "name": "Cleo Powell",
+        "role": "chief",
+        "termStart": "2011-08-01",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Cleo_Powell"
+      },
+      {
+        "name": "Teresa M. Chafin",
+        "role": "associate",
+        "termStart": "2019-09-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Teresa_M._Chafin"
+      },
+      {
+        "name": "Junius P. Fulton III",
+        "role": "associate",
+        "termStart": "2026-01-01",
+        "termEnd": "2038",
+        "party": null,
+        "ballotpedia": "Junius_P._Fulton,_III"
+      },
+      {
+        "name": "D. Arthur Kelsey",
+        "role": "associate",
+        "termStart": "2015-03-06",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "D._Arthur_Kelsey"
+      },
+      {
+        "name": "Thomas P. Mann",
+        "role": "associate",
+        "termStart": "2022-08-01",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Thomas_P._Mann"
+      },
+      {
+        "name": "Stephen R. McCullough",
+        "role": "associate",
+        "termStart": "2016-03-03",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Stephen_R._McCullough"
+      },
+      {
+        "name": "Wesley G. Russell Jr.",
+        "role": "associate",
+        "termStart": "2022-07-01",
+        "termEnd": "2034",
+        "party": null,
+        "ballotpedia": "Wesley_G._Russell_Jr."
+      }
+    ]
+  },
+  {
+    "state": "VT",
+    "court": "supreme-court",
+    "courtName": "Vermont Supreme Court",
+    "seats": 5,
+    "selectionMethod": "appointed",
+    "selectionDetail": "Justices are appointed by the governor from judicial nominating board candidates with Senate confirmation, retained for successive six-year terms by General Assembly vote; no statewide ballot.",
+    "termYears": 6,
+    "ballotpediaCourt": "Vermont_Supreme_Court",
+    "justices": [
+      {
+        "name": "Paul Reiber",
+        "role": "chief",
+        "termStart": "2004-12-17",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Paul_Reiber"
+      },
+      {
+        "name": "Harold Eaton",
+        "role": "associate",
+        "termStart": "2014-10-27",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Harold_Eaton_(Vermont)"
+      },
+      {
+        "name": "Nancy Waples",
+        "role": "associate",
+        "termStart": "2022-04-15",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Nancy_Waples"
+      },
+      {
+        "name": "Michael Drescher",
+        "role": "associate",
+        "termStart": "2026-02-06",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Michael_Drescher"
+      },
+      {
+        "name": "Christina Nolan",
+        "role": "associate",
+        "termStart": "2026-02-06",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "Christina_Nolan"
+      }
+    ]
+  },
+  {
+    "state": "WA",
+    "court": "supreme-court",
+    "courtName": "Washington Supreme Court",
+    "seats": 9,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Nine justices are elected statewide in nonpartisan elections to staggered six-year terms; midterm vacancies are filled by gubernatorial appointment, appointees standing at the next general election.",
+    "termYears": 6,
+    "ballotpediaCourt": "Washington_Supreme_Court",
+    "justices": [
+      {
+        "name": "Debra Stephens",
+        "role": "chief",
+        "termStart": "2008-01-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Debra_Stephens"
+      },
+      {
+        "name": "Colleen Melody",
+        "role": "associate",
+        "termStart": "2026-01-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Colleen_Melody"
+      },
+      {
+        "name": "Sal Mungia",
+        "role": "associate",
+        "termStart": "2025-01-13",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Sal_Mungia"
+      },
+      {
+        "name": "Raquel Montoya-Lewis",
+        "role": "associate",
+        "termStart": "2020-01-06",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Raquel_Montoya-Lewis"
+      },
+      {
+        "name": "Charles W. Johnson",
+        "role": "associate",
+        "termStart": "1991-01-14",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Charles_W._Johnson_(Washington)"
+      },
+      {
+        "name": "Theo Angelis",
+        "role": "associate",
+        "termStart": "2026-04-04",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Theo_Angelis"
+      },
+      {
+        "name": "G. Helen Whitener",
+        "role": "associate",
+        "termStart": "2020-04-24",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "G._Helen_Whitener"
+      },
+      {
+        "name": "Steven Gonzalez",
+        "role": "associate",
+        "termStart": "2012-01-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Steven_Gonzalez"
+      },
+      {
+        "name": "Sheryl Gordon McCloud",
+        "role": "associate",
+        "termStart": "2013-01-01",
+        "termEnd": "2031",
+        "party": null,
+        "ballotpedia": "Sheryl_McCloud"
+      }
+    ]
+  },
+  {
+    "state": "WI",
+    "court": "supreme-court",
+    "courtName": "Wisconsin Supreme Court",
+    "seats": 7,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Seven justices are elected statewide in nonpartisan spring elections to 10-year terms (at most one seat per year); the chief justice is chosen by peer vote for two years. Rebecca Bradley's term expires July 31, 2026.",
+    "termYears": 10,
+    "ballotpediaCourt": "Wisconsin_Supreme_Court",
+    "justices": [
+      {
+        "name": "Jill Karofsky",
+        "role": "chief",
+        "termStart": "2020-08-01",
+        "termEnd": "2030",
+        "party": null,
+        "ballotpedia": "Jill_Karofsky"
+      },
+      {
+        "name": "Rebecca Bradley",
+        "role": "associate",
+        "termStart": "2015-10-12",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Rebecca_Bradley"
+      },
+      {
+        "name": "Susan Crawford",
+        "role": "associate",
+        "termStart": "2025-08-01",
+        "termEnd": "2035",
+        "party": null,
+        "ballotpedia": "Susan_Crawford_(Wisconsin)"
+      },
+      {
+        "name": "Rebecca Dallet",
+        "role": "associate",
+        "termStart": "2018-08-01",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Rebecca_Dallet"
+      },
+      {
+        "name": "Brian Hagedorn",
+        "role": "associate",
+        "termStart": "2019-08-01",
+        "termEnd": "2029",
+        "party": null,
+        "ballotpedia": "Brian_Hagedorn"
+      },
+      {
+        "name": "Janet Protasiewicz",
+        "role": "associate",
+        "termStart": "2023-08-01",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "Janet_Claire_Protasiewicz"
+      },
+      {
+        "name": "Annette Ziegler",
+        "role": "associate",
+        "termStart": "2007-08-01",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Annette_Ziegler"
+      }
+    ]
+  },
+  {
+    "state": "WV",
+    "court": "supreme-court",
+    "courtName": "Supreme Court of Appeals of West Virginia",
+    "seats": 5,
+    "selectionMethod": "elected_nonpartisan",
+    "selectionDetail": "Five justices are elected statewide in nonpartisan elections (partisan before 2016) to 12-year terms; the chief justice rotates by peer vote annually. Flanigan and Kirkpatrick were seated June 2026 after winning May 2026 elections for unexpired terms.",
+    "termYears": 12,
+    "ballotpediaCourt": "West_Virginia_Supreme_Court_of_Appeals",
+    "justices": [
+      {
+        "name": "C. Haley Bunn",
+        "role": "chief",
+        "termStart": "2022-04-27",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "C._Haley_Bunn"
+      },
+      {
+        "name": "Bill Flanigan",
+        "role": "associate",
+        "termStart": "2026-06-11",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Bill_Flanigan"
+      },
+      {
+        "name": "H.L. Kirkpatrick",
+        "role": "associate",
+        "termStart": "2026-06-12",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "H.L._Kirkpatrick"
+      },
+      {
+        "name": "Charles S. Trump IV",
+        "role": "associate",
+        "termStart": "2025-01-01",
+        "termEnd": "2036",
+        "party": null,
+        "ballotpedia": "Charles_S._Trump_IV"
+      },
+      {
+        "name": "William Wooton",
+        "role": "associate",
+        "termStart": "2021-01-01",
+        "termEnd": "2032",
+        "party": null,
+        "ballotpedia": "William_Wooton"
+      }
+    ]
+  },
+  {
+    "state": "WY",
+    "court": "supreme-court",
+    "courtName": "Wyoming Supreme Court",
+    "seats": 5,
+    "selectionMethod": "retention",
+    "selectionDetail": "Justices are appointed from a judicial nominating commission's list, stand in retention at the first general election after one year, then every eight years; the chief justice is chosen by peer vote.",
+    "termYears": 8,
+    "ballotpediaCourt": "Wyoming_Supreme_Court",
+    "justices": [
+      {
+        "name": "Lynne Boomgaarden",
+        "role": "chief",
+        "termStart": "2018-02-20",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Lynne_Boomgaarden"
+      },
+      {
+        "name": "John G. Fenn",
+        "role": "associate",
+        "termStart": "2022-01-17",
+        "termEnd": "2033",
+        "party": null,
+        "ballotpedia": "John_G._Fenn"
+      },
+      {
+        "name": "Kari Jo Gray",
+        "role": "associate",
+        "termStart": "2018-10-09",
+        "termEnd": "2028",
+        "party": null,
+        "ballotpedia": "Kari_Gray"
+      },
+      {
+        "name": "Bridget Hill",
+        "role": "associate",
+        "termStart": "2025-05-28",
+        "termEnd": "2027",
+        "party": null,
+        "ballotpedia": "Bridget_Hill"
+      },
+      {
+        "name": "Robert Jarosh",
+        "role": "associate",
+        "termStart": "2024-03-27",
+        "termEnd": "2026",
+        "party": null,
+        "ballotpedia": "Robert_Jarosh"
+      }
+    ]
+  }
+]

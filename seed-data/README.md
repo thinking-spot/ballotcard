@@ -8,6 +8,7 @@ election cycles; `npm run ingest` upserts them idempotently.
 | `governors.json` | 50 governors | Wikipedia, List of current United States governors | 2026-07-16 |
 | `statewide-execs.json` | Lt. governors (45), attorneys general (50), secretaries of state (47), treasurers/equivalent (50) | Wikipedia current-officeholder tables | 2026-07-16 (delta check) |
 | `mayors.json` | 100 mayors: Ballotpedia's top-100 cities + DC, minus Santa Clarita (council-appointed mayor, not on any ballot) | Ballotpedia top-100 list + per-city Ballotpedia bios/election pages, cross-checked with city and news sources | 2026-07-16 |
+| `high-courts.json` | 53 courts of last resort (50 states + DC + TX/OK Courts of Criminal Appeals) with sitting justices | Ballotpedia court pages + justice bios, cross-checked with court/news sources. (CourtListener was evaluated and rejected: its state rosters run years stale.) | 2026-07-16 |
 
 Notes and known gaps:
 
@@ -18,6 +19,13 @@ Notes and known gaps:
 - Mayors: `party` is the officeholder's publicly identified affiliation (most big-city
   mayoral *elections* are nonpartisan); "Nonpartisan" means the person has no public
   affiliation (e.g. Guajardo, Treviño, Ross told Ballotpedia exactly that).
+- High courts: justice `termStart`/`termEnd` may be a bare year when Ballotpedia
+  publishes no day precision — ingestion stores Jan 1 / Dec 31 of that year, so day
+  precision on justice terms is approximate. `termEnd` is the term-expiry year (the
+  seat's election/retention usually falls in or just before it). Offices exist for
+  vacant seats and for appointed courts (selection_method keeps the latter off ballot
+  cards). Seats are labeled "Seat 1..N" with the chief justice in Seat 1; in states
+  where the chief role rotates by peer vote, that labeling shifts with the roster.
 - Pending: TX Secretary of State Jane Nelson's resignation is effective 2026-07-17
   (the day after this verification); Gov. Abbott had named no successor as of 7/16.
   Update `statewide-execs.json` when the appointee is sworn in.

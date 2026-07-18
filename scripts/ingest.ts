@@ -25,6 +25,7 @@ import type {
   MayorEntry,
   StatewideExecEntry,
   FederalExecEntry,
+  HighCourtEntry,
   OpenStatesPerson,
 } from "./lib/types";
 import { fetchOpenStatesPeople } from "./lib/openstates";
@@ -43,6 +44,7 @@ import statewideExecs from "../seed-data/statewide-execs.json";
 import federalExecs from "../seed-data/federal-execs.json";
 import legislatureSchedule from "../seed-data/legislature-schedule.json";
 import counties from "../seed-data/counties.json";
+import highCourts from "../seed-data/high-courts.json";
 import { resolveStaggeredSeats } from "./lib/resolve-staggered";
 import { mergeOfficialRefs } from "./lib/merge-official-refs";
 
@@ -563,6 +565,37 @@ async function ingestOffices(sources: Sources) {
     });
   }
 
+  // 2h. State courts of last resort — one office per seat, on the state
+  // district row (statewide seats, like US Senate). Seats beyond the sitting
+  // justices still get an office: the ballot shows a vacant seat whether or
+  // not someone holds it. next_election_at stays null in v1 — per-seat
+  // judicial election/retention dates aren't in the seed yet, and a wrong
+  // date is worse than null. Appointed courts (NY, NJ, VA, DC…) get rows
+  // too; selection_method keeps them off ballot cards.
+  for (const c of highCourts as HighCourtEntry[]) {
+    const stateId = slugToId.get(c.state.toLowerCase());
+    if (!stateId) continue;
+    const roleWord = c.court === "court-of-criminal-appeals" ? "Judge" : "Justice";
+    for (let seat = 1; seat <= c.seats; seat++) {
+      const seatKey = `${stateId}::${c.court}::Seat ${seat}`;
+      if (seatExistingSet.has(seatKey)) continue;
+      toInsert.push({
+        district_id: stateId,
+        title: `${roleWord}, ${c.courtName}`,
+        slug: c.court,
+        seat_label: `Seat ${seat}`,
+        kind: "judicial",
+        branch: "judicial",
+        level: "state",
+        selection_method: c.selectionMethod,
+        description: c.selectionDetail,
+        term_years: c.termYears,
+        next_election_at: null,
+        is_seeded: true,
+      });
+    }
+  }
+
   if (toInsert.length > 0) {
     await insertChunked("Offices", toInsert);
     log("offices", `Inserted ${toInsert.length} offices`);
@@ -837,6 +870,46 @@ async function ingestOfficials(sources: Sources) {
       term_start: m.termStart,
       term_end: m.termEnd,
       external_refs: m.ballotpedia ? { ballotpedia: m.ballotpedia } : {},
+    });
+  }
+
+  // 3f. High court justices. Chief fills Seat 1, associates fill 2..N in
+  // name order — deterministic across runs while the roster is unchanged;
+  // a membership change shifts names across seats, which place() absorbs as
+  // ordinary officeholder turnover. Bare-year seed dates become Jan 1 /
+  // Dec 31 of that year (documented in seed-data/README.md).
+  const courtOfficeMap = new Map(
+    offices
+      .filter(
+        (o) => o.slug === "supreme-court" || o.slug === "court-of-criminal-appeals"
+      )
+      .map((o) => [
+        stateLegKey(districtIdToSlug.get(o.district_id) ?? "", o.slug, o.seat_label),
+        o.id,
+      ])
+  );
+  const yearOnly = /^\d{4}$/;
+  for (const c of highCourts as HighCourtEntry[]) {
+    const ordered = [
+      ...c.justices.filter((j) => j.role === "chief"),
+      ...c.justices
+        .filter((j) => j.role !== "chief")
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    ];
+    ordered.forEach((j, i) => {
+      place(
+        courtOfficeMap.get(
+          stateLegKey(c.state.toLowerCase(), c.court, `Seat ${i + 1}`)
+        ),
+        {
+          name: j.name,
+          party: j.party,
+          term_start: yearOnly.test(j.termStart) ? `${j.termStart}-01-01` : j.termStart,
+          term_end:
+            j.termEnd && yearOnly.test(j.termEnd) ? `${j.termEnd}-12-31` : j.termEnd,
+          external_refs: j.ballotpedia ? { ballotpedia: j.ballotpedia } : {},
+        }
+      );
     });
   }
 
